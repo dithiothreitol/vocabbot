@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Build results and downloaded course sources
+build/
+dist/
+.cache/
+
+# A learner's folder never enters this repository
+learner/
+*.learner/
+
+# Local tooling
+.env
+.vscode/
+.idea/
+.claude/settings.local.json
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
