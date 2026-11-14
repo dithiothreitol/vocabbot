@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -291,16 +291,12 @@ def entry_problems(entry: dict[str, Any], *, own: bool = False) -> list[str]:
         k not in FORM_KEYS or not isinstance(v, str) or not v.strip() for k, v in forms.items()
     ):
         problems.append(f"forms may only hold {', '.join(FORM_KEYS)} as text")
+    # pronunciation and an example are wanted, not required: course check counts them
     ipa = entry.get("ipa")
     if ipa is not None and (not isinstance(ipa, str) or not IPA.match(ipa)):
         problems.append("ipa must be written between slashes or square brackets")
-    if not own and ipa is None:
-        problems.append("ipa is missing")
     example = entry.get("example")
-    if example is None:
-        if not own:
-            problems.append("example is missing")
-    else:
+    if example is not None:
         problems += _example_problems(example)
     sources = entry.get("sources")
     if not own and (not isinstance(sources, list) or not sources):
@@ -352,8 +348,9 @@ def check(catalog: Catalog) -> dict[str, Any]:
     errors: list[str] = list(catalog.problems)
     warnings: list[str] = []
     counts: dict[str, dict[str, int]] = defaultdict(dict)
+    coverage: dict[str, Counter[str]] = defaultdict(Counter)
     seen_rank: set[tuple[str, str, int]] = set()
-    meanings: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    meanings: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     entries = catalog.entries()
     ids = {str(e.get("id")) for e in entries}
     for entry in entries:
@@ -363,6 +360,9 @@ def check(catalog: Catalog) -> dict[str, Any]:
             errors.append(f"{label}: {problem}")
         lang, level = str(entry.get("lang")), str(entry.get("level"))
         counts[lang][level] = counts[lang].get(level, 0) + 1
+        coverage[lang]["entries"] += 1
+        coverage[lang]["example"] += "example" in entry
+        coverage[lang]["ipa"] += "ipa" in entry
         if not own and isinstance(entry.get("rank"), int):
             key = (lang, level, int(entry["rank"]))
             if key in seen_rank:
@@ -370,17 +370,15 @@ def check(catalog: Catalog) -> dict[str, Any]:
             seen_rank.add(key)
         gloss = entry.get("gloss")
         if isinstance(gloss, dict) and isinstance(gloss.get("pl"), str):
-            meanings[(lang, gloss["pl"].strip().casefold())].append(entry)
+            # the question shows the part of speech, so only the same meaning and part clash
+            meanings[(lang, gloss["pl"].strip().casefold(), str(entry.get("pos")))].append(entry)
         for other in entry.get("confusable", []) or []:
             if other not in ids:
                 errors.append(f"{label}: confusable {other!r} is not an entry")
-    for (lang, meaning), same in meanings.items():
+    for (lang, meaning, _), same in meanings.items():
         if len(same) > 1 and not all(e.get("hint") for e in same):
             names = ", ".join(str(e.get("id")) for e in same)
             errors.append(f"{lang}: {names} share the meaning {meaning!r} and need a hint each")
-    concept_langs: dict[str, set[str]] = defaultdict(set)
-    for entry in entries:
-        concept_langs[str(entry.get("concept"))].add(str(entry.get("lang")))
     for lang, levels in catalog.installed().items():
         meta = catalog.meta(lang)
         if not meta.get("license") or not meta.get("sources"):
@@ -398,4 +396,5 @@ def check(catalog: Catalog) -> dict[str, Any]:
             lang: dict(sorted(c.items(), key=lambda i: LEVEL_ORDER.get(i[0], 9)))
             for lang, c in sorted(counts.items())
         },
+        "coverage": {lang: dict(c) for lang, c in sorted(coverage.items())},
     }

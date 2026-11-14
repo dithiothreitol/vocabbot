@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Any
 
 REPO = Path(__file__).resolve().parents[2]
-TARGETS = [REPO / "src" / "vocabbot" / "data" / "courses", REPO / "tests" / "fixtures" / "courses"]
+# Since Stage 2 the packaged courses come from tools/courses/pipeline.py; the
+# starter course stays as the test fixture.
+TARGETS = [REPO / "tests" / "fixtures" / "courses"]
 LANGS = ("en", "de", "es", "fr")
 VERSION = "2026-11-14"
 

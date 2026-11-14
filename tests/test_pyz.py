@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -12,8 +13,13 @@ from typing import Any
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "scripts"))
-import build  # noqa: E402
+# scripts/build.py is loaded under its own name: tools/courses has a module called build too
+_spec = importlib.util.spec_from_file_location(
+    "vocabbot_build_script", REPO / "scripts" / "build.py"
+)
+assert _spec is not None and _spec.loader is not None
+build = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(build)
 
 DAY = "2026-11-16"
 

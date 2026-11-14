@@ -27,6 +27,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-The starter course in src/vocabbot/data/courses and tests/fixtures/courses
-was written for VocabBot and is licensed under CC BY-SA 4.0
-(https://creativecommons.org/licenses/by-sa/4.0/).
+The courses in src/vocabbot/data/courses are licensed under CC BY-SA 4.0
+(https://creativecommons.org/licenses/by-sa/4.0/). tools/courses/pipeline.py
+builds them from:
+
+- The CEFR-J Wordlist Version 1.5, compiled by Yukio Tono, Tokyo University
+  of Foreign Studies (https://github.com/openlanguageprofiles/olp-en-cefrj).
+  The CEFR levels of the concepts come from this list, which may be used for
+  research and commercial purposes provided that it is cited.
+- English Wiktionary (https://en.wiktionary.org), CC BY-SA 4.0 and GFDL, in
+  the extract of wiktextract by Tatu Ylonen (https://kaikki.org/dictionary/),
+  dump of 2026-10-01: translations, gender, forms and pronunciation.
+- wordfreq 3.1.1 by Robyn Speer (https://github.com/rspeer/wordfreq), data
+  under CC BY-SA 4.0: the order of the words and the choice of equivalents.
+- Tatoeba (https://tatoeba.org), CC BY 2.0 FR: example sentences and their
+  Polish translations. src/vocabbot/data/courses/<lang>/sentences.tsv names
+  the author of every sentence used.
+
+The starter course in tests/fixtures/courses was written for VocabBot and is
+licensed under CC BY-SA 4.0.
