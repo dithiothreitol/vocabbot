@@ -1,0 +1,18 @@
+{
+  "lang": "de",
+  "base": "pl",
+  "title": "Kurs startowy",
+  "version": "2026-11-14",
+  "levels": {
+    "a1": 40,
+    "a2": 20
+  },
+  "license": "CC BY-SA 4.0",
+  "sources": [
+    {
+      "id": "vocabbot",
+      "name": "VocabBot starter course, written for this project",
+      "license": "CC BY-SA 4.0"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "code": "fr",
+  "name": {
+    "pl": "francuski",
+    "en": "French"
+  },
+  "tag": "FR",
+  "color": "magenta",
+  "articles": {
+    "m": "le",
+    "f": "la"
+  },
+  "plural_articles": [
+    "les"
+  ],
+  "other_articles": [
+    "un",
+    "une",
+    "des",
+    "du"
+  ],
+  "elided_article": "l'",
+  "nouns_capitalized": false,
+  "feminine_el": false,
+  "substitutions": [
+    [
+      "œ",
+      "oe"
+    ],
+    [
+      "æ",
+      "ae"
+    ],
+    [
+      "Œ",
+      "Oe"
+    ],
+    [
+      "Æ",
+      "Ae"
+    ]
+  ],
+  "optional_prefixes": {}
+}

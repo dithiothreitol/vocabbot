@@ -1,0 +1,26 @@
+{
+  "code": "en",
+  "name": {
+    "pl": "angielski",
+    "en": "English"
+  },
+  "tag": "EN",
+  "color": "cyan",
+  "articles": {},
+  "plural_articles": [],
+  "other_articles": [],
+  "elided_article": null,
+  "nouns_capitalized": false,
+  "feminine_el": false,
+  "substitutions": [],
+  "optional_prefixes": {
+    "noun": [
+      "a",
+      "an",
+      "the"
+    ],
+    "verb": [
+      "to"
+    ]
+  }
+}

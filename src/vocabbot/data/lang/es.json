@@ -1,0 +1,29 @@
+{
+  "code": "es",
+  "name": {
+    "pl": "hiszpański",
+    "en": "Spanish"
+  },
+  "tag": "ES",
+  "color": "red",
+  "articles": {
+    "m": "el",
+    "f": "la"
+  },
+  "plural_articles": [
+    "los",
+    "las"
+  ],
+  "other_articles": [
+    "un",
+    "una",
+    "unos",
+    "unas",
+    "lo"
+  ],
+  "elided_article": null,
+  "nouns_capitalized": false,
+  "feminine_el": true,
+  "substitutions": [],
+  "optional_prefixes": {}
+}

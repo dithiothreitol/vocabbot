@@ -1,0 +1,62 @@
+{
+  "code": "de",
+  "name": {
+    "pl": "niemiecki",
+    "en": "German"
+  },
+  "tag": "DE",
+  "color": "yellow",
+  "articles": {
+    "m": "der",
+    "f": "die",
+    "n": "das"
+  },
+  "plural_articles": [
+    "die"
+  ],
+  "other_articles": [
+    "ein",
+    "eine",
+    "einen",
+    "einem",
+    "einer",
+    "eines",
+    "den",
+    "dem",
+    "des"
+  ],
+  "elided_article": null,
+  "nouns_capitalized": true,
+  "feminine_el": false,
+  "substitutions": [
+    [
+      "ä",
+      "ae"
+    ],
+    [
+      "ö",
+      "oe"
+    ],
+    [
+      "ü",
+      "ue"
+    ],
+    [
+      "Ä",
+      "Ae"
+    ],
+    [
+      "Ö",
+      "Oe"
+    ],
+    [
+      "Ü",
+      "Ue"
+    ],
+    [
+      "ß",
+      "ss"
+    ]
+  ],
+  "optional_prefixes": {}
+}

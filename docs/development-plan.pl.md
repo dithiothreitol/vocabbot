@@ -1,9 +1,10 @@
 # Plan implementacji VocabBot
 
-Stan: 2026-11-14, przed Etapem 1. Plan powstał przed rozpoczęciem kodowania
-i czeka na Twoją akceptację. Repozytorium zawiera obecnie licencję, ten plan
-oraz wektory wzorcowe harmonogramu (`tests/fixtures/`). Wersja angielska planu
-powstanie w Etapie 3 razem z pozostałą dokumentacją.
+Stan: 2026-11-14, po Etapie 1 (wersja 1.0.0.dev1). Plan zaakceptowałeś
+14.11.2026. Silnik, program `vocabbot`, plik `vocabbot.pyz` i kurs startowy
+60 pojęć w czterech językach działają; wynik etapu opisuje rozdział 10.
+Następny jest Etap 2 (kursy A1–B2). Wersja angielska planu powstanie
+w Etapie 3 razem z pozostałą dokumentacją.
 
 ---
 
@@ -524,6 +525,71 @@ Kryteria akceptacji:
   błędów i daje ten sam wynik w dwóch uruchomieniach.
 - Ręczna próba: `vocabbot init`, `vocabbot drill` i `vocabbot status`
   w Windows Terminal z wpisywaniem znaków ä, ß, ñ, é.
+
+#### Wynik Etapu 1 (14.11.2026, wersja 1.0.0.dev1)
+
+Wszystkie kryteria akceptacji Etapu 1 są spełnione; tabela podaje wyniki.
+Środowisko: uv 0.13.8 (zaktualizowany z 0.11.18),
+Python 3.15.2 i 3.10.20 zainstalowane przez uv obok Pythona 3.14.3,
+ruff 0.17.5, mypy 2.4.1, pytest 9.2.0, rich 15.0.0, fsrs 6.3.3.
+
+| Kryterium | Wynik |
+|---|---|
+| ruff, ruff format, mypy, pytest na 3.15 | bez uwag; mypy w trybie strict z celem 3.10; 117 testów |
+| pytest na 3.10 | 117 testów w osobnym środowisku `.venv-py310` |
+| zgodność z `fsrs` 6.3.3 | 9 scenariuszy dla trwałości 0,9 i 0,85 oraz 200 losowych ciągów ocen; stabilność i trudność zgodne do 1e-6, odstępy co do dnia |
+| zachowania silnika | testy obejmują podział limitu według wag, odstęp 3 dni między językami, rozdzielenie rodziny w kolejce, niezmienną kolejność po przerwaniu sesji, utrwalanie bez zmiany terminu, odmowę oceny spoza listy dnia, odmowę „znałem” przy powtórce, zgodność stanu po scaleniu dwóch dzienników, ocenę każdej klasy błędu w czterech językach, bramkę zmian i `next` bez odpowiedzi |
+| `vocabbot.pyz` | archiwum 74 KiB; pełny dzień nauki dwóch języków z `python -I -S`, czyli bez żadnych pakietów spoza biblioteki standardowej |
+| symulacja 30 dni | trzy języki, 12 nowych słów dziennie, niedziele wolne; dwa przebiegi dają identyczny dziennik bajt w bajt, lista dnia nie zmienia się po odpowiedziach; odstęp między językami dla każdego pojęcia wynosi co najmniej 3 dni |
+| próba w konsoli | pseudokonsola ConPTY, z której korzysta Windows Terminal: `vocabbot init` z odpowiedzią „t” na pytanie o zapis, sesja ze słowami wpisanymi znak po znaku (der Bär, süß, el señor, mañana, le café, la fête) ocenionymi „wiem”, ekran `vocabbot status` |
+
+Etap wprowadził rozwiązania, które uzupełniają plan:
+
+1. Identyfikator hasła ma postać `<język>-<pojęcie>` (`de-c90002`), dzięki
+   czemu karta zachowuje tożsamość, gdy hasło zmieni poziom w Etapie 2.
+   Kurs startowy używa pojęć c90001–c90060. Własne słowa dostają
+   identyfikatory losowe (`de-u3f9a1c`).
+2. Silnik pokazuje nowe słowa partiami po pięć (słowo, znaczenie, formy,
+   wymowa, przykład) i zaraz po partii sprawdza je pytaniem; pierwsza
+   wpisana odpowiedź ustala stan początkowy karty.
+3. Ocena odpowiedzi ma dwie dodatkowe klasy: `form` (inna forma tego samego
+   słowa, na przykład liczba mnoga, daje „prawie”) i `blank` (pusta
+   odpowiedź). Ustawienie planu `diacritics=lenient` pozwala uczącym się
+   bez klawiatury z é lub ñ zaliczać odpowiedzi bez znaków diakrytycznych;
+   dziennik nadal zapisuje taki błąd.
+4. Bramka obejmuje także `vocabbot init` i naprawy z `vocabbot doctor`. Podgląd
+   nowego folderu czeka w `~/.vocabbot/pending`. W terminalu program sam
+   zadaje pytanie „Zapisać tę zmianę? [t/N]”. W trybie `--json` zwraca
+   token, który umiejętność przekazuje do `vocabbot commit`.
+5. Dodatkowe nowe słowa z `vocabbot today --extra N` trafiają do
+   `registers/day.json`, więc obowiązują w terminalu i w czacie do końca dnia.
+6. Wstrzymany język nie dostaje nowych słów i nadal ma powtórki;
+   `lang.xx=off` usuwa język z planu. Hasło zgłoszone poleceniem `flag` czeka
+   poza kolejką do czasu `flag --clear`.
+7. Oprócz modułów z rozdziału 5 pakiet ma moduły `assets`, `errors`,
+   `session` (następne karty, odpowiedzi, oceny), `plans`, `words`,
+   `progress` (postęp i prognoza) oraz `doctor`.
+
+Etap przyniósł trzy wnioski.
+
+1. Symulacja wykryła błąd, którego nie pokazały testy pojedynczych funkcji:
+   limit języka z wyczerpanym kursem przechodził na pozostałe języki przy
+   każdym przeliczeniu kolejki od nowa, przez co jeden język dostał 15 nowych
+   słów przy limicie 12. Silnik wybiera teraz całą listę dnia ze stanu sprzed
+   tego dnia i układa kolejność na pełnej liście; kolejne odpowiedzi usuwają
+   z niej tylko karty już przerobione.
+2. Odtwarzanie całego dziennika przy każdej odpowiedzi wydłużało symulację do
+   283 s. Dziennik czytany raz na proces i stan sprzed dnia liczony raz na
+   dzień skróciły ją do 28 s; zapis z `fsync` kosztuje w Windows około 2,6 ms
+   na odpowiedź i zostaje dla bezpieczeństwa dziennika.
+3. Python 3.15 domyślnie pracuje w trybie UTF-8. Na Pythonie 3.10 program
+   sam ustawia UTF-8 dla wejścia i wyjścia, ponieważ bez tego znak ñ nie
+   przechodzi przez potok w kodowaniu cp1250.
+
+Możesz przeprowadzić próbę w samej aplikacji Windows Terminal. Polecenie
+`uv tool install .` w katalogu repozytorium instaluje program `vocabbot`,
+po czym `vocabbot init`, `vocabbot drill` i `vocabbot status` prowadzą
+przez całą ścieżkę.
 
 ### Etap 2. Kursy A1–B2 dla czterech języków
 
