@@ -43,7 +43,20 @@
     "empty_stdin": "Polecenie oczekuje tekstu na wejściu standardowym.",
     "bad_batch_line": "Wiersz {line} wejścia nie jest obiektem JSON z polami card i answer.",
     "bad_count": "Liczba musi być dodatnia.",
-    "bad_day": "Data „{value}” nie ma postaci RRRR-MM-DD."
+    "bad_day": "Data „{value}” nie ma postaci RRRR-MM-DD.",
+    "no_course": "Nie ma kursu języka „{lang}”.",
+    "nothing_to_add": "Nie ma nic do dodania: {detail}",
+    "reveal_production": "Karta {card} wymaga wpisania odpowiedzi; odpowiedź pokazuje dopiero polecenie answer."
+  },
+  "quiz": {
+    "title": "Test poziomujący: {name}, poziomy {levels}. Wpisz słowo w języku nauki; pusta odpowiedź oznacza „nie wiem”.",
+    "level": "Poziom {level}",
+    "question": "{n}. {meaning}",
+    "result": "{n}. {meaning} → {word} ({grade})",
+    "level_line": "{level}: wiem {know}, prawie {almost}, pytań {asked}; wynik {percent}%",
+    "stop": "Wynik poniżej {percent}%, więc test kończy się na tym poziomie.",
+    "suggest": "Proponowane poziomy nauki: {levels}.",
+    "none": "Brak odpowiedzi do oceny."
   },
   "gate": {
     "via_terminal": "zatwierdzone w terminalu",
@@ -146,8 +159,13 @@
     "ahead": "powtórka przed terminem"
   },
   "words": {
-    "duplicate": "{word} jest już w kursie ({id})",
+    "duplicate": "{word} jest już we własnych słowach ({id})",
+    "learning": "{word} jest już w nauce",
     "line": "{word} = {meaning}",
+    "moved": "{word} = {meaning} (słowo z kursu {level}, wejdzie przed kolejnymi słowami kursu)",
+    "skipped": "Pominięte: {detail}",
+    "not_in_plan": "Język {lang} nie należy do planu; te słowa wejdą do nauki po dodaniu go do planu.",
+    "same_meaning": "Uwaga: znaczenie „{meaning}” ma też {other}; dopisek (pole hint) rozróżni pytania o {word} i {other}.",
     "summary": "własne słowa ({lang}): {count}"
   },
   "doctor": {
@@ -191,7 +209,9 @@
     "flagged": "Zgłoszono błąd w haśle {entry}; karta czeka do usunięcia zgłoszenia.",
     "unflagged": "Usunięto zgłoszenie hasła {entry}.",
     "regraded": "Zmieniono ocenę karty {card}: {was} → {grade}.",
-    "known": "Zapisano: znałem to słowo. Karta wróci {due}."
+    "known": "Zapisano: znałem to słowo. Karta wróci {due}.",
+    "no_match": "Kurs nie zawiera takiego słowa ani znaczenia.",
+    "use": "Folder nauki: {learner}. Kolejne polecenia korzystają z niego bez opcji --learner."
   },
   "drill": {
     "title": "VocabBot · {day}",

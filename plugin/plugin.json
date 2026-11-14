@@ -1,0 +1,49 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "vocabbot",
+  "version": "1.0.0-rc.1",
+  "description": "Vocabulary in one to three languages at once (English, German, Spanish, French; A1 to B2) for Polish speakers, with spaced repetition: a daily session in the chat or the terminal, typed answers graded by the engine, every due date from the FSRS-6 scheduler.",
+  "author": {
+    "name": "Dariusz Tyszka",
+    "url": "https://github.com/dithiothreitol"
+  },
+  "homepage": "https://github.com/dithiothreitol/vocabbot",
+  "repository": "https://github.com/dithiothreitol/vocabbot",
+  "license": "Apache-2.0",
+  "keywords": [
+    "vocabulary",
+    "language-learning",
+    "spaced-repetition",
+    "fsrs",
+    "flashcards",
+    "polish",
+    "english",
+    "german",
+    "spanish",
+    "french"
+  ],
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/vocab-start/SKILL.md",
+      "interface": {
+        "displayName": "VocabBot",
+        "shortDescription": "Vocabulary in up to three languages at once, with spaced repetition",
+        "longDescription": "VocabBot teaches English, German, Spanish and French vocabulary from A1 to B2 to Polish speakers, one to three languages at once. Words come in order of frequency, each typed answer is graded by the engine, and every review comes back on the day the FSRS-6 scheduler sets. The learner's plan, log and own words stay in a folder on their computer.",
+        "developerName": "Dariusz Tyszka",
+        "category": "Education",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://github.com/dithiothreitol/vocabbot",
+        "privacyPolicyURL": "https://github.com/dithiothreitol/vocabbot/blob/main/plugin/PRIVACY.md",
+        "defaultPrompt": [
+          "Skonfiguruj VocabBota",
+          "Zacznijmy dzisiejszą sesję słówek",
+          "Jak mi idzie nauka?"
+        ],
+        "brandColor": "#2F5D9E"
+      }
+    }
+  }
+}

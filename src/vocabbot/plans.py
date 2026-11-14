@@ -72,8 +72,12 @@ def init_preview(
     catalog: Catalog,
     now: datetime,
     base: str = "pl",
+    assignments: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Preview of a new learner folder with its plan and the pointer to it."""
+    """Preview of a new learner folder with its plan and the pointer to it.
+
+    `assignments` are further settings in the form of `plan set` (days_off=sun).
+    """
     folder = folder.expanduser().resolve()
     if (folder / store.PLAN).exists():
         raise VocabError("plan_exists", folder=str(folder))
@@ -84,6 +88,8 @@ def init_preview(
             "languages": [store.parse_language(s) for s in languages],
         }
     )
+    for assignment in assignments or []:
+        _apply(plan, assignment)
     _check(plan, catalog)
     pointer = store.config_dir() / store.CONFIG
     changes = [

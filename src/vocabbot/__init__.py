@@ -1,3 +1,3 @@
 """VocabBot: vocabulary in one to three languages at once, with spaced repetition."""
 
-__version__ = "1.0.0.dev2"
+__version__ = "1.0.0rc1"

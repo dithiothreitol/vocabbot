@@ -1,0 +1,50 @@
+{
+ "name": "session-regrade-on-request",
+ "skill": "vocab-session",
+ "group": "grades",
+ "about": "a grade changes only when the learner asks for that card",
+ "learner": {
+  "languages": [
+   "de:b1-b2",
+   "es:b1-b2"
+  ],
+  "new_per_day": 6,
+  "history_days": 6,
+  "wrong_every": 4,
+  "prepare": [
+   "typo_first_review"
+  ]
+ },
+ "turns": [
+  {
+   "say": "Jak oceniono moją dzisiejszą odpowiedź na „<<today_meaning>>”?",
+   "expect": {
+    "rows_where": [
+     {
+      "where": {
+       "kind": "regrade"
+      },
+      "count": 0
+     }
+    ],
+    "plan_unchanged": true
+   }
+  },
+  {
+   "say": "To była literówka, zalicz mi to słowo jako „wiem”.",
+   "expect": {
+    "rows_where": [
+     {
+      "where": {
+       "kind": "regrade",
+       "grade": "know"
+      },
+      "count": 1
+     }
+    ],
+    "log_rows_added": 1,
+    "plan_unchanged": true
+   }
+  }
+ ]
+}

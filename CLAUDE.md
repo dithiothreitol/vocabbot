@@ -4,8 +4,8 @@
 
 - `src/vocabbot/` is one package with the engine and the `vocabbot` program.
   - The engine (`fsrs`, `answers`, `courses`, `store`, `book`, `queue`,
-    `session`, `gate`, `plans`, `words`, `progress`, `doctor`, `cli`,
-    `assets`, `errors`) uses the standard library only and runs on
+    `session`, `quiz`, `gate`, `plans`, `words`, `progress`, `doctor`,
+    `cli`, `assets`, `errors`) uses the standard library only and runs on
     Python 3.10 and later, because `vocabbot.pyz` runs on whatever
     interpreter a host's sandbox has.
   - `drill.py` imports Rich inside `RichScreen` only; without Rich the
@@ -19,7 +19,27 @@
   `tests/fixtures/courses` (through `VOCABBOT_COURSES`), so a new packaged
   course does not change them. `tests/fixtures/fsrs_vectors.json` holds
   reference results of py-fsrs 6.3.3 (`make_fsrs_vectors.py` makes them).
-- `scripts/build.py pyz` builds `build/vocabbot.pyz`.
+- `plugin/` is the plugin: `.claude-plugin/plugin.json` for Claude and the
+  portable `plugin.json` for Codex, with the same name, version and
+  description; `.claude-plugin/marketplace.json` and
+  `.agents/plugins/marketplace.json` at the root list it. The version is the
+  semantic form of the version in `pyproject.toml` (`1.0.0rc1` is
+  `1.0.0-rc.1`); a bump changes both manifests, `pyproject.toml`,
+  `src/vocabbot/__init__.py` and `CHANGELOG.md`.
+- `plugin/skills/<skill>/SKILL.md` and `reference/` are written by hand.
+  `shared/rules.md`, `shared/labels.md`, `bin/vocabbot.pyz` and
+  `plugin/LICENSE`, `plugin/NOTICE` are **generated** by
+  `scripts/build.py skills` from `rules/*.md`, `data/i18n/pl.json`, the engine
+  and the root files; never edit them by hand.
+- `scripts/build.py pyz` builds `build/vocabbot.pyz`; `skills` writes the
+  generated files (`--check` reports stale ones); `package` builds `dist/`
+  (wheel, sdist, pyz, `vocabbot.plugin`, one zip per skill, `SHA256SUMS`).
+- `scripts/validate.py` checks what `claude plugin validate` does not: the
+  manifests against each other and `pyproject.toml`, the engine calls the
+  skills teach, direct writes, translations, secrets and home paths.
+- `sessions/*.json` are session tests run by `scripts/session_test.py`
+  through `claude -p` (paid; only with the owner's approval). `--check` seeds
+  every learner and resolves every check without a model.
 - `tools/courses/` builds the A1 to B2 courses (dependency group `data`):
   `pipeline.py fetch` downloads the sources into `.cache/sources` (about
   3.2 GB, outside git), `extract` makes one pass over the Wiktionary
@@ -48,6 +68,15 @@ before a commit. The suite on Python 3.10 runs in its own environment:
 UV_PROJECT_ENVIRONMENT=.venv-py310 uv run --python 3.10 pytest
 ```
 
+After a change of the engine, the rules or the skills:
+
+```
+uv run python scripts/build.py skills
+uv run python scripts/validate.py
+uv run python scripts/session_test.py --check
+claude plugin validate ./plugin --profile directory --strict
+```
+
 ## Rules for changes
 
 - Engine code stays on the standard library and on Python 3.10 syntax and
@@ -67,3 +96,10 @@ UV_PROJECT_ENVIRONMENT=.venv-py310 uv run --python 3.10 pytest
   `VocabError(code, **params)` with the message under `errors.<code>`.
 - Test data is synthetic. No learner's folder enters the repository.
 - Every course entry names its sources, and `vocabbot course check` passes.
+- A skill names only files inside its own folder; `SKILL.md` stays under 500
+  lines and detail goes to `reference/`. A rule every skill keeps goes to
+  `rules/`, never into one skill only.
+- A user-facing document (`README`, `QUICKSTART`, `docs/pilot`, the plugin's
+  `README` and `PRIVACY`) changes in English and in its `.pl.md`
+  translation together. The plan is written in Polish
+  (`development-plan.pl.md`) and translated to `development-plan.md`.

@@ -77,6 +77,8 @@ class Catalog:
         self._entries: dict[str, dict[str, Any]] = {}
         self._course: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
         self._own: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        # own words and course words the learner moved forward, in the order of own.jsonl
+        self._first: dict[str, list[str]] = defaultdict(list)
         self._concepts: dict[str, list[dict[str, Any]]] = defaultdict(list)
         self._meta: dict[str, dict[str, Any]] = {}
 
@@ -110,9 +112,21 @@ class Catalog:
                                 f"{folder.name}/own.jsonl line {number} is damaged"
                             )
                         for row in rows:
-                            self._add(row, own=True)
+                            if "ref" in row:
+                                self._add_ref(row, folder.name)
+                            else:
+                                self._add(row, own=True)
         for items in self._course.values():
             items.sort(key=lambda e: int(e.get("rank", 0)))
+
+    def _add_ref(self, row: dict[str, Any], lang: str) -> None:
+        """A course word the learner moved forward with `words add`."""
+        ref = row.get("ref")
+        entry = self._entries.get(ref) if isinstance(ref, str) else None
+        if entry is None or entry.get("lang") != lang:
+            self.problems.append(f"{lang}/own.jsonl names {ref!r}, which is not a {lang} entry")
+        elif ref not in self._first[lang]:
+            self._first[lang].append(str(ref))
 
     def _add_lines(self, text: str, label: str, own: bool) -> None:
         for number, line in enumerate(text.split("\n"), 1):
@@ -134,6 +148,7 @@ class Catalog:
         self._entries[entry_id] = entry
         if own:
             self._own[str(entry.get("lang"))].append(entry)
+            self._first[str(entry.get("lang"))].append(entry_id)
         else:
             self._course[(str(entry.get("lang")), str(entry.get("level")))].append(entry)
         if isinstance(entry.get("concept"), str):
@@ -164,6 +179,17 @@ class Catalog:
     def own(self, lang: str) -> list[dict[str, Any]]:
         self._load()
         return list(self._own.get(lang, []))
+
+    def first(self, lang: str) -> list[dict[str, Any]]:
+        """Entries that come before the course: own words and course words moved forward."""
+        self._load()
+        return [self._entries[entry_id] for entry_id in self._first.get(lang, [])]
+
+    def moved_forward(self, lang: str) -> set[str]:
+        """Ids of course entries the learner moved forward."""
+        self._load()
+        own = {str(e["id"]) for e in self._own.get(lang, [])}
+        return {entry_id for entry_id in self._first.get(lang, []) if entry_id not in own}
 
     def entry(self, entry_id: str) -> dict[str, Any] | None:
         self._load()
@@ -378,7 +404,10 @@ def check(catalog: Catalog) -> dict[str, Any]:
     for (lang, meaning, _), same in meanings.items():
         if len(same) > 1 and not all(e.get("hint") for e in same):
             names = ", ".join(str(e.get("id")) for e in same)
-            errors.append(f"{lang}: {names} share the meaning {meaning!r} and need a hint each")
+            message = f"{lang}: {names} share the meaning {meaning!r} and need a hint each"
+            # a clash with an own word is the learner's to settle; the courses stay valid
+            own_word = any(e.get("level") == "own" for e in same)
+            (warnings if own_word else errors).append(message)
     for lang, levels in catalog.installed().items():
         meta = catalog.meta(lang)
         if not meta.get("license") or not meta.get("sources"):

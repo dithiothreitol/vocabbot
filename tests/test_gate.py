@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from conftest import make_learner, moment
 
-from vocabbot import doctor, gate, plans, store, words
+from vocabbot import courses, doctor, gate, plans, store, words
 from vocabbot.courses import Catalog
 from vocabbot.errors import VocabError
 from vocabbot.queue import compute
@@ -108,20 +108,69 @@ def test_own_words(tmp_path: Path, catalog: Catalog) -> None:
             ),
         ]
     )
-    with pytest.raises(VocabError) as error:
-        words.add_preview(learner, Catalog(learner=learner.root), "de", text, moment(MONDAY))
-    assert error.value.code == "words_invalid"  # gehen is already in the course
-    text = text.replace("gehen = iść", "laufen [verb] = biegać")
+    # gehen is in the course (de-c90023): the preview moves it forward instead of copying it
     preview = words.add_preview(learner, Catalog(learner=learner.root), "de", text, moment(MONDAY))
     assert len(preview["preview"]) == 3
+    assert preview["moved"] == ["de-c90023"]
+    assert len(preview["added"]) == 2
     gate.commit(preview["token"], pending(learner), moment(MONDAY, 1), via="token")
     fresh = Catalog(learner=learner.root)
     own = fresh.own("de")
-    assert [e["display"] for e in own] == ["der Schrank", "laufen", "die Tasse"]
+    assert [e["display"] for e in own] == ["der Schrank", "die Tasse"]
     assert own[0]["gender"] == "m"
     assert own[0]["example"]["gap"] == "Der Schrank"
-    new = compute(learner, fresh, MONDAY).new
-    assert new == [f"{own[0]['id']}#p", f"{own[1]['id']}#p"]
+    assert [e["id"] for e in fresh.first("de")] == [own[0]["id"], own[1]["id"], "de-c90023"]
+    assert fresh.moved_forward("de") == {"de-c90023"}
+    assert courses.check(fresh)["ok"]
+    learner_three = make_learner(tmp_path / "three", ["de:a1"], new_per_day=3)
+    store.write_text(
+        learner_three.own_path("de"), learner.own_path("de").read_text(encoding="utf-8")
+    )
+    new = compute(learner_three, Catalog(learner=learner_three.root), MONDAY).new
+    assert new == [f"{own[0]['id']}#p", f"{own[1]['id']}#p", "de-c90023#p"]
+    # the same words again: own words and moved words are left out, so nothing remains
+    with pytest.raises(VocabError) as error:
+        words.add_preview(learner, fresh, "de", text, moment(MONDAY, 2))
+    assert error.value.code == "nothing_to_add"
+    mixed = words.add_preview(
+        learner, fresh, "de", "der Schrank = szafa\nlaufen [verb] = biegać", moment(MONDAY, 3)
+    )
+    assert len(mixed["added"]) == 1
+    assert len(mixed["skipped"]) == 1
+    outside = words.add_preview(learner, fresh, "es", "la mesa = stół", moment(MONDAY, 4))
+    assert any("nie należy do planu" in line for line in outside["preview"])
+
+
+def test_init_takes_further_settings(tmp_path: Path, catalog: Catalog) -> None:
+    preview = plans.init_preview(
+        tmp_path / "nauka",
+        ["de:a1-a2"],
+        10,
+        catalog,
+        moment(MONDAY),
+        assignments=["days_off=sun", "diacritics=lenient"],
+    )
+    assert any("niedziela" in line for line in preview["preview"])
+    gate.commit(preview["token"], [store.config_dir() / "pending"], moment(MONDAY, 1), via="token")
+    plan = store.Learner(tmp_path / "nauka").plan()
+    assert plan["days_off"] == ["sun"]
+    assert plan["diacritics"] == "lenient"
+    with pytest.raises(VocabError) as error:
+        plans.init_preview(
+            tmp_path / "other", ["de:a1"], 10, catalog, moment(MONDAY), assignments=["mix=wild"]
+        )
+    assert error.value.code == "plan_invalid"
+
+
+def test_the_current_folder_counts_when_it_holds_a_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    learner = make_learner(tmp_path / "nauka", ["de:a1"])
+    with pytest.raises(VocabError) as error:
+        store.locate()
+    assert error.value.code == "no_learner"
+    monkeypatch.chdir(learner.root)
+    assert store.locate() == learner.root.resolve()
 
 
 def test_damaged_rows_and_conflict_copies(tmp_path: Path, catalog: Catalog) -> None:

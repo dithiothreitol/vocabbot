@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from vocabbot import store
-from vocabbot.book import RATING, replay
+from vocabbot.book import RATING, CardState, replay
 from vocabbot.courses import Catalog, card_id, split_card
 from vocabbot.fsrs import AGAIN, GOOD, Memory, Scheduler
 from vocabbot.queue import DIRECTION_CODES, compute, split_quota
@@ -16,6 +16,9 @@ from vocabbot.session import _seconds, summary
 
 WINDOW_DAYS = 30
 FORECAST_MAX = 365
+RECENT_DAYS = 7
+RECENT_MAX = 40
+CONFUSIONS_MAX = 20
 
 
 def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any]:
@@ -26,6 +29,7 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
     directions = [DIRECTION_CODES[d] for d in plan["directions"]]
     since = day - timedelta(days=WINDOW_DAYS)
     week = day + timedelta(days=7)
+    remaining = {item.card for item in dp.sequence}
     languages: dict[str, Any] = {}
     for item in plan["languages"]:
         code = item["code"]
@@ -62,9 +66,25 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
                     "word": entry["display"] if entry else card,
                     "meaning": entry["gloss"]["pl"] if entry else "",
                     "lapses": state.lapses,
+                    "waiting_today": card in remaining,
                 }
             )
         errors = Counter(row.error for row in recent if row.error)
+        confusions = []
+        for row in reversed(recent):
+            entry = catalog.card(row.card)
+            if row.error == "wrong_language" and entry is not None:
+                confusions.append(
+                    {
+                        "card": row.card,
+                        "word": entry["display"],
+                        "meaning": entry["gloss"]["pl"],
+                        "given": row.raw.get("given", ""),
+                        "other_lang": row.raw.get("other_lang"),
+                        "day": row.day.isoformat(),
+                        "waiting_today": row.card in remaining,
+                    }
+                )
         languages[code] = {
             "cards": len(cards),
             "levels": levels,
@@ -75,6 +95,8 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
             "changed_grades_30": round(changed / len(graded), 3) if graded else None,
             "errors_30": dict(errors.most_common()),
             "leeches": leeches[:20],
+            "confusions": confusions[:CONFUSIONS_MAX],
+            "recent": recent_words(catalog, cards, remaining, day),
             "paused": bool(item.get("paused")),
         }
     days = sorted({row.day for row in book.rows})
@@ -91,6 +113,39 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
         "streak_days": streak,
         "target_retention": plan["retention"],
     }
+
+
+def recent_words(
+    catalog: Catalog, cards: dict[str, CardState], remaining: set[str], day: date
+) -> list[dict[str, Any]]:
+    """Words introduced in the last days, for practice outside the session.
+
+    Cards still waiting in today's session and words marked as known are left
+    out, so the list never shows the answer to a question the learner is
+    about to get.
+    """
+    since = day - timedelta(days=RECENT_DAYS)
+    picked = sorted(
+        (
+            (state.first_day, card)
+            for card, state in cards.items()
+            if state.first_day > since and not state.known and card not in remaining
+        ),
+        reverse=True,
+    )
+    out = []
+    for first_day, card in picked[:RECENT_MAX]:
+        entry = catalog.card(card)
+        if entry is not None:
+            out.append(
+                {
+                    "card": card,
+                    "word": entry["display"],
+                    "meaning": entry["gloss"]["pl"],
+                    "first_day": first_day.isoformat(),
+                }
+            )
+    return out
 
 
 def _chance(card: str, day: date) -> float:
@@ -131,11 +186,11 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
         code = item["code"]
         if item.get("paused"):
             continue
-        cards = [
+        cards = dict.fromkeys(
             card_id(str(e["id"]), d)
-            for e in [*catalog.own(code), *catalog.course(code, item["levels"])]
+            for e in [*catalog.first(code), *catalog.course(code, item["levels"])]
             for d in directions
-        ]
+        )
         queues[code] = [c for c in cards if c not in memory and c not in dp.new]
     level_of = {}
     for item in plan["languages"]:

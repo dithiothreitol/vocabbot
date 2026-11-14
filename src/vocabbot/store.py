@@ -77,11 +77,17 @@ def config_dir() -> Path:
 
 
 def locate(learner: str | None = None) -> Path:
-    """The learner's folder: --learner, then VOCABBOT_HOME, then the saved pointer."""
+    """The learner's folder: --learner, VOCABBOT_HOME, the current folder, the saved pointer.
+
+    The current folder counts when it holds a plan, so a chat that runs in the
+    learner's folder (Cowork, a project folder) needs no pointer.
+    """
     if learner:
         root = Path(learner).expanduser()
     elif os.environ.get("VOCABBOT_HOME"):
         root = Path(os.environ["VOCABBOT_HOME"]).expanduser()
+    elif (Path.cwd() / PLAN).is_file():
+        root = Path.cwd()
     else:
         pointer = config_dir() / CONFIG
         try:

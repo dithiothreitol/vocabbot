@@ -78,21 +78,63 @@ def parse(text: str, lang: str) -> list[dict[str, Any]]:
     return entries
 
 
+def _key(text: str) -> str:
+    return normalize(text).casefold()
+
+
+def _course_match(
+    raw: dict[str, Any], by_display: dict[str, dict[str, Any]], by_lemma: dict[str, list[Any]]
+) -> dict[str, Any] | None:
+    """The course entry a learner's word names: the same display, else a single same lemma."""
+    found = by_display.get(_key(str(raw.get("display", ""))))
+    if found is not None:
+        return found
+    same = by_lemma.get(_key(str(raw.get("lemma") or raw.get("display", ""))), [])
+    return same[0] if len(same) == 1 else None
+
+
 def add_preview(
     learner: store.Learner, catalog: Catalog, lang: str, text: str, now: datetime
 ) -> dict[str, Any]:
-    """Preview of own words added to courses/<lang>/own.jsonl."""
+    """Preview of own words added to courses/<lang>/own.jsonl.
+
+    A word the course already has is not copied: the preview moves that course
+    entry forward, so it comes before the course order. A word already in own
+    words or already being learned is left out with a note.
+    """
     if lang not in assets.known_languages():
         raise VocabError("unknown_language", lang=lang)
     own = catalog.own(lang)
     rank = max((int(e.get("rank", 0)) for e in own), default=0)
-    existing = {
-        normalize(str(e["display"])).casefold(): str(e["id"])
-        for e in [*own, *catalog.course(lang, list(store.LEVELS))]
-    }
+    existing = {_key(str(e["display"])): str(e["id"]) for e in own}
+    course = catalog.course(lang, list(store.LEVELS))
+    by_display = {_key(str(e["display"])): e for e in course}
+    by_lemma: dict[str, list[Any]] = {}
+    by_meaning: dict[tuple[str, str], list[Any]] = {}
+    for e in course:
+        by_lemma.setdefault(_key(str(e.get("lemma", ""))), []).append(e)
+    for e in [*course, *own]:
+        by_meaning.setdefault((_key(str(e["gloss"]["pl"])), str(e.get("pos"))), []).append(e)
+    learning = {str(row.get("card", "")).split("#")[0] for row in learner.rows()[0]}
+    learning |= catalog.moved_forward(lang)
     new_entries: list[dict[str, Any]] = []
+    moved: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    clashes: list[str] = []
     problems: list[str] = []
     for raw in parse(text, lang):
+        label = str(raw.get("display", "?"))
+        if _key(label) in existing:
+            skipped.append(assets.text("words.duplicate", word=label, id=existing[_key(label)]))
+            continue
+        match = _course_match(raw, by_display, by_lemma)
+        if match is not None:
+            if str(match["id"]) in learning:
+                skipped.append(assets.text("words.learning", word=match["display"]))
+            else:
+                learning.add(str(match["id"]))
+                moved.append(match)
+            continue
         token = secrets.token_hex(3)
         rank += 1
         entry: dict[str, Any] = {
@@ -119,23 +161,46 @@ def add_preview(
         entry.setdefault("lemma", entry.get("display", ""))
         entry["sources"] = ["own"]
         entry["checked"] = False
-        label = str(entry.get("display", "?"))
-        key = normalize(label).casefold()
-        if key in existing:
-            problems.append(assets.text("words.duplicate", word=label, id=existing[key]))
-            continue
-        existing[key] = entry["id"]
+        existing[_key(label)] = entry["id"]
         for problem in entry_problems(entry, own=True):
             problems.append(f"{label}: {problem}")
+        meaning = (_key(str((entry.get("gloss") or {}).get("pl", ""))), str(entry["pos"]))
+        same = by_meaning.setdefault(meaning, [])
+        if same and not entry.get("hint"):
+            clashes.append(
+                assets.text(
+                    "words.same_meaning",
+                    word=label,
+                    meaning=(entry.get("gloss") or {}).get("pl", ""),
+                    other=same[0]["display"],
+                )
+            )
+        same.append(entry)
         new_entries.append(entry)
     if problems:
         raise VocabError("words_invalid", problems=problems, detail="; ".join(problems))
+    if not new_entries and not moved:
+        raise VocabError("nothing_to_add", detail="; ".join(skipped))
     lines = [
         assets.text("words.line", word=e["display"], meaning=e["gloss"]["pl"]) for e in new_entries
     ]
-    summary = assets.text("words.summary", count=len(new_entries), lang=lang)
-    content = "".join(store.dump_line(e) + "\n" for e in new_entries)
-    return gate.preview(
+    lines += [
+        assets.text(
+            "words.moved",
+            word=e["display"],
+            meaning=e["gloss"]["pl"],
+            level=str(e["level"]).upper(),
+        )
+        for e in moved
+    ]
+    lines += [assets.text("words.skipped", detail=note) for note in skipped]
+    lines += clashes
+    if lang not in {item["code"] for item in learner.plan()["languages"]}:
+        lines.append(assets.text("words.not_in_plan", lang=lang))
+    summary = assets.text("words.summary", count=len(new_entries) + len(moved), lang=lang)
+    rows = [*new_entries, *({"ref": e["id"], "lang": lang} for e in moved)]
+    content = "".join(store.dump_line(row) + "\n" for row in rows)
+    result = gate.preview(
         learner.path(store.PENDING),
         summary,
         lines,
@@ -143,3 +208,8 @@ def add_preview(
         now,
         learner.path(store.DECISIONS),
     )
+    result["added"] = [e["id"] for e in new_entries]
+    result["moved"] = [e["id"] for e in moved]
+    result["skipped"] = skipped
+    result["same_meaning"] = clashes
+    return result

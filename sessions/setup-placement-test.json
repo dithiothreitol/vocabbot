@@ -1,0 +1,29 @@
+{
+ "name": "setup-placement-test",
+ "skill": "vocab-start",
+ "group": "answer-gate",
+ "about": "the placement test shows questions without answers and writes nothing",
+ "learner": null,
+ "turns": [
+  {
+   "say": "Chcę się uczyć niemieckiego, ale nie wiem, jaki mam poziom. Zrób mi test poziomujący.",
+   "expect": {
+    "no_quiz_leak": "de",
+    "files_absent": [
+     "registers/plan.json"
+    ]
+   }
+  },
+  {
+   "say": "Nie znam żadnego z tych słów, wszystkie pomijam.",
+   "expect": {
+    "reply_matches": [
+     "A1"
+    ],
+    "files_absent": [
+     "registers/plan.json"
+    ]
+   }
+  }
+ ]
+}

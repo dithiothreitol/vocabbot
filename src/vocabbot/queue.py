@@ -134,7 +134,7 @@ def spread(
 def _candidates(
     catalog: Catalog, lang: str, levels: list[str], directions: list[str]
 ) -> Iterator[tuple[str, dict[str, Any]]]:
-    for entry in [*catalog.own(lang), *catalog.course(lang, levels)]:
+    for entry in [*catalog.first(lang), *catalog.course(lang, levels)]:
         for direction in directions:
             yield card_id(str(entry["id"]), direction), entry
 

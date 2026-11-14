@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from conftest import card_of, correct, make_learner, moment
 
-from vocabbot import session, store
+from vocabbot import progress, session, store
 from vocabbot.book import replay
 from vocabbot.courses import Catalog
 from vocabbot.errors import VocabError
@@ -265,6 +265,46 @@ def test_wrong_language_is_reported(tmp_path: Path, catalog: Catalog) -> None:
     result = session.answer(learner, catalog, MONDAY, moment(MONDAY), card, spanish["display"])
     assert result["grade"] == "dont_know"
     assert result["other_lang"] == "es"
+
+
+def test_status_lists_confused_and_recent_words(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2", "es:a1-a2"], new_per_day=4, sibling_gap_days=0)
+    card = next(c for c in compute(learner, catalog, MONDAY).new if c.startswith("de"))
+    entry = catalog.card(card)
+    assert entry is not None
+    spanish = next(e for e in catalog.family(entry["concept"]) if e["lang"] == "es")
+    session.answer(learner, catalog, MONDAY, moment(MONDAY), card, spanish["display"])
+    report = progress.status(learner, catalog, MONDAY)["languages"]["de"]
+    assert report["confusions"][0]["card"] == card
+    assert report["confusions"][0]["other_lang"] == "es"
+    assert report["confusions"][0]["given"] == spanish["display"]
+    # the card waits in today's drill, so the list of recent words leaves it out
+    assert card not in {word["card"] for word in report["recent"]}
+    learn_day(learner, catalog, MONDAY)
+    report = progress.status(learner, catalog, MONDAY)["languages"]["de"]
+    assert card in {word["card"] for word in report["recent"]}
+    assert all("word" in word and "meaning" in word for word in report["recent"])
+
+
+def test_lookup_finds_words_and_meanings(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=2)
+    house = card_of("de", 1)
+    assert house in compute(learner, catalog, MONDAY).new
+    by_word = session.lookup(learner, catalog, MONDAY, "de", "haus")
+    assert by_word["matches"][0]["card"] == house
+    assert by_word["matches"][0]["waiting_today"] is True
+    by_meaning = session.lookup(None, catalog, None, "de", "dom")
+    match = next(m for m in by_meaning["matches"] if m["card"] == house)
+    assert match["waiting_today"] is False
+    assert match["word"]["word"] == "das Haus"
+    assert session.lookup(None, catalog, None, "de", "qqq")["matches"] == []
+
+
+def test_reveal_serves_recognition_cards_only(catalog: Catalog) -> None:
+    with pytest.raises(VocabError) as error:
+        session.reveal(catalog, card_of("de", 1))
+    assert error.value.code == "reveal_production"
+    assert session.reveal(catalog, card_of("de", 1, "r"))["word"]["word"] == "das Haus"
 
 
 def test_merged_logs_give_the_same_state(tmp_path: Path, catalog: Catalog) -> None:

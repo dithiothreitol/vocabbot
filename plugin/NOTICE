@@ -1,0 +1,48 @@
+VocabBot
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+src/vocabbot/fsrs.py is a port of the scheduler in py-fsrs 6.3.3
+(https://github.com/open-spaced-repetition/py-fsrs), which carries this
+licence:
+
+MIT License
+
+Copyright (c) 2022 Open Spaced Repetition
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The courses in src/vocabbot/data/courses are licensed under CC BY-SA 4.0
+(https://creativecommons.org/licenses/by-sa/4.0/). tools/courses/pipeline.py
+builds them from:
+
+- The CEFR-J Wordlist Version 1.5, compiled by Yukio Tono, Tokyo University
+  of Foreign Studies (https://github.com/openlanguageprofiles/olp-en-cefrj).
+  The CEFR levels of the concepts come from this list, which may be used for
+  research and commercial purposes provided that it is cited.
+- English Wiktionary (https://en.wiktionary.org), CC BY-SA 4.0 and GFDL, in
+  the extract of wiktextract by Tatu Ylonen (https://kaikki.org/dictionary/),
+  dump of 2026-10-01: translations, gender, forms and pronunciation.
+- wordfreq 3.1.1 by Robyn Speer (https://github.com/rspeer/wordfreq), data
+  under CC BY-SA 4.0: the order of the words and the choice of equivalents.
+- Tatoeba (https://tatoeba.org), CC BY 2.0 FR: example sentences and their
+  Polish translations. src/vocabbot/data/courses/<lang>/sentences.tsv names
+  the author of every sentence used.
+
+The starter course in tests/fixtures/courses was written for VocabBot and is
+licensed under CC BY-SA 4.0.

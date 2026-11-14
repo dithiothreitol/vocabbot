@@ -12,6 +12,7 @@ These functions hold the guarantees of the engine:
 
 from __future__ import annotations
 
+import re
 import statistics
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -226,6 +227,67 @@ def self_grade(
     if grade != "known" and split_card(card)[1] == "p":
         raise VocabError("production_needs_answer", card=card)
     return record(learner, dp, card, entry, kind, state, grade, now, source=source, ahead=ahead)
+
+
+LOOKUP_MAX = 10
+
+
+def lookup(
+    learner: store.Learner | None, catalog: Catalog, day: date | None, lang: str, text: str
+) -> dict[str, Any]:
+    """Course entries for a word in the language, or for a Polish meaning.
+
+    Each match says whether its card waits in today's session, so a skill can
+    keep the answer back until the session has asked it.
+    """
+    query = answers.normalize(text).casefold()
+    if not query:
+        raise VocabError("empty_stdin")
+    waiting: set[str] = set()
+    learning: set[str] = set()
+    if learner is not None and day is not None:
+        dp = compute(learner, catalog, day)
+        waiting = {item.card.split("#")[0] for item in dp.sequence}
+        learning = {card.split("#")[0] for card in dp.book.cards}
+    pattern = re.compile(rf"(?<!\w){re.escape(query)}(?!\w)")
+    exact: list[dict[str, Any]] = []
+    by_meaning: list[dict[str, Any]] = []
+    for entry in [*catalog.own(lang), *catalog.course(lang, list(store.LEVELS))]:
+        names = {
+            answers.normalize(str(entry.get(key, ""))).casefold() for key in ("display", "lemma")
+        }
+        named = query in names
+        if not named and not pattern.search(str(entry["gloss"]["pl"]).casefold()):
+            continue
+        (exact if named else by_meaning).append(
+            {
+                "card": f"{entry['id']}#p",
+                "level": entry.get("level"),
+                "word": presentation(entry),
+                "learning": entry["id"] in learning,
+                "waiting_today": entry["id"] in waiting,
+            }
+        )
+    found = exact + by_meaning
+    return {"lang": lang, "matches": found[:LOOKUP_MAX], "more": max(0, len(found) - LOOKUP_MAX)}
+
+
+def reveal(catalog: Catalog, card: str) -> dict[str, Any]:
+    """The meaning of a recognition card, shown so the learner can grade the recall.
+
+    A production card is graded from the typed answer, so its answer appears
+    only in the result of `answer`.
+    """
+    try:
+        entry_id, direction = split_card(card)
+    except ValueError:
+        raise VocabError("bad_card", card=card) from None
+    if direction != "r":
+        raise VocabError("reveal_production", card=card)
+    entry = catalog.entry(entry_id)
+    if entry is None:
+        raise VocabError("unknown_card", card=card)
+    return {"card": card, "word": presentation(entry)}
 
 
 def regrade(

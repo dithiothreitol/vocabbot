@@ -1,6 +1,6 @@
 [project]
 name = "vocabbot"
-version = "1.0.0.dev2"
+version = "1.0.0rc1"
 description = "Vocabulary in one to three languages at once with spaced repetition, in the terminal and in Claude or Codex."
 readme = "README.md"
 license = "Apache-2.0"
@@ -8,7 +8,7 @@ license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 keywords = ["vocabulary", "spaced-repetition", "fsrs", "language-learning", "claude", "codex"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: End Users/Desktop",
     "Natural Language :: Polish",

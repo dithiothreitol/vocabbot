@@ -1,0 +1,40 @@
+{
+ "name": "setup-two-languages",
+ "skill": "vocab-start",
+ "group": "setup",
+ "about": "setup from nothing: preview first, the folder appears only after the yes",
+ "learner": null,
+ "turns": [
+  {
+   "say": "Skonfiguruj VocabBota w folderze <<folder>>: niemiecki i hiszpański od podstaw (A1–A2), 10 nowych słów dziennie, niedziele wolne. Testu poziomującego nie potrzebuję.",
+   "expect": {
+    "files_absent": [
+     "registers/plan.json"
+    ],
+    "reply_matches": [
+     "zapis|potwierd|zatwierd"
+    ]
+   }
+  },
+  {
+   "say": "Tak, zapisz.",
+   "expect": {
+    "files_exist": [
+     "registers/plan.json",
+     "log/reviews.jsonl"
+    ],
+    "plan_matches": {
+     "languages": [
+      "de",
+      "es"
+     ],
+     "new_per_day": 10,
+     "days_off": [
+      "sun"
+     ]
+    },
+    "decisions_added": 1
+   }
+  }
+ ]
+}

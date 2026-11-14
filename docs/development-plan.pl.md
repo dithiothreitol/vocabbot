@@ -1,11 +1,15 @@
 # Plan implementacji VocabBot
 
-Stan: 2026-11-14, po Etapie 2 (wersja 1.0.0.dev2). Plan zaakceptowałeś
-14.11.2026. Silnik, program `vocabbot`, plik `vocabbot.pyz` oraz kursy A1–B2
-dla angielskiego, niemieckiego, hiszpańskiego i francuskiego (21 919 haseł)
-działają; wyniki etapów opisuje rozdział 10. Następny jest Etap 3 (wtyczka,
-dokumentacja, wydanie kandydujące). Wersja angielska planu powstanie
-w Etapie 3 razem z pozostałą dokumentacją.
+[English](development-plan.md) · **Polski**
+
+Stan: 2026-11-14, po Etapie 3 (wersja 1.0.0-rc.1, w pakiecie Pythona
+1.0.0rc1). Plan zaakceptowałeś 14.11.2026. Silnik, program `vocabbot`, kursy
+A1–B2 dla czterech języków (21 919 haseł) oraz wtyczka z czterema
+umiejętnościami dla Claude'a i Codexa działają; wyniki etapów opisuje
+rozdział 10. Do wersji 1.0 pozostają czynności wymagające Twojej zgody
+(testy sesyjne z modelem, repozytorium na GitHubie, tag i wydanie, PyPI)
+oraz pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
+`development-plan.md`.
 
 ---
 
@@ -216,6 +220,9 @@ się od `uv lock --upgrade` i ponownego sprawdzenia tej tabeli.
 | wordfreq | 3.1.1 | 2023-11-21 | częstość słów w potoku kursów (ostatnie wydanie biblioteki) |
 | actions/checkout | v7.0.1 | 2026-07-20 | CI |
 | astral-sh/setup-uv | v10.3.3 | 2026-10-28 | CI |
+| actions/setup-node | v7.1.0 | 2026-10-08 | CI, `claude plugin validate` (dodane w Etapie 3) |
+| actions/upload-artifact | v7.0.2 | 2026-10-07 | przepływ wydania (dodane w Etapie 3) |
+| actions/download-artifact | v8.0.2 | 2026-10-07 | przepływ wydania (dodane w Etapie 3) |
 | pypa/gh-action-pypi-publish | v1.14.3 | 2026-10-20 | publikacja w PyPI |
 | Claude Code | 2.1.325 | npm | gospodarz, `claude plugin validate` |
 | Codex CLI | 0.169.0 | npm | gospodarz |
@@ -436,6 +443,10 @@ dzienne obciążenie oraz datę ukończenia wybranych poziomów.
 | `vocabbot course list`, `vocabbot course check` | kursy z licznikami; kontrola struktury i spójności haseł |
 | `vocabbot flag --card ID --stdin` | zgłoszenie błędu w haśle |
 | `vocabbot doctor` | kontrola folderu: uszkodzone wiersze, kopie konfliktowe, scalenie dzienników |
+| `vocabbot quiz --lang de [--levels a1-b2] [--count 8]`, `vocabbot quiz --check --stdin` | test poziomujący: pytania bez odpowiedzi, potem ocena odpowiedzi i proponowane poziomy; bez zapisu (Etap 3) |
+| `vocabbot lookup --lang de --stdin` | hasła kursu dla słowa albo polskiego znaczenia, z oznaczeniem kart czekających dziś w sesji (Etap 3) |
+| `vocabbot reveal --card ID#r` | znaczenie karty rozpoznawania przed oceną własną; karty produkcji odmawia (Etap 3) |
+| `vocabbot use FOLDER` | wskazanie istniejącego folderu nauki, na przykład na drugim komputerze (Etap 3) |
 
 Każde polecenie przyjmuje `--json`, `--learner` i `--today`.
 
@@ -445,10 +456,10 @@ Każde polecenie przyjmuje `--json`, `--learner` i `--today`.
 
 | Umiejętność | Zakres | Polecenia silnika |
 |---|---|---|
-| `vocab-start` | wybór języków, poziomów, wag i limitu; krótki test poziomujący z haseł kursu; zmiany planu; instalacja programu `vocabbot` | `init`, `plan`, `commit`, `course list`, `forecast` |
-| `vocab-session` | codzienna sesja w czacie w partiach po około 10 kart; utrwalanie; podsumowanie sesji | `today`, `next`, `answer`, `grade`, `regrade` |
-| `vocab-coach` | wyjaśnienie słowa, skojarzenia dla trudnych słów, zestawienie słów mylonych między językami, ćwiczenie poznanych słów w zdaniach, przegląd tygodnia | `status`, `forecast` |
-| `vocab-words` | własne słowa z tekstu, listy lub zdjęcia strony podręcznika; zgłoszenia błędów w hasłach | `words add`, `commit`, `flag`, `course check` |
+| `vocab-start` | wybór języków, poziomów, wag i limitu; krótki test poziomujący z haseł kursu; zmiany planu; instalacja programu `vocabbot` | `init`, `plan`, `commit`, `course list`, `forecast`, `quiz`, `doctor` |
+| `vocab-session` | codzienna sesja w czacie w partiach po około 10 kart; utrwalanie; podsumowanie sesji | `today`, `next`, `answer`, `grade`, `regrade`, `reveal`, `flag` |
+| `vocab-coach` | wyjaśnienie słowa, skojarzenia dla trudnych słów, zestawienie słów mylonych między językami, ćwiczenie poznanych słów w zdaniach, przegląd tygodnia | `status`, `forecast`, `lookup` |
+| `vocab-words` | własne słowa z tekstu, listy lub zdjęcia strony podręcznika; zgłoszenia błędów w hasłach | `words add`, `commit`, `flag`, `course check`, `lookup` |
 
 Reguły wspólne (`rules/`), kopiowane do każdej umiejętności:
 
@@ -466,6 +477,11 @@ Reguły wspólne (`rules/`), kopiowane do każdej umiejętności:
    oryginalną pisownię.
 7. Umiejętność zapowiada przypomnienie wyłącznie wtedy, gdy gospodarz
    faktycznie je zaplanował.
+
+W Etapie 3 reguły dostały postać ośmiu plików `rules/*.md` w języku
+angielskim: sposób uruchamiania silnika, odpowiedź po ocenie, ocena
+z silnika, liczby z silnika, oznaczanie treści wygenerowanej, wejście
+standardowe, potwierdzenie każdej zmiany oraz język i przypomnienia.
 
 ---
 
@@ -751,6 +767,82 @@ Czynności po Twojej zgodzie, każda osobno: utworzenie repozytorium
 `dithiothreitol/vocabbot` i push, tag `v1.0.0-rc.1` z wydaniem, publikacja
 pakietu w PyPI, płatne testy sesyjne.
 
+#### Wynik Etapu 3 (14.11.2026, wersja 1.0.0-rc.1)
+
+Kryteria akceptacji Etapu 3 są spełnione w części, która nie wymaga modelu
+ani Twojej zgody. Przejście pełnej ścieżki z modelem w Claude Code
+i w Codex CLI oraz testy sesyjne z modelem czekają na zgodę z wyceną;
+mechaniczną część ścieżki (instalacja wtyczki i silnik uruchamiany z folderu
+każdej umiejętności) sprawdziłem bez modelu. Tabela podaje wyniki.
+
+| Kryterium | Wynik |
+|---|---|
+| `claude plugin validate ./plugin --profile directory --strict` | bez uwag; katalog marketplace (`claude plugin validate . --strict`) również |
+| `scripts/validate.py` | 0 błędów i 0 ostrzeżeń: manifesty i wersje, 43 wywołania silnika w 17 poleceniach porównane z parserem programu, aktualność kopii, tłumaczenia dokumentów, brak sekretów i ścieżek domowych |
+| silnik z folderu umiejętności | Claude Code 2.1.323 i Codex CLI 0.153.4 instalują wtyczkę z lokalnego marketplace w odizolowanych katalogach konfiguracji; każda z czterech umiejętności uruchamia `bin/vocabbot.pyz` z folderu w pamięci podręcznej gospodarza (`init`, `commit`, `today`, `status`, `words add`) |
+| kontrole Etapów 1 i 2 | ruff i mypy bez uwag; 148 testów na Pythonie 3.15 oraz 141 na 3.10, gdzie testy potoku wymagają grupy `data`; `course check` bez błędów |
+| paczki wydania | `scripts/build.py package` buduje koło i archiwum źródłowe 1.0.0rc1, `vocabbot.pyz` (2,3 MB), `vocabbot.plugin` (9,3 MB), cztery archiwa umiejętności i `SHA256SUMS` |
+| testy sesyjne | 7 sesji w pięciu grupach (konfiguracja, odpowiedź po ocenie, oceny, zgoda na zapis, liczby) z 13 turami; `session_test.py --check` przygotowuje wszystkie bez modelu; testy jednostkowe potwierdzają, że kontrole wychwytują przeciek odpowiedzi i zapis planu bez zgody |
+| wersje Pythona u gospodarzy | Claude Code i Codex CLI korzystają z Pythona komputera (tutaj 3.14); Cowork ma według relacji społeczności Pythona 3.10.12 na Ubuntu 22.04; claude.ai i narzędzie code execution mają według dokumentacji Pythona 3.11.12; dolna granica pozostaje 3.10 |
+
+Etap wprowadził rozwiązania, które uzupełniają plan:
+
+1. Test poziomujący `vocabbot quiz` wybiera słowa równomiernie z całej
+   długości poziomu, czyli od najczęstszych do najrzadszych, i preferuje
+   hasła z przykładem. Poziom liczy się jako znany od 80% trafnych odpowiedzi,
+   przy czym ocena „prawie” liczy się w połowie. Test w terminalu kończy się
+   na pierwszym nieznanym poziomie.
+2. Polecenie `words add` przesuwa słowo obecne w kursie na początek kolejki
+   zamiast je kopiować (wiersz `{"ref": ...}` w `own.jsonl`), pomija słowa
+   będące już w nauce i ostrzega o tym samym polskim znaczeniu oraz o języku
+   spoza planu.
+3. Wynik `status` podaje słowa poznane w ostatnich siedmiu dniach (`recent`)
+   i odpowiedzi udzielone w innym języku (`confusions`), a polecenie `lookup`
+   znajduje hasła dla słowa albo polskiego znaczenia. Karty czekające dziś
+   w sesji mają znacznik `waiting_today`, dzięki któremu trener nie zdradza
+   ich odpowiedzi.
+4. Polecenie `reveal` pokazuje znaczenie karty rozpoznawania i odmawia kart
+   produkcji, więc reguła odpowiedzi po ocenie ma oparcie w silniku także dla
+   kart rozpoznawania.
+5. Silnik znajduje folder nauki w folderze bieżącym, gdy ten zawiera plan,
+   co obsługuje Cowork i folder projektu. Polecenie `vocabbot use` wskazuje
+   istniejący folder na drugim komputerze, a `init --set` przyjmuje dowolne
+   ustawienia planu w pierwszym podglądzie.
+6. Każda umiejętność ma oprócz `shared/rules.md` plik `shared/labels.md`
+   z polskimi nazwami ocen, klas błędów i części mowy, generowany z tekstów
+   silnika.
+7. Plik `vocabbot.pyz` powstaje z posortowanych wpisów o stałym czasie.
+   Cztery kopie w umiejętnościach są identyczne, więc git przechowuje plik
+   raz, a kontrola aktualności porównuje zawartość archiwum niezależnie od
+   wersji biblioteki zlib.
+
+Etap przyniósł trzy wnioski.
+
+1. Kurs zaczyna się od krótkich słów funkcyjnych (an, sie, ich, la), które
+   występują w zwykłym tekście zbyt często, aby ich obecność w odpowiedzi
+   modelu dowodziła przecieku. Kontrola przecieku w testach sesyjnych
+   korzysta dlatego z uczącego się na poziomach B1–B2 i ze słów od czterech
+   liter.
+2. Przykład słowa funkcyjnego bywa zdaniem z inną częścią mowy tej samej
+   formy, na przykład hiszpańskie „la” jako zaimek ma przykład, w którym „la”
+   jest rodzajnikiem. To ograniczenie potoku z Etapu 2 dotyczy homografów;
+   pilotaż pokaże jego skalę, a poprawka należy do potoku kursów.
+3. Na tym komputerze `py -3` wskazuje usunięty interpreter, podczas gdy
+   `python3` i `python` działają, dlatego reguła silnika podaje kolejność
+   `python3`, `python`, `py -3`.
+
+Do wersji 1.0 prowadzą czynności z tabeli; każda czeka na Twoją osobną
+zgodę.
+
+| Czynność | Koszt | Uwagi |
+|---|---|---|
+| testy sesyjne z modelem: `session_test.py --model sonnet` (7 sesji, 13 tur) | szacunkowo 3–6 USD przy Claude Sonnet 5.5 | skrypt przerywa pracę po przekroczeniu `--max-cost-usd` |
+| przejście ścieżki z modelem w Claude Code i w Codex CLI na folderze próbnym | zwykła sesja pracy na Twoich kontach | instalacja i silnik sprawdzone bez modelu |
+| repozytorium `dithiothreitol/vocabbot` i push | brak | |
+| tag `v1.0.0-rc.1` i wydanie przez `release.yml` | brak | wydanie zawiera paczki z tabeli wyników |
+| publikacja w PyPI | brak | zaufane publikowanie, zmienna repozytorium `PUBLISH_PYPI` |
+| pilotaż według `docs/pilot.pl.md` | brak | po wydaniu |
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -796,7 +888,7 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 1 | brak | akceptacja planu |
 | Etap 2, potok i przegląd próby | brak | akceptacja planu |
 | Etap 2, przebieg wsadowy przez API | wycena przed uruchomieniem | osobna, wyłącznie w punkcie decyzyjnym |
-| Etap 3, testy sesyjne `claude -p` | wycena po przygotowaniu plików sesji | osobna |
+| Etap 3, testy sesyjne `claude -p` | szacunkowo 3–6 USD przy Claude Sonnet 5.5 (7 sesji, 13 tur) | osobna |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie

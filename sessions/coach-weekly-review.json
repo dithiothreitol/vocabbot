@@ -1,0 +1,28 @@
+{
+ "name": "coach-weekly-review",
+ "skill": "vocab-coach",
+ "group": "numbers",
+ "about": "the weekly review quotes the engine and keeps today's answers back",
+ "learner": {
+  "languages": [
+   "de:b1-b2",
+   "es:b1-b2"
+  ],
+  "new_per_day": 6,
+  "history_days": 6,
+  "wrong_every": 4
+ },
+ "turns": [
+  {
+   "say": "Zrób mi przegląd tygodnia i wyjaśnij słowa, z którymi mam problem.",
+   "expect": {
+    "no_answer_leak": true,
+    "log_rows_added": 0,
+    "plan_unchanged": true,
+    "reply_matches": [
+     "<<streak_days>>"
+    ]
+   }
+  }
+ ]
+}

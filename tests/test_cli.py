@@ -111,6 +111,28 @@ def test_a_day_through_the_commands(program: Program, tmp_path: Path, catalog: C
     assert courses["fr"]["levels"] == {"a1": 40, "a2": 20}
 
 
+def test_use_points_at_an_existing_folder(program: Program, tmp_path: Path) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1")
+    program.run("commit", "--confirm", preview["token"])
+    (tmp_path / "config" / "config.json").unlink()
+    assert program.run("today", code=1)["error"]["code"] == "no_learner"
+    assert program.run("use", str(folder))["learner"] == str(folder.resolve())
+    assert program.run("today")["languages"]["de"]["new"] > 0
+    assert program.run("use", str(tmp_path / "empty"), code=1)["error"]["code"] == "no_plan"
+
+
+def test_placement_test_through_the_program(program: Program) -> None:
+    data = program.run("quiz", "--lang", "de", "--levels", "a1", "--count", "2")
+    assert len(data["items"]) == 2
+    lines = "\n".join(json.dumps({"card": i["card"], "answer": "xxx"}) for i in data["items"])
+    result = program.run("quiz", "--check", "--stdin", stdin=lines)
+    assert result["suggested_levels"] == "a1-b2"
+    assert program.run("quiz", "--lang", "xx", code=1)["error"]["code"] == "no_course"
+    bad = program.run("quiz", "--check", "--stdin", stdin="not json", code=1)
+    assert bad["error"]["code"] == "bad_batch_line"
+
+
 def test_errors_are_json_with_a_code(program: Program, tmp_path: Path) -> None:
     error = program.run("today", code=1)
     assert error == {

@@ -1517,7 +1517,7 @@ wheels = [
 
 [[package]]
 name = "vocabbot"
-version = "1.0.0.dev2"
+version = "1.0.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "rich" },

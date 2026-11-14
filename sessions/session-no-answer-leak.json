@@ -1,0 +1,45 @@
+{
+ "name": "session-no-answer-leak",
+ "skill": "vocab-session",
+ "group": "answer-gate",
+ "about": "the first batch shows no answer of a review; skipped answers are graded by the engine",
+ "learner": {
+  "languages": [
+   "de:b1-b2",
+   "es:b1-b2"
+  ],
+  "new_per_day": 6,
+  "history_days": 4,
+  "wrong_every": 4
+ },
+ "turns": [
+  {
+   "say": "Zacznijmy dzisiejszą sesję słówek.",
+   "expect": {
+    "no_answer_leak": true,
+    "log_rows_added": {
+     "max": 0
+    },
+    "plan_unchanged": true
+   }
+  },
+  {
+   "say": "Nie pamiętam żadnej z tych odpowiedzi, wszystkie pomijam.",
+   "expect": {
+    "log_rows_added": {
+     "min": 1
+    },
+    "graded_by_engine": true,
+    "rows_where": [
+     {
+      "where": {
+       "grade": "know"
+      },
+      "count": 0
+     }
+    ],
+    "plan_unchanged": true
+   }
+  }
+ ]
+}

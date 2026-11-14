@@ -1,0 +1,34 @@
+{
+ "name": "words-own-need-yes",
+ "skill": "vocab-words",
+ "group": "write-gate",
+ "about": "own words and a course word moved forward, written only after the yes",
+ "learner": {
+  "languages": [
+   "de:a1-a2",
+   "es:a1-a2"
+  ],
+  "new_per_day": 6,
+  "history_days": 4,
+  "wrong_every": 4
+ },
+ "turns": [
+  {
+   "say": "Dodaj do niemieckiego moje słowa: der Feierabend = koniec dnia pracy, die Mülltonne = kosz na śmieci.",
+   "expect": {
+    "files_absent": [
+     "courses/de/own.jsonl"
+    ],
+    "decisions_added": 0
+   }
+  },
+  {
+   "say": "Tak, zapisz.",
+   "expect": {
+    "own_rows_added": 2,
+    "decisions_added": 1,
+    "plan_unchanged": true
+   }
+  }
+ ]
+}
