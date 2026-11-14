@@ -25,5 +25,8 @@
   "nouns_capitalized": false,
   "feminine_el": true,
   "substitutions": [],
-  "optional_prefixes": {}
+  "optional_prefixes": {},
+  "reflexive": {
+    "suffix": "se"
+  }
 }

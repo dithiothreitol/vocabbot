@@ -289,11 +289,11 @@ def collect(wait: bool) -> dict[str, Any]:
         asked = {item["id"]: item for item in _items_of(requests.get(result.custom_id))}
         for item in answer:
             if item.get("id") in asked:
+                # the batch id stays in .cache/work/review-batch.json, not in the repository
                 reviewed[item["id"]] = {
                     **item,
                     "headword": asked[item["id"]]["word"],
                     "model": MODEL,
-                    "batch": record["id"],
                 }
     lines = [json.dumps(reviewed[k], ensure_ascii=False) for k in sorted(reviewed)]
     REVIEW.write_bytes(("\n".join(lines) + "\n").encode("utf-8"))

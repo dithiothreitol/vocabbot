@@ -80,13 +80,24 @@
     "sat": "sobota",
     "sun": "niedziela"
   },
-  "directions": {"produce": "podaj słowo", "recognize": "podaj znaczenie"},
-  "mix": {"interleaved": "przeplatane", "blocks": "blokami"},
+  "directions": {
+    "produce": "podaj słowo",
+    "recognize": "podaj znaczenie"
+  },
+  "mix": {
+    "interleaved": "przeplatane",
+    "blocks": "blokami"
+  },
   "diacritics": {
     "strict": "brak znaku daje ocenę „prawie”",
     "lenient": "brak znaku nie obniża oceny"
   },
-  "grades": {"known": "znałem", "know": "wiem", "almost": "prawie", "dont_know": "nie wiem"},
+  "grades": {
+    "known": "znałem",
+    "know": "wiem",
+    "almost": "prawie",
+    "dont_know": "nie wiem"
+  },
   "error_classes": {
     "blank": "brak odpowiedzi",
     "case": "wielka lub mała litera",
@@ -96,7 +107,8 @@
     "gender": "rodzaj rzeczownika",
     "form": "inna forma słowa",
     "wrong_language": "słowo z innego języka",
-    "wrong": "inne słowo"
+    "wrong": "inne słowo",
+    "reflexive": "zaimek zwrotny"
   },
   "pos": {
     "noun": "rzeczownik",
@@ -113,7 +125,11 @@
     "phrase": "wyrażenie",
     "other": "słowo"
   },
-  "genders": {"m": "r.m.", "f": "r.ż.", "n": "r.n."},
+  "genders": {
+    "m": "r.m.",
+    "f": "r.ż.",
+    "n": "r.n."
+  },
   "forms": {
     "plural": "l.mn.",
     "feminine": "r.ż.",

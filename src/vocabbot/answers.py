@@ -28,6 +28,7 @@ ERROR_CLASSES = (
     "article",
     "gender",
     "form",
+    "reflexive",
     "wrong_language",
     "wrong",
 )
@@ -50,6 +51,8 @@ class Rules:
     feminine_el: bool
     substitutions: tuple[tuple[str, str], ...]
     optional_prefixes: dict[str, tuple[str, ...]]
+    reflexive_prefixes: tuple[str, ...] = ()
+    reflexive_suffix: str | None = None
 
     @property
     def article_words(self) -> frozenset[str]:
@@ -80,7 +83,25 @@ def rules(code: str) -> Rules:
         feminine_el=bool(data.get("feminine_el", False)),
         substitutions=tuple((a, b) for a, b in data.get("substitutions", ())),
         optional_prefixes={k: tuple(v) for k, v in data.get("optional_prefixes", {}).items()},
+        reflexive_prefixes=tuple(data.get("reflexive", {}).get("prefixes", ())),
+        reflexive_suffix=data.get("reflexive", {}).get("suffix"),
     )
+
+
+def without_reflexive(expected: str, entry: dict[str, Any], lang: Rules) -> str | None:
+    """'ändern' for 'sich ändern', 'laver' for 'se laver', 'levantar' for 'levantarse'."""
+    if entry.get("pos") != "verb":
+        return None
+    low = expected.casefold()
+    for prefix in lang.reflexive_prefixes:
+        joined = prefix.endswith("'")
+        if low.startswith(prefix if joined else prefix + " "):
+            rest = expected[len(prefix) if joined else len(prefix) + 1 :]
+            return rest or None
+    suffix = lang.reflexive_suffix
+    if suffix and low.endswith(suffix) and len(low) > len(suffix) + 2 and " " not in low:
+        return expected[: -len(suffix)]
+    return None
 
 
 @dataclass(frozen=True)
@@ -300,6 +321,10 @@ def grade(
         return Verdict(ALMOST, ("form",), other_form.matched)
     if best.grade != DONT_KNOW:
         return best
+    for form in accepted_forms(entry):
+        base = without_reflexive(normalize(form), entry, lang)
+        if base and _best(given, [base], entry, lang, lenient=True).grade == KNOW:
+            return Verdict(ALMOST, ("reflexive",), form)
     for sibling in siblings:
         sibling_lang = rules(str(sibling["lang"]))
         candidates = [*accepted_forms(sibling), str(sibling.get("lemma") or "")]

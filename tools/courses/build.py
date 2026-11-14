@@ -127,7 +127,7 @@ H_ASPIRE = frozenset(
     ]
 )
 OVERRIDES = TOOLS / "overrides.json"
-VERSION = "2026.11.1"  # raise it with every change of the sources or of the rules
+VERSION = "2026.11.2"  # raise it with every change of the sources or of the rules
 MAX_ACCEPT = 3
 
 
@@ -368,7 +368,7 @@ def target_word(
             if lang == "de" and not word[:1].isupper():
                 continue  # a German noun starts with a capital letter
             genders = [g for g in genders_of(item, lexicon, word) if g in ARTICLES[lang]]
-            if not genders or "plural" in (item.get("tags") or []):
+            if not genders or "plural" in (item.get("tags") or []) or plural_only(record):
                 continue
             gender = genders[0]
             article = article_for(lang, gender, word, record)
@@ -481,19 +481,38 @@ def review_article(
     return article_for(lang, gender, core, record)
 
 
+PLURAL_ARTICLES_ANY = {"los", "las", "les"}
+
+
+def plural_only(record: dict[str, Any] | None) -> bool:
+    """A noun used only in the plural: 'Gezeiten f pl (plural only)', 'Ohrenschmerzen m pl'."""
+    if not record:
+        return False
+    head = str(record.get("head") or "")
+    word = str(record.get("word") or "")
+    rest = head[len(word) :] if head.startswith(word) else head
+    return "pl" in rest.split("(")[0].split() or "plural only" in head
+
+
 def reviewed_word(lang: str, pos: str, decision: dict[str, Any], lexicon: Lexicon) -> Word | None:
     """The reviewed equivalent, with article, forms and pronunciation from the pipeline's rules."""
     text = " ".join(str(decision.get("word", "")).split())
     if not text:
         return None
     if pos == "noun":
+        if text.split()[0].casefold() in PLURAL_ARTICLES_ANY or decision.get("gender") == "none":
+            return None  # a noun the course would have to show in the plural
         article, core = split_display(text, lang)
+        if core.split()[0].casefold() in PLURAL_ARTICLES_ANY:
+            return None
         gender = decision.get("gender")
         if gender not in ARTICLES[lang]:
             gender = next((g for g, a in ARTICLES[lang].items() if a == article), None)
         if gender is None or not core or (lang == "de" and not core[:1].isupper()):
             return None
         record = lexicon.find(core, "noun")
+        if plural_only(record):
+            return None
         article = review_article(lang, gender, core, article, record)
         word = Word(lang, core, with_article(article, core), gender)
     else:
@@ -509,9 +528,11 @@ def reviewed_word(lang: str, pos: str, decision: dict[str, Any], lexicon: Lexico
 
 
 def reviewed_gloss(text: str) -> str | None:
-    parts = [" ".join(p.split()) for p in text.split(",")]
-    parts = [p for p in parts if p][:2]
-    return ", ".join(parts) or None
+    parts: list[str] = []
+    for part in (" ".join(p.split()) for p in text.split(",")):
+        if part and part.casefold() not in (p.casefold() for p in parts):
+            parts.append(part)
+    return ", ".join(parts[:2]) or None
 
 
 def english_word(concept: Concept, records: list[dict[str, Any]]) -> Word:

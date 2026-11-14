@@ -1,18 +1,38 @@
 {
   "lang": "de",
   "base": "pl",
-  "title": "Kurs startowy",
-  "version": "2026-11-14",
+  "title": "VocabBot A1–B2",
+  "version": "2026.11.2",
   "levels": {
-    "a1": 40,
-    "a2": 20
+    "a1": 949,
+    "a2": 1087,
+    "b1": 1679,
+    "b2": 1674
   },
   "license": "CC BY-SA 4.0",
   "sources": [
     {
-      "id": "vocabbot",
-      "name": "VocabBot starter course, written for this project",
-      "license": "CC BY-SA 4.0"
+      "id": "cefrj",
+      "name": "The CEFR-J Wordlist Version 1.5, compiled by Yukio Tono, Tokyo University of Foreign Studies (levels of the concepts)",
+      "url": "https://github.com/openlanguageprofiles/olp-en-cefrj"
+    },
+    {
+      "id": "enwiktionary",
+      "name": "English Wiktionary, extracted by wiktextract (kaikki.org), dump of 2026-10-01",
+      "license": "CC BY-SA 4.0 and GFDL",
+      "url": "https://kaikki.org/dictionary/"
+    },
+    {
+      "id": "wordfreq",
+      "name": "wordfreq 3.1.1 (order of the words)",
+      "license": "CC BY-SA 4.0",
+      "url": "https://github.com/rspeer/wordfreq"
+    },
+    {
+      "id": "tatoeba",
+      "name": "Tatoeba example sentences; authors in sentences.tsv",
+      "license": "CC BY 2.0 FR",
+      "url": "https://tatoeba.org"
     }
   ]
 }

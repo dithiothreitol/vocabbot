@@ -20,6 +20,15 @@
   course does not change them. `tests/fixtures/fsrs_vectors.json` holds
   reference results of py-fsrs 6.3.3 (`make_fsrs_vectors.py` makes them).
 - `scripts/build.py pyz` builds `build/vocabbot.pyz`.
+- `tools/courses/` builds the A1 to B2 courses (dependency group `data`):
+  `pipeline.py fetch` downloads the sources into `.cache/sources` (about
+  3.2 GB, outside git), `extract` makes one pass over the Wiktionary
+  extract, `build` writes `src/vocabbot/data/courses`, and `sample` writes
+  the review samples into `.cache/work`. `concepts.tsv` keeps the concept
+  ids for good, and `review.jsonl` keeps the decisions of the model review
+  (`review.py prepare|submit|collect`, Message Batches API, the key in
+  `.env`). Both are committed, so a build repeats without the API. Raise
+  `VERSION` in `build.py` when the sources or the rules change.
 - `docs/development-plan.pl.md` is the staged plan. Read the current stage
   before starting work, and update it when a stage closes.
 

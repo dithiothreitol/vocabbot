@@ -58,5 +58,10 @@
       "ss"
     ]
   ],
-  "optional_prefixes": {}
+  "optional_prefixes": {},
+  "reflexive": {
+    "prefixes": [
+      "sich"
+    ]
+  }
 }

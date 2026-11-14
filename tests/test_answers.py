@@ -111,6 +111,30 @@ def test_same_word_in_two_languages_is_right(catalog: Catalog) -> None:
     assert answers.grade("dormir", entry, siblings=family).grade == "know"
 
 
+@pytest.mark.parametrize(
+    ("lang", "display", "given", "grade"),
+    [
+        ("de", "sich ändern", "ändern", "almost"),
+        ("de", "sich ändern", "sich ändern", "know"),
+        ("fr", "se laver", "laver", "almost"),
+        ("fr", "s'habiller", "habiller", "almost"),
+        ("es", "levantarse", "levantar", "almost"),
+        ("es", "levantarse", "levantarse", "know"),
+    ],
+)
+def test_reflexive_verbs(lang: str, display: str, given: str, grade: str) -> None:
+    entry = {"lang": lang, "pos": "verb", "display": display, "lemma": display}
+    verdict = answers.grade(given, entry)
+    assert verdict.grade == grade
+    if grade == "almost":
+        assert verdict.errors == ("reflexive",)
+
+
+def test_spanish_noun_ending_in_se_is_not_reflexive() -> None:
+    entry = {"lang": "es", "pos": "noun", "display": "la clase", "lemma": "clase", "gender": "f"}
+    assert answers.grade("la cla", entry).grade == "dont_know"
+
+
 def test_lenient_diacritics(catalog: Catalog) -> None:
     entry = entry_of(catalog, "es", 32)
     verdict = answers.grade("pequeno", entry, lenient=True)

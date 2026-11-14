@@ -1,9 +1,10 @@
 # Plan implementacji VocabBot
 
-Stan: 2026-11-14, po Etapie 1 (wersja 1.0.0.dev1). Plan zaakceptowałeś
-14.11.2026. Silnik, program `vocabbot`, plik `vocabbot.pyz` i kurs startowy
-60 pojęć w czterech językach działają; wynik etapu opisuje rozdział 10.
-Następny jest Etap 2 (kursy A1–B2). Wersja angielska planu powstanie
+Stan: 2026-11-14, po Etapie 2 (wersja 1.0.0.dev2). Plan zaakceptowałeś
+14.11.2026. Silnik, program `vocabbot`, plik `vocabbot.pyz` oraz kursy A1–B2
+dla angielskiego, niemieckiego, hiszpańskiego i francuskiego (21 919 haseł)
+działają; wyniki etapów opisuje rozdział 10. Następny jest Etap 3 (wtyczka,
+dokumentacja, wydanie kandydujące). Wersja angielska planu powstanie
 w Etapie 3 razem z pozostałą dokumentacją.
 
 ---
@@ -636,6 +637,82 @@ Punkt decyzyjny etapu: gdy próba B1–B2 przekracza próg po dwóch przebiegach
 potoku, przedstawię dwie drogi do wyboru. Pierwszą jest dodatkowa sesja
 przeglądu w ramach tej rozmowy bez kosztów modeli. Drugą jest przebieg
 wsadowy przez API modelu z wyceną przedstawioną przed uruchomieniem.
+
+#### Wynik Etapu 2 (14.11.2026, wersja 1.0.0.dev2)
+
+Kursy A1–B2 dla czterech języków przechodzą kontrolę kursu bez błędów i mają
+w próbie 1200 haseł 1,2% błędów. Angielski spełnia też kryterium pokrycia
+przykładami B1–B2, które dla niemieckiego, hiszpańskiego i francuskiego
+pozostaje niespełnione; tabela podaje wyniki.
+
+| Kryterium | Wynik |
+|---|---|
+| `vocabbot course check` | 0 błędów i 0 ostrzeżeń w 16 plikach kursów (cztery języki, po cztery poziomy) |
+| hasła A1–A2 (próg 1500) | angielski 2036, niemiecki 2036, hiszpański 2020, francuski 2014 |
+| hasła B1–B2 (próg 3000) | angielski 3583, niemiecki 3353, hiszpański 3442, francuski 3435 |
+| przykłady z polskim tłumaczeniem, A1–A2 (próg 80%) | angielski 98,3%, niemiecki 88,3%, hiszpański 87,8%, francuski 87,5% |
+| przykłady z polskim tłumaczeniem, B1–B2 (próg 60%) | angielski 74,5%; niemiecki 53,8%, hiszpański 49,9% i francuski 51,7% poniżej progu |
+| błędy znaczenia, odpowiednika lub rodzaju w próbie (progi 3% i 5%) | A1–A2: 8 na 600 (1,3%); B1–B2: 6 na 600 (1,0%) |
+| powtarzalność | dwa przebiegi potoku dają identyczne 24 pliki kursów |
+| testy | 131 na Pythonie 3.15; 124 na Pythonie 3.10, gdzie testy potoku wymagają grupy `data` |
+
+Potok w `tools/courses` pobiera źródła (3,2 GB poza repozytorium), przechodzi
+raz przez ekstrakt Wikisłownika w około 3 minuty i buduje kursy w około
+3 minuty. Pierwsze przebiegi z samymi regułami miały w próbkach 9–16% błędów,
+głównie z powodu wieloznaczności słów (coke jako koks, fan jako wachlarz, line
+jako lina), której reguły oparte na częstości i tłumaczeniu wstecznym nie
+rozstrzygają. W punkcie decyzyjnym wybrałeś przegląd wsadowy: Claude Sonnet 5.5
+przejrzał przez Message Batches API 6600 pojęć w 264 zapytaniach (2,15 mln
+tokenów wejścia, 0,78 mln wyjścia, koszt 6,04 USD) i wskazał znaczenie, polskie
+znaczenie oraz odpowiedniki z rodzajem. Decyzje przeglądu leżą
+w `tools/courses/review.jsonl`, dzięki czemu kolejne budowy nie wymagają API.
+Potok nadal sam ustala rodzajniki, formy i wymowę według swoich reguł
+i słowników.
+Próba po przeglądzie doprowadziła do trzech nowych reguł (rzeczownik
+z rodzajnikiem liczby mnogiej albo występujący tylko w liczbie mnogiej odpada,
+polskie znaczenie nie powtarza słowa) i do dziewięciu ręcznych poprawek decyzji
+przeglądu, oznaczonych w pliku polem `corrected`.
+
+Pokrycie przykładami B1–B2 zależy od Tatoeby, która ma zdania z większością
+tych słów, często jednak bez polskiego tłumaczenia. Potok szuka go także przez
+tłumaczenia na inne języki, w jednym albo dwóch krokach, i przyjmuje takie
+zdanie tylko wtedy, gdy polskie tłumaczenie zawiera polskie znaczenie hasła.
+Warunek powstał po przeglądzie próby, który znajdował pary zdań o różnej
+treści (na przykład „Disco” przetłumaczone jako „puszka”), i obniżył pokrycie
+B1–B2 o około 8 punktów procentowych.
+Uzupełnienie wymaga zdań z innego źródła albo zdań przygotowanych przez model
+z osobną wyceną; ta decyzja nie blokuje Etapu 3.
+
+Etap wprowadził rozwiązania, które uzupełniają plan:
+
+1. Jedno przejście przez surowy ekstrakt Wikisłownika (3,08 GB) daje hasła
+   angielskie z tłumaczeniami oraz hasła niemieckie, hiszpańskie, francuskie
+   i polskie, więc osobne pliki edycji de, es i fr okazały się zbędne.
+2. Hasła o tym samym polskim znaczeniu łączą się w jedno hasło z dodatkowymi
+   odpowiedziami tylko wtedy, gdy inny język potwierdza synonimię. Polskie
+   homonimy dostają dopisek z angielskim słowem, na przykład „rakieta (ang.
+   racket)” i „rakieta (ang. rocket)”; w kursie angielskim zostaje częstsze
+   z nich.
+3. Ocena odpowiedzi rozpoznaje czasownik zwrotny wpisany bez zaimka
+   („ändern” dla „sich ändern”, „levantar” dla „levantarse”) jako „prawie”
+   z klasą błędu „zaimek zwrotny”.
+4. Kontrola kursu wymaga pól z planu (odpowiedź, polskie znaczenie, część
+   mowy, rodzaj rzeczownika, źródła) i podaje pokrycie wymową oraz przykładami.
+5. Każdy kurs ma plik `sentences.tsv` z autorami użytych zdań Tatoeby oraz
+   plik `meta.json` z wersją kursów (`2026.11.2`) i źródłami z licencjami.
+6. Kurs startowy pozostał danymi testowymi w `tests/fixtures/courses`.
+
+Etap przyniósł trzy wnioski.
+
+1. Reguły oparte na częstości słów i tłumaczeniu wstecznym obniżyły błędy
+   z 16% do 9–14%. Dopiero przegląd znaczeń przez model, który kosztował
+   6,04 USD, obniżył błędy w próbie do 1,2%.
+2. Łączenie haseł o tym samym polskim znaczeniu wymaga potwierdzenia w innym
+   języku, ponieważ polskie homonimy (rakieta, spadek, zmiana) sklejały różne
+   słowa.
+3. Próba po przeglądzie znalazła błędy samego potoku (rodzajnik liczby mnogiej
+   dodany przez potok, rzeczowniki występujące tylko w liczbie mnogiej);
+   reguły, które je usuwają, działają teraz dla całego kursu.
 
 ### Etap 3. Wtyczka, weryfikacja i wydanie kandydujące
 

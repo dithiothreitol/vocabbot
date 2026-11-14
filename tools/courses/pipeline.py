@@ -42,17 +42,21 @@ def sample(seed: int = 20261114) -> list[str]:
                 random.Random(f"{seed}-{lang}-{band}").sample(pool, min(SAMPLE_SIZE, len(pool)))
             )
             lines = []
+            compact = []
             for number, concept in enumerate(picked, 1):
                 e = items[concept]
                 example = e.get("example") or {}
                 forms = ", ".join(f"{k}={v}" for k, v in (e.get("forms") or {}).items())
                 accept = "/".join(e.get("accept", []))
-                lines.append(
-                    f"{number:3d} {concept} {e['level']} {e['pos']:5s} "
-                    f"EN:{headwords.get(concept, '?')} | "
-                    f"PL:{e['gloss']['pl']} | {e['display']}"
+                core = (
+                    f"{number:3d} {headwords.get(concept, '?')} ({e['pos']}, {e['level']}) | "
+                    f"{e['gloss']['pl']} | {e['display']}"
                     + (f" [{e['gender']}]" if e.get("gender") else "")
                     + (f" +{accept}" if accept else "")
+                )
+                compact.append(core)
+                lines.append(
+                    f"{core} {concept}"
                     + (f" ({forms})" if forms else "")
                     + (
                         f" | {example.get('text')} [{example.get('gap')}] = {example.get('pl')}"
@@ -62,6 +66,9 @@ def sample(seed: int = 20261114) -> list[str]:
                 )
             path = sources.WORK / f"sample-{lang}-{band}.txt"
             path.write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+            (sources.WORK / f"compact-{lang}-{band}.txt").write_bytes(
+                ("\n".join(compact) + "\n").encode("utf-8")
+            )
             written.append(str(path))
     return written
 

@@ -40,5 +40,11 @@
       "Ae"
     ]
   ],
-  "optional_prefixes": {}
+  "optional_prefixes": {},
+  "reflexive": {
+    "prefixes": [
+      "se",
+      "s'"
+    ]
+  }
 }
