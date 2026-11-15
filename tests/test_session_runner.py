@@ -103,3 +103,12 @@ def test_a_plan_written_without_a_yes_fails() -> None:
 def test_every_session_file_is_valid() -> None:
     for path in sorted((REPO / "sessions").glob("*.json")):
         assert runner.lint(json.loads(path.read_text(encoding="utf-8")), path.name) == []
+
+
+def test_the_engines_own_sentences_are_no_leak() -> None:
+    candidates = {"de-c00001#p": ["dieses"]}
+    given = {"Wie sind Sie an dieses ___ gekommen?"}
+    copied = "5. **obraz**\n   *Wie sind Sie an dieses ______ gekommen?*"
+    assert runner.leaks(copied, candidates, given) == []
+    assert runner.leaks("Odpowiedź to dieses.", candidates, given) == ["de-c00001#p: dieses"]
+    assert runner.leaks(copied, candidates) == ["de-c00001#p: dieses"]

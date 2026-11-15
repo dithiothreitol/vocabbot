@@ -60,3 +60,17 @@ def test_check_refuses_cards_it_cannot_grade(catalog: Catalog) -> None:
         with pytest.raises(VocabError) as error:
             quiz.check(catalog, [{"card": card, "answer": "x"}])
         assert error.value.code == code
+
+
+def test_a_sentence_never_holds_another_answer(catalog: Catalog) -> None:
+    data = quiz.questions(catalog, "de", ["a1", "a2"], 6)
+    answers = {}
+    for item in data["items"]:
+        entry = catalog.card(item["card"])
+        assert entry is not None
+        answers[item["card"]] = [str(entry["display"]), str(entry["lemma"])]
+    for item in data["items"]:
+        sentence = item["question"].get("sentence", "")
+        for card, forms in answers.items():
+            if card != item["card"]:
+                assert not any(f" {form} " in f" {sentence} " for form in forms), (item, card)

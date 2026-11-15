@@ -1018,7 +1018,8 @@ Acceptance criteria:
   identical files.
 
 Steps after your consent, each separately: the session tests on version
-rc.3, the push, the tag and the release of rc.3.
+rc.3, the push, the tag and the release of rc.3. You approved all of them on
+15.11.2026.
 
 #### Result of Stage 4 (15.11.2026, version 1.0.0-rc.3)
 
@@ -1040,8 +1041,9 @@ passed a model review.
 | engine | due dates spread by the FSRS ranges with the card and the day as the key; "nie wiem" for an article of another gender and for a missing article that shows the gender; nouns used only in the plural and months without an article; initial stabilities fitted from 40 second answers; `status` shows the intervals after a first answer and the recall against the target |
 | terminal | `term.py` on the standard library, the new session `vocabbot drill`, the start screen `vocabbot`, a new look of `today`, `status` and `forecast`; the package no longer depends on Rich |
 | reproducibility | two builds of the courses give identical files |
-| tests | 188 on Python 3.15; 171 on Python 3.10 (1 skipped without the `data` group) |
+| tests | 190 on Python 3.15; 173 on Python 3.10 (1 skipped without the `data` group) |
 | plugin checks | `validate.py` 0 errors and 0 warnings, `session_test.py --check` 7 of 7, `claude plugin validate --profile directory --strict` without remarks |
+| session tests with a model (Claude Sonnet 5.5, consent of 15.11.2026) | the first run passed 6 of 7 for 1.78 USD; the check of the placement test took a word of a sentence the engine gave, the answer of another question, for a leak; after the fix of the engine (such a question loses its sentence) and of the check (the engine's sentences are no leak) the test passes for 0.31 USD; 7 of 7 in all for 2.09 USD |
 
 A trial of the terminal session found a defect that the starting list made
 common: marking a word as known recomputed the whole list of the day, and the

@@ -49,6 +49,10 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 - Words added during the day (more words, a word marked as known) join the
   day's list after the planned words, so a card already shown never leaves
   the list.
+- The placement test asks a question without its sentence when the sentence
+  holds the answer of another question of the same test.
+- The session tests count the sentences the engine gives in its questions as
+  no leak; a model that fills in the answer still fails.
 
 ## 1.0.0-rc.2 - 2026-11-15
 

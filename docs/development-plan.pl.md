@@ -1003,7 +1003,7 @@ Kryteria akceptacji:
   pliki.
 
 Czynności po Twojej zgodzie, każda osobno: testy sesyjne na wersji rc.3,
-push, tag i wydanie rc.3.
+push, tag i wydanie rc.3. Wszystkie zatwierdziłeś 15.11.2026.
 
 #### Wynik Etapu 4 (15.11.2026, wersja 1.0.0-rc.3)
 
@@ -1024,8 +1024,9 @@ audytu jest w kursie, a każde zdanie przykładowe przeszło przegląd modelem.
 | silnik | rozrzut terminów według zakresów FSRS z kluczem karta i dzień; „nie wiem” za rodzajnik innego rodzaju i za brak rodzajnika, który pokazuje rodzaj; rzeczowniki tylko w liczbie mnogiej i miesiące bez rodzajnika; dopasowanie początkowych stabilności od 40 drugich odpowiedzi; `status` pokazuje odstępy po pierwszej odpowiedzi i trwałość względem celu |
 | terminal | `term.py` na bibliotece standardowej, nowa sesja `vocabbot drill`, ekran startowy `vocabbot`, nowy wygląd `today`, `status` i `forecast`; pakiet nie zależy już od Rich |
 | powtarzalność | dwie budowy kursów dają identyczne pliki |
-| testy | 188 na Pythonie 3.15; 171 na Pythonie 3.10 (1 pominięty bez grupy `data`) |
+| testy | 190 na Pythonie 3.15; 173 na Pythonie 3.10 (1 pominięty bez grupy `data`) |
 | kontrole wtyczki | `validate.py` 0 błędów i 0 ostrzeżeń, `session_test.py --check` 7 z 7, `claude plugin validate --profile directory --strict` bez uwag |
+| testy sesyjne z modelem (Claude Sonnet 5.5, zgoda z 15.11.2026) | pierwszy przebieg 6 z 7 za 1,78 USD; kontrola testu poziomującego uznała za przeciek słowo ze zdania podanego przez silnik, będące odpowiedzią innego pytania; po poprawce silnika (takie pytanie traci zdanie) i kontroli (zdania silnika nie są przeciekiem) test przechodzi za 0,31 USD; razem 7 z 7 za 2,09 USD |
 
 Próba sesji w terminalu ujawniła błąd, który lista startowa uczyniła
 częstym: oznaczenie słowa jako znanego przeliczało całą listę dnia, a odstęp

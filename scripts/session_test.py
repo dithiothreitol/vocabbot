@@ -46,7 +46,7 @@ sys.path.insert(0, str(REPO / "src"))
 sys.dont_write_bytecode = True
 
 from vocabbot import answers, quiz, session, store  # noqa: E402
-from vocabbot.courses import Catalog  # noqa: E402
+from vocabbot.courses import Catalog, question  # noqa: E402
 from vocabbot.progress import status  # noqa: E402
 from vocabbot.queue import compute  # noqa: E402
 
@@ -232,6 +232,8 @@ class Snapshot:
     own: dict[str, int] = field(default_factory=dict)
     decisions: int = 0
     waiting: dict[str, list[str]] = field(default_factory=dict)
+    # sentences the engine itself puts into the questions of the waiting cards
+    sentences: set[str] = field(default_factory=set)
 
 
 def answers_of(entry: dict[str, Any]) -> list[str]:
@@ -257,28 +259,46 @@ def snapshot(folder: Path, today: date) -> Snapshot:
     for item in compute(learner, catalog, today).sequence:
         if item.phase != "new":
             snap.waiting[item.card] = answers_of(item.entry)
+            snap.sentences |= sentences_of(question(item.entry, item.direction))
     return snap
 
 
-def leaks(reply: str, candidates: dict[str, list[str]]) -> list[str]:
+def sentences_of(asked: dict[str, Any]) -> set[str]:
+    return {str(asked[key]) for key in ("sentence", "sentence_pl") if asked.get(key)}
+
+
+def leaks(
+    reply: str, candidates: dict[str, list[str]], sentences: set[str] | None = None
+) -> list[str]:
+    """Answers the reply shows, outside the sentences the engine gave for the questions.
+
+    A sentence of one question may hold the answer of another; the model that
+    copies the engine's sentence shows nothing the engine did not give it.
+    """
+    text = re.sub(r"_{2,}", "___", reply)
+    for sentence in sorted(sentences or (), key=len, reverse=True):
+        text = text.replace(sentence, " ")
     found = []
     for card, words in candidates.items():
         for word in words:
-            if re.search(rf"(?<!\w){re.escape(word)}(?!\w)", reply, re.IGNORECASE):
+            if re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text, re.IGNORECASE):
                 found.append(f"{card}: {word}")
                 break
     return found
 
 
-def quiz_candidates(lang: str) -> dict[str, list[str]]:
+def quiz_candidates(lang: str) -> tuple[dict[str, list[str]], set[str]]:
+    """Answers of every placement question the engine may ask, and the sentences it gives."""
     catalog = Catalog()
     out: dict[str, list[str]] = {}
+    sentences: set[str] = set()
     for count in (4, 5, 6, 8, 10):
         for item in quiz.questions(catalog, lang, list(store.LEVELS), count)["items"]:
             entry = catalog.card(item["card"])
             if entry is not None:
                 out[item["card"]] = answers_of(entry)
-    return out
+            sentences |= sentences_of(item["question"])
+    return out, sentences
 
 
 def within(value: int, spec: Any) -> bool:
@@ -302,10 +322,13 @@ def check_turn(
     answered = {str(row.get("card")) for row in added}
     if expect.get("no_answer_leak"):
         still = {c: w for c, w in before.waiting.items() if c not in answered}
-        fails += [f"answer shown before its grade: {leak}" for leak in leaks(reply, still)]
+        fails += [
+            f"answer shown before its grade: {leak}"
+            for leak in leaks(reply, still, before.sentences)
+        ]
     if expect.get("no_quiz_leak"):
-        candidates = quiz_candidates(str(expect["no_quiz_leak"]))
-        fails += [f"placement answer shown: {leak}" for leak in leaks(reply, candidates)]
+        candidates, given = quiz_candidates(str(expect["no_quiz_leak"]))
+        fails += [f"placement answer shown: {leak}" for leak in leaks(reply, candidates, given)]
     if "log_rows_added" in expect and not within(len(added), expect["log_rows_added"]):
         fails.append(f"log rows added: {len(added)}, expected {expect['log_rows_added']}")
     for spec in expect.get("rows_where", []):
