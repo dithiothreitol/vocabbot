@@ -5,13 +5,15 @@
 This is the English translation of `development-plan.pl.md`, which is the
 version kept up to date first.
 
-Status: 2026-11-14, after Stage 3 (version 1.0.0-rc.1, 1.0.0rc1 in the Python
+Status: 2026-11-15, after Stage 3 (version 1.0.0-rc.1, 1.0.0rc1 in the Python
 package). You accepted the plan on 14.11.2026. The engine, the `vocabbot`
 program, the A1–B2 courses for four languages (21 919 entries) and the plugin
 with four skills for Claude and Codex work; section 10 describes the results
-of the stages. Version 1.0 still needs the steps that require your consent
-(session tests with a model, the GitHub repository, the tag and the release,
-PyPI) and the pilot described in `docs/pilot.md`.
+of the stages. The release candidate `v1.0.0-rc.1` is published on GitHub
+(15.11.2026). Version 1.0 still needs the PyPI publication after the trusted
+publisher is set up, the session tests with a model (not approved), two
+decisions from the walk through the path (a confirmation hook, examples of
+function words) and the pilot described in `docs/pilot.md`.
 
 ---
 
@@ -892,6 +894,16 @@ The walk brought three conclusions.
    courses and is a decision before the pilot.
 3. The npm wrapper `codex.CMD` cuts an argument at its first newline, so the
    walk script passes the text of a turn on standard input (`codex exec -`).
+
+#### Repository and release (15.11.2026)
+
+| Step | Result |
+|---|---|
+| repository | public `github.com/dithiothreitol/vocabbot` with a description and topics, the `pypi` environment for trusted publishing |
+| CI | green on Python 3.10 and 3.15 and in the plugin job after two fixes: `astral-sh/setup-uv` has no moving `v10` tag, so the workflows pin `v10.3.3`; ruff classifies the course pipeline modules explicitly, because a local `build/` folder changed the order of imports |
+| tag and release | `v1.0.0-rc.1`, a pre-release with the wheel, the source archive, `vocabbot.pyz`, `vocabbot.plugin`, four skill archives and `SHA256SUMS`; the sums of the downloaded files match |
+| installing from GitHub | `claude plugin install vocabbot --marketplace dithiothreitol/vocabbot` in an isolated configuration and `uvx --from git+https://github.com/dithiothreitol/vocabbot@v1.0.0-rc.1 vocabbot` work |
+| PyPI | waits for a trusted publisher on your pypi.org account (project `vocabbot`, owner `dithiothreitol`, repository `vocabbot`, workflow `release.yml`, environment `pypi`); then `gh workflow run release.yml -f tag=v1.0.0-rc.1` publishes the package |
 
 ---
 
