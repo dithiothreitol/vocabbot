@@ -43,6 +43,12 @@ Python 3.10 lub nowszy na komputerze albo w piaskownicy gospodarza. Każda
 umiejętność niesie silnik ze wszystkimi kursami w jednym pliku,
 `bin/vocabbot.pyz`, który nie wymaga żadnego innego pakietu.
 
+## Potwierdzenia
+
+Każda zmiana planu i własnych słów pojawia się najpierw jako podgląd i trafia
+do folderu nauki dopiero po potwierdzeniu. W Claude Code i w Coworku hook
+wtyczki dodatkowo pyta w oknie zgody gospodarza, zanim silnik zapisze zmianę.
+
 ## Dane uczącego się
 
 Plan, dziennik odpowiedzi i własne słowa zostają w folderze wybranym przez

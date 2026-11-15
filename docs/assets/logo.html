@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VocabBot logo</title>
+<!--
+  Source of docs/assets/logo.png (1200 x 360), shown at the top of the READMEs on
+  GitHub and PyPI. The card is white with a soft border, so it reads on light and
+  dark pages alike; the corners are transparent.
+  Render: msedge --headless=new --hide-scrollbars --force-device-scale-factor=1
+          --default-background-color=00000000 --window-size=1200,360
+          --screenshot=logo.png logo.html
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 360px; overflow: hidden; background: transparent; }
+  body { font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; }
+  .card {
+    position: absolute; inset: 12px; border-radius: 44px; background: #ffffff;
+    border: 2px solid #dbe4f2; display: flex; align-items: center; gap: 44px; padding: 0 56px;
+  }
+  img { width: 236px; height: 236px; flex: none; }
+  h1 { font-size: 132px; line-height: 1; font-weight: 700; letter-spacing: -3px; color: #1f3f70; }
+  p { margin-top: 18px; font-size: 33px; font-weight: 500; color: #56657c; }
+  p b { color: #2f5d9e; font-weight: 650; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img src="../../plugin/.claude-plugin/icon.png" alt="">
+    <div>
+      <h1>VocabBot</h1>
+      <p>Vocabulary in up to <b>three languages</b> at once</p>
+    </div>
+  </div>
+</body>
+</html>

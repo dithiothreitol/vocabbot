@@ -5,13 +5,13 @@
 The pilot is the last condition of version 1.0 (section 1 of the plan,
 condition 7): two weeks of daily learning in two or three languages, in the
 chat and in the terminal, end without an open blocking defect. The pilot runs
-on version 1.0.0-rc.1.
+on version 1.0.0-rc.2.
 
 ## Before the first session
 
-- **VocabBot 1.0.0-rc.1** installed as a plugin in Claude Code (and in Codex
+- **VocabBot 1.0.0-rc.2** installed as a plugin in Claude Code (and in Codex
   CLI, if the pilot covers Codex) and as the `vocabbot` program
-  (`uv tool install` from the repository). `vocabbot --version` shows it.
+  (`uv tool install vocabbot`, from PyPI). `vocabbot --version` shows it.
 - **A learning folder outside the repository**, best in a synced folder such
   as `OneDrive/VocabBot`. A learner's folder never enters the repository.
 - **Python 3.10 or later** on the PATH; `python --version` answers.

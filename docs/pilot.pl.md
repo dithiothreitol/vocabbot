@@ -5,13 +5,13 @@
 Pilotaż jest ostatnim warunkiem wersji 1.0 (rozdział 1 planu, warunek 7):
 dwa tygodnie codziennej nauki w dwóch lub trzech językach, w czacie
 i w terminalu, kończą się bez otwartego błędu blokującego. Pilotaż odbywa
-się na wersji 1.0.0-rc.1.
+się na wersji 1.0.0-rc.2.
 
 ## Przed pierwszą sesją
 
-- **VocabBot 1.0.0-rc.1** zainstalowany jako wtyczka w Claude Code (oraz
+- **VocabBot 1.0.0-rc.2** zainstalowany jako wtyczka w Claude Code (oraz
   w Codex CLI, jeśli pilotaż obejmuje Codexa) i jako program `vocabbot`
-  (`uv tool install` z repozytorium). Wersję pokazuje `vocabbot --version`.
+  (`uv tool install vocabbot`, z PyPI). Wersję pokazuje `vocabbot --version`.
 - **Folder nauki poza repozytorium**, najlepiej w folderze synchronizowanym,
   na przykład `OneDrive/VocabBot`. Folder nauki nigdy nie trafia do
   repozytorium.

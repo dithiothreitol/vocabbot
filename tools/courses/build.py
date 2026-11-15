@@ -128,7 +128,7 @@ H_ASPIRE = frozenset(
     ]
 )
 OVERRIDES = TOOLS / "overrides.json"
-VERSION = "2026.11.2"  # raise it with every change of the sources or of the rules
+VERSION = "2026.11.3"  # raise it with every change of the sources or of the rules
 MAX_ACCEPT = 3
 
 
@@ -645,9 +645,24 @@ def stems(gloss: str) -> list[str]:
     return [w[: max(3, len(w) - 3)].casefold() for w in words]
 
 
+def article_homograph(word: Word, pos: str) -> bool:
+    """A pronoun, numeral or other word spelt like an article ("la", "les", "das")."""
+    return pos not in ("det", "article") and word.lemma.casefold() in ARTICLE_WORDS[word.lang]
+
+
+def used_as_article(text: str, gap: str) -> bool:
+    """In German an article is followed by a capitalised noun: "das Buch", not "das ist"."""
+    found = re.search(rf"(?<!\w){re.escape(gap)}\s+(\w)", text)
+    return bool(found and found.group(1).isupper())
+
+
 def pick_example(
     word: Word, pos: str, gloss: str, corpus: Corpus, used: set[int]
 ) -> dict[str, Any] | None:
+    if article_homograph(word, pos) and word.lang != "de":
+        # a sentence cannot tell "la" the pronoun from "la" the article without a parser,
+        # so these entries are asked without a sentence
+        return None
     best: tuple[tuple[Any, ...], dict[str, Any]] | None = None
     polish_stems = stems(gloss)
     for sid in corpus.candidates(word.lemma):
@@ -656,6 +671,8 @@ def pick_example(
         if found is None:
             continue
         gap, citation = found
+        if article_homograph(word, pos) and used_as_article(sentence.text, gap):
+            continue
         polish, route = corpus.polish[sid]
         indirect = 0 if route == "direct" else 1 if route == "en" else 3 if "+" in route else 2
         count = len(tokens(sentence.text))

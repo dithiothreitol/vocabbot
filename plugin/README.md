@@ -42,6 +42,12 @@ Python 3.10 or later on the computer, or in the host's sandbox. Each skill
 carries the engine and all courses in one file, `bin/vocabbot.pyz`, which
 needs no other package.
 
+## Confirmations
+
+Every change of the plan or of own words is shown as a preview first and saved
+only after the learner's yes. In Claude Code and Cowork the plugin's hook also
+asks in the host's own permission prompt before the engine saves a change.
+
 ## The learner's data
 
 The plan, the log of answers and the own words stay in a folder the learner

@@ -32,7 +32,7 @@ from vocabbot import cli  # noqa: E402
 
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 RESERVED = ("anthropic", "claude")
-PLUGIN_TYPES = {".md", ".json", ".png", ".pyz", ""}
+PLUGIN_TYPES = {".md", ".json", ".png", ".pyz", ".py", ".sh", ""}
 TRANSLATED = [
     "README.md",
     "QUICKSTART.md",
@@ -287,6 +287,13 @@ def check_plugin_files() -> None:
     readme = PLUGIN / "README.md"
     if not readme.is_file() or len(readme.read_text(encoding="utf-8").split()) < 40:
         errors.append("plugin/README.md missing or under 40 words")
+    hooks = load_json(PLUGIN / "hooks" / "hooks.json")
+    matchers = {g.get("matcher") for g in (hooks.get("hooks") or {}).get("PreToolUse", [])}
+    if "Bash" not in matchers or not any("Write" in (m or "") for m in matchers):
+        errors.append("plugin/hooks/hooks.json: the gate needs PreToolUse hooks for Bash and Write")
+    for name in ("gate.sh", "gate.py"):
+        if not (PLUGIN / "hooks" / name).is_file():
+            errors.append(f"plugin/hooks/{name} is missing")
     print(f"plugin files: {len(files)}")
 
 

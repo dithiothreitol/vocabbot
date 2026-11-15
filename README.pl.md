@@ -1,4 +1,4 @@
-# VocabBot
+<h1 align="center"><img src="https://raw.githubusercontent.com/dithiothreitol/vocabbot/main/docs/assets/logo.png" alt="VocabBot" width="480"></h1>
 
 [English](README.md) · **Polski**
 

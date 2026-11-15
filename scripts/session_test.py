@@ -415,7 +415,12 @@ def run_session(data: dict[str, Any], host: Any, keep: Path | None = None) -> di
     base = Path(tempfile.mkdtemp(prefix="vocabbot-session-"))
     folder = base / "learner"
     folder.mkdir()
-    env = {"VOCABBOT_CONFIG": str(base / "config"), "PYTHONIOENCODING": "utf-8"}
+    # no person answers the host's permission prompt in a test run; the engine still needs a token
+    env = {
+        "VOCABBOT_CONFIG": str(base / "config"),
+        "PYTHONIOENCODING": "utf-8",
+        "VOCABBOT_HOOK": "off",
+    }
     result: dict[str, Any] = {"name": data["name"], "group": data["group"], "turns": []}
     cost = 0.0
     previous = os.environ.get("VOCABBOT_CONFIG")

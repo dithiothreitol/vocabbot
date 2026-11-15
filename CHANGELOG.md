@@ -3,6 +3,26 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## 1.0.0-rc.2 - 2026-11-15
+
+### Added
+
+- A confirmation hook for Claude Code and Cowork: every `commit` of the
+  engine and every direct write into a learner's folder goes to the host's
+  own permission prompt, which shows what the preview changes. The engine
+  still writes nothing without a previewed token; `VOCABBOT_HOOK=off` turns
+  the prompt off for test runs.
+- A logo at the top of the READMEs (also on PyPI) and a social preview image
+  for the repository (`docs/assets/`).
+
+### Changed
+
+- Courses 2026.11.3: a pronoun, numeral or other word spelt like an article
+  (French and Spanish "la", "le", "les", "los", "un", "unos") is asked without
+  an example sentence, because the sentences used it as the article; German
+  "das" keeps an example only where no capitalised noun follows it. Seven
+  entries changed and a few neighbouring entries got other examples.
+
 ## 1.0.0-rc.1 - 2026-11-14
 
 The first release candidate: the plugin, its checks and the documents.

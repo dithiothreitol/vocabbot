@@ -59,7 +59,7 @@ row that names the row it replaces.
 | A card under review shows no answer before the grade | `next` leaves the answer out; `reveal` refuses production cards; rule 2 of the skills; the session tests check every reply against the answers of waiting cards |
 | The engine grades | `answer` grades the typed text; the model has no command that sets the grade of a production card; `regrade` marks its row; rule 3; the session tests compare each row with the engine's grade |
 | Numbers come from the engine | every count, date and forecast is a field of a result; rule 4 |
-| No change without a yes | `init`, `plan set`, `words add` and `doctor` repairs return a preview; only `commit --confirm <token>` writes, within 30 minutes and only if the files did not change; rule 7; `validate.py` refuses a skill that writes the learner's files directly or commits without a yes |
+| No change without a yes | `init`, `plan set`, `words add` and `doctor` repairs return a preview; only `commit --confirm <token>` writes, within 30 minutes and only if the files did not change; in Claude Code and Cowork the plugin's hook (`plugin/hooks/`) sends every `commit` and every direct write into a learner's folder to the host's permission prompt; rule 7; `validate.py` refuses a skill that writes the learner's files directly or commits without a yes |
 | The learner's text cannot steer the shell | answers, words and notes come on standard input; rule 6 |
 | A new word in two languages does not interfere | `sibling_gap_days` between the introductions of one concept, `sibling_distance` between its cards in a session |
 
