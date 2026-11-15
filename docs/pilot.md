@@ -22,7 +22,7 @@ on version 1.0.0-rc.4.
 | # | Scenario | Request or command | What to check |
 |---|---|---|---|
 | 1 | Setup with a test | "skonfiguruj VocabBota", a test for one language | the test shows questions without answers; one yes creates the plan; the forecast comes from the engine |
-| 2 | Session in the chat | "sesja" on three days | batches of about 10 cards; no answer before its grade; the drill at the end |
+| 2 | Session in the chat | "sesja" on three days | one card at a time (the plan's `batch`, 1 by default); no answer before its grade; the drill at the end |
 | 3 | Session in the terminal | `vocabbot drill` on three days | typing ä, ß, ñ, é, ç; a right answer saved at once; the marked difference after a mistake; the grade keys; `/cofnij`, `/znam`, `/koniec`; colours and symbols in your terminal |
 | 4 | Switching during a day | start in the chat, finish in the terminal | the same order, no card twice |
 | 5 | A word known before the course | "to słowo znałem" | "znałem" only at the first showing; the daily limit unchanged |
@@ -39,7 +39,7 @@ on version 1.0.0-rc.4.
 
 | Measure | Target | How |
 |---|---|---|
-| Answers shown before their grade | 0 | watching every batch in the chat |
+| Answers shown before their grade | 0 | watching every card in the chat |
 | Grades not from the engine | 0 | `vocabbot status` (share of changed grades) and own changes |
 | Changes without a yes | 0 | every line of `log/decisions.md` matches a yes |
 | Wrong entries | recorded | `flag` reports with a note; the Stage 2 targets are at most 3% for A1–A2 and 5% for B1–B2 |

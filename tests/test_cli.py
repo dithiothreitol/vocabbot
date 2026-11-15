@@ -218,3 +218,30 @@ def test_start_screen(program: Program, tmp_path: Path) -> None:
     program.run("commit", "--confirm", token)
     out = program.text()
     assert "Dzień nauki" in out and "vocabbot drill" in out
+
+
+def test_one_card_at_a_time_unless_the_plan_says_otherwise(
+    program: Program, tmp_path: Path, catalog: Catalog
+) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1-a2", "--new", "6")
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", DAY)
+    assert program.run("today", *learner)["batch"] == 1
+    first = program.run("next", *learner)["items"]
+    assert len(first) == 1
+    entry = catalog.card(first[0]["card"])
+    assert entry is not None
+    line = json.dumps({"card": first[0]["card"], "answer": entry["display"]})
+    graded = program.run("answer", "--batch", "--stdin", "--next", *learner, stdin=line)
+    assert graded["results"][0]["grade"] == "know"
+    following = graded["next"]["items"]
+    assert len(following) == 1 and following[0]["card"] != first[0]["card"]
+    assert program.run("next", *learner)["items"] == following
+
+    change = program.run("plan", "set", "batch=4", *learner)
+    program.run("commit", "--confirm", change["token"], *learner)
+    assert len(program.run("next", *learner)["items"]) == 4
+    assert len(program.run("next", "--count", "2", *learner)["items"]) == 2
+    refused = program.run("plan", "set", "batch=0", *learner, code=1)
+    assert refused["error"]["code"] == "plan_invalid"

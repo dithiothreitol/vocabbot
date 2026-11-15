@@ -16,5 +16,6 @@ learner grades the recall.
 `reveal` refuses production cards (`#p`): their answer appears only in the
 result of `answer`.
 
-In a batch with production and recognition cards, send the production
-answers with `answer --batch` first, then go through the recognition cards.
+In a list of several cards with production and recognition cards, send
+the production answers with `answer --batch` first, then go through the
+recognition cards.

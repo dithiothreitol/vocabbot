@@ -18,6 +18,7 @@ INT_KEYS = (
     "day_starts_at",
     "leech_lapses",
     "max_languages",
+    "batch",
 )
 
 
@@ -56,6 +57,7 @@ def describe(plan: dict[str, Any]) -> list[str]:
         assets.text("plan.day_starts_at", value=plan["day_starts_at"]),
         assets.text("plan.diacritics", value=assets.text(f"diacritics.{plan['diacritics']}")),
         assets.text("plan.presence", value=assets.text(f"presence.{plan.get('presence', 'on')}")),
+        assets.text("plan.batch", value=plan.get("batch", 1)),
     ]
     own = sorted((plan.get("parameters") or {}).keys())
     lines.append(

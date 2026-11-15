@@ -23,7 +23,7 @@ się na wersji 1.0.0-rc.4.
 | # | Scenariusz | Prośba albo polecenie | Co sprawdzić |
 |---|---|---|---|
 | 1 | Konfiguracja z testem | „skonfiguruj VocabBota”, test dla jednego języka | test pokazuje pytania bez odpowiedzi; plan powstaje po jednym potwierdzeniu; prognoza pochodzi z silnika |
-| 2 | Sesja w czacie | „sesja” przez trzy dni | partie po około 10 kart; żadna odpowiedź przed oceną; utrwalanie na końcu |
+| 2 | Sesja w czacie | „sesja” przez trzy dni | jedna karta naraz (ustawienie planu `batch`, domyślnie 1); żadna odpowiedź przed oceną; utrwalanie na końcu |
 | 3 | Sesja w terminalu | `vocabbot drill` przez trzy dni | wpisywanie ä, ß, ñ, é, ç; zapis poprawnej odpowiedzi od razu; zaznaczona różnica po pomyłce; klawisze ocen; `/cofnij`, `/znam`, `/koniec`; kolory i symbole w Twoim terminalu |
 | 4 | Zmiana drogi w trakcie dnia | początek w czacie, dokończenie w terminalu | ta sama kolejność, bez powtórzonych kart |
 | 5 | Słowo znane przed kursem | „to słowo znałem” | ocena „znałem” tylko przy pierwszym pokazaniu; limit nowych słów bez zmian |
@@ -40,7 +40,7 @@ się na wersji 1.0.0-rc.4.
 
 | Miernik | Cel | Pomiar |
 |---|---|---|
-| Odpowiedzi pokazane przed oceną | 0 | obserwacja każdej partii w czacie |
+| Odpowiedzi pokazane przed oceną | 0 | obserwacja każdej karty w czacie |
 | Oceny niepochodzące z silnika | 0 | `vocabbot status` (udział zmienionych ocen) i własne zmiany |
 | Zmiany bez potwierdzenia | 0 | każdy wiersz `log/decisions.md` odpowiada Twojemu potwierdzeniu |
 | Błędne hasła | zapisane | zgłoszenia `flag` z notatką; cel z Etapu 2 to najwyżej 3% dla A1–A2 i 5% dla B1–B2 |

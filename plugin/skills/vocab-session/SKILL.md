@@ -2,13 +2,14 @@
 name: vocab-session
 description: >
   The daily VocabBot vocabulary session in the chat: reviews due today, new
-  words in small batches and the drill of words that went wrong, in one to
-  three languages (English, German, Spanish, French). The engine grades every
+  words and the drill of words that went wrong, one card at a time as in
+  SuperMemo (or a few at once, as the learner sets it), in one to three
+  languages (English, German, Spanish, French). The engine grades every
   typed answer and sets every due date. Use when the learner says: let's
   learn, daily session, review my words, next words, vocabulary practice;
   po polsku: sesja, codzienna sesja, powtórki, uczymy się, nowe słówka,
   dalej, zaczynamy naukę słówek.
-argument-hint: "[cards per batch]"
+argument-hint: "[cards per message]"
 ---
 
 # VocabBot: the daily session
@@ -35,7 +36,7 @@ Run `today --json`.
   the learner names the folder.
 - `off: true`: a day off; the reviews wait for the next learning day. When
   the learner wants to learn anyway, `today --extra <n> --json` adds new
-  words for today, and `next --count 10 --ahead 10 --json` brings reviews of
+  words for today, and `next --ahead 10 --json` brings reviews of
   later days (answers to cards with `phase: ahead` go to `answer` with
   `--ahead`). A learner without learned words has no reviews to bring ahead.
 - `warnings` with `conflict_copies` or `damaged_rows`: say that `vocab-start`
@@ -50,46 +51,56 @@ Run `today --json`.
 Show the day in two or three lines from `languages` (reviews, new words,
 drill per language) and `minutes`.
 
-## Step 1: a batch
+## Step 1: the cards
 
-Run `next --count 10 --json` (or the number the learner chose). Keep the
-order of `items`. Each item has `card`, `lang`, `phase` (`review`, `new`,
-`drill`, `ahead`) and `question`; a new word also has `word`.
+`batch` in the result of `today` is the number of cards in one message: 1 by
+default, so the session asks one card at a time, as SuperMemo does. A learner
+who prefers a list changes it through `vocab-start` (`plan set batch=5`).
 
-1. **Introduce the new words.** For each item with `phase: new`, show `word`:
-   the word with its gender, forms and IPA, the Polish meaning, and the
-   example with its translation. Ask the learner to read them and end the
-   message there; the questions come in the next message, after the learner
-   says they are ready, so the answers are not on the screen. A learner who
-   knew a word before the course says so, and
-   `grade --card <card> --grade known --json` records it; that word then
-   leaves the batch.
-2. **Ask the questions.** Ask every remaining item of the batch as one
-   numbered list. Per item: the language tag (EN, DE, ES, FR), the Polish
-   meaning, the part of speech, "z rodzajnikiem" when `with_article` is true,
-   the hint if any, and the sentence with its gap `___` and `sentence_pl`.
-   Recognition cards (`question.ask: meaning`) follow
-   `reference/recognition.md`. `reference/presentation.md` shows the layout.
-3. **Send the answers.** The learner answers by number. When the reply does
-   not map clearly onto the numbers, ask once. Send every answer of the batch
-   in one call, exactly as typed, on standard input:
+Run `next --json`; it returns `batch` items. Keep their order. Each item has
+`card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and `question`; a
+new word also has `word`. `reference/presentation.md` shows the layout.
 
-   ```
-   python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" answer --batch --stdin --json <<'EOF'
-   {"card": "de-c01997#p", "answer": "der Hund"}
-   {"card": "es-c02790#p", "answer": ""}
-   EOF
-   ```
+- **A question** shows the language tag (EN, DE, ES, FR), the Polish meaning,
+  the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
+  if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
+  cards (`question.ask: meaning`) follow `reference/recognition.md`.
+- **A new word** (`phase: new`) is introduced before its question: `word`
+  with its gender, forms and IPA, the Polish meaning, and the example with
+  its translation. End the message there; its question comes in the next
+  message, after the learner says they are ready, so the answer is not on the
+  screen. A learner who knew the word before the course says so, and
+  `grade --card <card> --grade known --json` records it; that card then needs
+  no question.
+- **The answers** go to the engine exactly as typed, an unknown one as an
+  empty answer, on standard input, with `--next`, so the result also holds
+  the next cards (`next`):
 
-4. **Show the results.** One line per card: "✓ wiem", "≈ prawie" with the
-   error classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`;
-   add the example for "prawie" and "nie wiem". The cards answered wrong come
-   back in the "utrwalanie" (the drill) at the end. `other_lang` means the learner typed the word of
-   another language being learned: name that language. A result with `error`
-   was refused; show its message and go on.
+  ```
+  python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" answer --batch --stdin --next --json <<'EOF'
+  {"card": "de-c01997#p", "answer": "der Hund"}
+  EOF
+  ```
 
-Repeat Step 1 until `left` in the last result shows no reviews, no new words
-and no drill. Cards answered wrong come back in the drill at the end, as many
+- **A result** is one line per card: "✓ wiem", "≈ prawie" with the error
+  classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; add the
+  example for "prawie" and "nie wiem". `other_lang` means the learner typed
+  the word of another language being learned: name that language. A result
+  with `error` was refused; show its message and go on.
+
+**One card at a time (`batch` 1).** Every message holds the result of the
+last answer and then the next card from `next.items` of that result: its
+question, or the introduction of a new word. After a new word's
+introduction the learner's "dalej" brings its question.
+
+**Several cards (`batch` 2 or more).** Introduce the new words of the batch
+together and end the message; then ask every remaining card as one numbered
+list. The learner answers by number; when the reply does not map clearly onto
+the numbers, ask once. Send every answer of the list in one call and show the
+results of the list, then the next batch from `next`.
+
+Go on until `left` shows no reviews, no new words and no drill. Cards
+answered wrong come back in the "utrwalanie" (the drill) at the end, as many
 times as needed; their due date no longer changes that day.
 
 ## Step 2: the end
@@ -103,6 +114,8 @@ session or a reminder only as `shared/rules.md` allows.
 - **Change of a grade.** Only on the learner's explicit request for a named
   card: `regrade --card <card> --grade know|almost|dont_know --json`.
 - **More words today.** `today --extra <n> --json`, then Step 1 again.
+- **More or fewer cards in a message.** `vocab-start` changes `batch` in the
+  plan with a preview and the learner's yes.
 - **A mistake in a card.** The learner's note goes to
   `flag --card <card> --stdin --json`; the card leaves the queue until
   `flag --card <card> --clear --json`. Larger corrections belong to

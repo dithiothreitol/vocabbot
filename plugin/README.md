@@ -13,7 +13,7 @@ for it, when about nine in ten words are still remembered.
 | Skill | What it does |
 |---|---|
 | `vocab-start` | Setup: languages, levels, new words a day, a placement test, the learner's folder. Later: plan changes, the forecast, a check of the folder, the terminal program. |
-| `vocab-session` | The daily session: reviews, new words in small batches, then the drill of words that went wrong. |
+| `vocab-session` | The daily session: reviews, new words and the drill of words that went wrong, one card at a time as in SuperMemo (or a few at once, by the plan's `batch`). |
 | `vocab-coach` | Explanations, mnemonics for hard words, words mixed up between languages, practice in sentences, the weekly review. |
 | `vocab-words` | Own words from a text, a list or a photo of a page; course words moved forward; reports of mistakes in entries. |
 

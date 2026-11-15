@@ -14,6 +14,14 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
   code is.
 - Invitation codes are shown in capitals (`ABCD-EFGH-JKMN`); any case,
   spaces and hyphens are still accepted.
+- The session in the chat asks one card at a time, as SuperMemo does: a
+  message holds the result of the last answer and the next card, and a new
+  word comes alone before its question. The plan's new key `batch` (1 to 20,
+  default 1) sets the cards of one message; with more than one the session
+  keeps the numbered list.
+- `next` without `--count` returns the plan's `batch` of cards, `today`
+  reports `batch`, and `answer --next` also returns the next cards, so a card
+  needs one call of the engine; the server's `vocab_answer` has `then_next`.
 
 ## 1.0.0-rc.5 - 2026-11-15
 

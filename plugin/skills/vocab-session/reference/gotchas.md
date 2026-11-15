@@ -18,7 +18,8 @@
   the grade; the log still records it.
 - Answers in another language being learned get `other_lang`; this happens
   most with words that look alike, so name the language in the result.
-- Batches of about ten cards keep the chat readable. On a phone-sized
-  screen, five work better; the count is the argument of `next`.
+- The plan's `batch` sets the cards of one message: 1 by default, one card
+  at a time. `next --count <n>` overrides it for one call, for example for
+  reviews ahead.
 - The terminal session (`vocabbot drill`) and the chat share the folder and
   the order, so a session can start in one and end in the other.

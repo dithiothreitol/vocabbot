@@ -399,6 +399,7 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
         "languages": languages,
         "left": left,
         "minutes": round(minutes),
+        "batch": int(dp.plan.get("batch", 1)),
         "warnings": warnings,
     }
     # pacing matters only while the courses still have the words it holds back

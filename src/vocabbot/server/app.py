@@ -142,35 +142,41 @@ def register(server: MCPServer, tools: Tools) -> None:
     @tool(
         "vocab_next",
         "Następne karty",
-        "The next cards of today's session in the engine's order. A review shows only its"
-        " question; a new word (phase new) also has its word for the introduction. `ahead`"
-        " brings that many reviews of later days, only when the learner chose to learn"
-        " ahead. Calling it again returns the same cards until answers come in.",
+        "The next cards of today's session in the engine's order: as many as the plan's"
+        " batch (1 by default, one card at a time) unless `count` says otherwise. A review"
+        " shows only its question; a new word (phase new) also has its word for the"
+        " introduction. `ahead` brings that many reviews of later days, only when the learner"
+        " chose to learn ahead. Calling it again returns the same cards until answers come in.",
         READ,
     )
     async def vocab_next(
-        count: Annotated[int, Field(ge=1, le=50)] = 10,
+        count: Annotated[int | None, Field(ge=1, le=50)] = None,
         ahead: Annotated[int, Field(ge=0, le=200)] = 0,
     ) -> str:
-        return await tools.run(["next", "--count", str(count), "--ahead", str(ahead)])
+        argv = ["next", "--ahead", str(ahead)]
+        if count is not None:
+            argv += ["--count", str(count)]
+        return await tools.run(argv)
 
     @tool(
         "vocab_answer",
         "Ocena odpowiedzi",
         "Grade the learner's typed answers to the cards of the last vocab_next, exactly as"
         " typed (an unknown answer as an empty string). Returns the engine's grade with its"
-        " error classes, the right word, and what is left today. `ahead` is true for cards"
-        " with phase ahead.",
+        " error classes, the right word, and what is left today; with `then_next` also the"
+        " next cards (`next`), so the session needs one call per card. `ahead` is true for"
+        " cards with phase ahead.",
         WRITE,
     )
-    async def vocab_answer(answers: Answers, ahead: bool = False) -> str:
+    async def vocab_answer(answers: Answers, ahead: bool = False, then_next: bool = False) -> str:
         text = "\n".join(
             json.dumps({"card": item.card, "answer": item.answer}, ensure_ascii=False)
             for item in answers
         )
-        return await tools.run(
-            ["answer", "--batch", "--stdin", *(["--ahead"] if ahead else [])], text
-        )
+        argv = ["answer", "--batch", "--stdin"]
+        argv += ["--ahead"] if ahead else []
+        argv += ["--next"] if then_next else []
+        return await tools.run(argv, text)
 
     @tool(
         "vocab_grade",

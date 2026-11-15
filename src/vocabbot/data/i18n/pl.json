@@ -89,6 +89,7 @@
     "init_summary": "nowy plan nauki ({languages})",
     "set_summary": "zmiana planu: {changes}",
     "presence": "Plan według obecności: {value}",
+    "batch": "Karty w jednej wiadomości sesji w czacie: {value}",
     "parameters": "Parametry FSRS-6 dopasowane do dziennika: {value}",
     "parameters_default": "brak, obowiązują domyślne",
     "fit_line": "{name}: parametry dopasowane do {reviews} powtórek; na późniejszej części dziennika log loss {loss} zamiast {base} dla FSRS-6",

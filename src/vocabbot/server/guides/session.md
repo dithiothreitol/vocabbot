@@ -21,44 +21,54 @@ Call `vocab_today`.
   sentence.
 - `ahead_hint`: tomorrow is a day off or a day the learner usually skips.
   After today's cards, offer its `count` reviews ahead of their day:
-  `vocab_next` with `count` and `ahead` set to that number, answered with
-  `ahead: true`.
+  `vocab_next` with `ahead` set to that number, answered with `ahead: true`.
 
 Show the day in two or three lines from `languages` (reviews, new words,
 drill per language) and `minutes`.
 
-## Step 1: a batch
+## Step 1: the cards
 
-Call `vocab_next` with `count` 10 (or the number the learner chose; five suit
-a phone). Keep the order of `items`. Each item has `card`, `lang`, `phase`
-(`review`, `new`, `drill`, `ahead`) and `question`; a new word also has
-`word`.
+`batch` in the result of `vocab_today` is the number of cards in one message:
+1 by default, so the session asks one card at a time, as SuperMemo does. A
+learner who prefers a list changes it in the plan (`vocab_plan_change` with
+`batch=5`, the topic `start`).
 
-1. **Introduce the new words.** For each item with `phase: new`, show `word`:
-   the word with its gender, forms and IPA, the Polish meaning, and the
-   example with its translation. Ask the learner to read them and end the
-   message there; the questions come in the next message, after the learner
-   says they are ready, so the answers are not on the screen. A learner who
-   knew a word before the course says so, and `vocab_grade` with `known`
-   records it; that word then leaves the batch.
-2. **Ask the questions.** Ask every remaining item of the batch as one
-   numbered list. Per item: the language tag (EN, DE, ES, FR), the Polish
-   meaning, the part of speech, "z rodzajnikiem" when `with_article` is true,
-   the hint if any, and the sentence with its gap `___` and `sentence_pl`.
-   Recognition cards (`question.ask: meaning`) follow the section below.
-3. **Send the answers.** The learner answers by number. When the reply does
-   not map clearly onto the numbers, ask once. Send every answer of the batch
-   in one `vocab_answer` call, exactly as typed, an unknown one as an empty
-   string.
-4. **Show the results.** One line per card: "✓ wiem", "≈ prawie" with the
-   error classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`;
-   add the example for "prawie" and "nie wiem". The cards answered wrong come
-   back in the "utrwalanie" (the drill) at the end. `other_lang` means the
-   learner typed the word of another language being learned: name that
-   language. A result with `error` was refused; show its message and go on.
+Call `vocab_next` without `count`; it returns `batch` items. Keep their order.
+Each item has `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and
+`question`; a new word also has `word`.
 
-Repeat Step 1 until `left` in the last result shows no reviews, no new words
-and no drill. Cards answered wrong come back in the drill at the end, as many
+- **A question** shows the language tag (EN, DE, ES, FR), the Polish meaning,
+  the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
+  if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
+  cards (`question.ask: meaning`) follow the section below.
+- **A new word** (`phase: new`) is introduced before its question: `word`
+  with its gender, forms and IPA, the Polish meaning, and the example with
+  its translation. End the message there; its question comes in the next
+  message, after the learner says they are ready, so the answer is not on the
+  screen. A learner who knew the word before the course says so, and
+  `vocab_grade` with `known` records it; that card then needs no question.
+- **The answers** go to `vocab_answer` exactly as typed, an unknown one as an
+  empty string, with `then_next: true`, so the result also holds the next
+  cards (`next`).
+- **A result** is one line per card: "✓ wiem", "≈ prawie" with the error
+  classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; add the
+  example for "prawie" and "nie wiem". `other_lang` means the learner typed
+  the word of another language being learned: name that language. A result
+  with `error` was refused; show its message and go on.
+
+**One card at a time (`batch` 1).** Every message holds the result of the
+last answer and then the next card from `next.items` of that result: its
+question, or the introduction of a new word. After a new word's
+introduction the learner's "dalej" brings its question.
+
+**Several cards (`batch` 2 or more).** Introduce the new words of the batch
+together and end the message; then ask every remaining card as one numbered
+list. The learner answers by number; when the reply does not map clearly onto
+the numbers, ask once. Send every answer of the list in one `vocab_answer`
+call and show the results of the list, then the next batch from `next`.
+
+Go on until `left` shows no reviews, no new words and no drill. Cards
+answered wrong come back in the "utrwalanie" (the drill) at the end, as many
 times as needed; their due date no longer changes that day.
 
 ## Step 2: the end
@@ -66,20 +76,38 @@ times as needed; their due date no longer changes that day.
 Call `vocab_today` and sum up the session from it in two lines. Offer the
 coach (`vocab_guide` with the topic `coach`) for the words that went wrong.
 
-## How a batch looks
+## How the cards look
 
 The examples use invented cards; the real ones come from `vocab_next`.
 
-```
-Nowe słowa (3):
+One card at a time: a new word, alone in its message.
 
-DE  der Hund (r.m., l.mn. die Hunde) /hʊnt/ = pies
-    Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
-ES  la mesa (r.ż., l.mn. las mesas) /ˈme.sa/ = stół
-    La mesa es de madera. · Stół jest z drewna.
-
-Przeczytaj je spokojnie. Jeśli któreś słowo było Ci znane przed kursem, napisz które.
 ```
+Nowe słowo · DE
+der Hund (r.m., l.mn. die Hunde) /hʊnt/ = pies
+Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+
+Napisz „dalej”, gdy będziesz gotowy, albo „znałem”, jeśli znałeś to słowo przed kursem.
+```
+
+Its question, after "dalej":
+
+```
+DE · pies (rzeczownik, z rodzajnikiem)
+___ ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+```
+
+The result and the next card in one message:
+
+```
+≈ prawie (rodzajnik) · der Hund
+Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+
+ES · stół (rzeczownik, z rodzajnikiem)
+___ es de madera. · Stół jest z drewna.
+```
+
+Several cards: the new words together, then a numbered list.
 
 ```
 1. DE · pies (rzeczownik, z rodzajnikiem)
@@ -88,12 +116,6 @@ Przeczytaj je spokojnie. Jeśli któreś słowo było Ci znane przed kursem, nap
    ___ es de madera. · Stół jest z drewna.
 
 Odpowiedz numerami, np. „1. …”. Gdy nie pamiętasz, wpisz „?”.
-```
-
-```
-1. ✓ wiem · der Hund
-2. ≈ prawie (rodzajnik) · la mesa
-   La mesa es de madera. · Stół jest z drewna.
 ```
 
 The next due date of each card is in the result (`next_due`); show it only
@@ -111,8 +133,9 @@ meaning.
 3. Ask for the learner's own grade: wiem, prawie or nie wiem.
 4. Record it with `vocab_grade` (`know`, `almost` or `dont_know`).
 
-In a batch with production and recognition cards, send the production
-answers with `vocab_answer` first, then go through the recognition cards.
+In a list of several cards with production and recognition cards, send the
+production answers with `vocab_answer` first, then go through the
+recognition cards.
 
 ## During the session
 

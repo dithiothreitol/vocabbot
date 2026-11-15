@@ -563,11 +563,17 @@ def cmd_today(ctx: Context) -> dict[str, Any]:
 
 
 def cmd_next(ctx: Context) -> dict[str, Any]:
-    if ctx.args.count < 1:
+    count = ctx.args.count if ctx.args.count is not None else batch_of(ctx)
+    if count < 1:
         raise VocabError("bad_count")
     return session.next_items(
-        ctx.learner(), ctx.catalog(), ctx.day(), count=ctx.args.count, ahead=ctx.args.ahead
+        ctx.learner(), ctx.catalog(), ctx.day(), count=count, ahead=ctx.args.ahead
     )
+
+
+def batch_of(ctx: Context) -> int:
+    """The cards of one message in the chat session, from the plan (1 by default)."""
+    return int(ctx.learner().plan().get("batch", 1))
 
 
 def cmd_answer(ctx: Context) -> dict[str, Any]:
@@ -577,7 +583,7 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
         if not ctx.args.card:
             raise VocabError("bad_card", card="")
         given = ctx.text().rstrip("\r\n")
-        return session.answer(
+        single = session.answer(
             learner,
             catalog,
             day,
@@ -587,6 +593,7 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
             ahead=ctx.args.ahead,
             source=source,
         )
+        return with_next(ctx, single)
     results: list[dict[str, Any]] = []
     refused = 0
     for number, item in answer_lines(ctx.text()):
@@ -614,7 +621,21 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
             results.append({"card": card, "error": exc.as_dict()})
             refused += 1
     left = session.next_items(learner, catalog, day, count=0)["left"]
-    return {"ok": refused == 0, "results": results, "refused": refused, "left": left}
+    return with_next(
+        ctx, {"ok": refused == 0, "results": results, "refused": refused, "left": left}
+    )
+
+
+def with_next(ctx: Context, data: dict[str, Any]) -> dict[str, Any]:
+    """With --next, the result also holds the next cards, so a card needs one call."""
+    if not getattr(ctx.args, "next", False):
+        return data
+    count = batch_of(ctx)
+    ahead = count if ctx.args.ahead else 0
+    data["next"] = session.next_items(
+        ctx.learner(), ctx.catalog(), ctx.day(), count=count, ahead=ahead
+    )
+    return data
 
 
 def cmd_grade(ctx: Context) -> dict[str, Any]:
@@ -924,7 +945,9 @@ def build_parser(
     p.add_argument("--plain", action="store_true", help="plain text without colours")
 
     p = add("next", cmd_next, render_next, "the next cards, without their answers")
-    p.add_argument("--count", type=int, default=10)
+    p.add_argument(
+        "--count", type=int, default=None, help="cards to show (default: the plan's batch, 1)"
+    )
     p.add_argument("--ahead", type=int, default=0)
 
     p = add("answer", cmd_answer, render_answer, "grade a typed answer read from standard input")
@@ -936,6 +959,9 @@ def build_parser(
         help='read JSON lines {"card": ..., "answer": ...} from standard input',
     )
     p.add_argument("--ahead", action="store_true", help="accept a card before its day")
+    p.add_argument(
+        "--next", action="store_true", help="also return the next cards (the plan's batch)"
+    )
 
     p = add(
         "grade", cmd_grade, render_grade, "the learner's own grade: known, or a recognition card"

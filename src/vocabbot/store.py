@@ -54,6 +54,8 @@ DEFAULT_PLAN: dict[str, Any] = {
     "max_languages": 3,
     "diacritics": "strict",
     "presence": "on",
+    # cards in one message of the chat session; 1 asks them one at a time
+    "batch": 1,
     "parameters": {},
     "parameters_info": {},
 }
@@ -67,6 +69,7 @@ NUMBERS: dict[str, tuple[type, float, float]] = {
     "day_starts_at": (int, 0, 12),
     "leech_lapses": (int, 2, 20),
     "max_languages": (int, 1, 6),
+    "batch": (int, 1, 20),
 }
 CHOICES: dict[str, tuple[str, ...]] = {
     "mix": ("interleaved", "blocks"),

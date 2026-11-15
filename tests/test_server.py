@@ -396,6 +396,19 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             answers[-1]["answer"] = ""
             graded = await _call(client, "vocab_answer", answers=answers)
             assert [r["grade"] for r in graded["results"]] == ["know", "know", "dont_know"]
+            # one card at a time: the plan's batch is 1, and an answer brings the next card
+            single = await _call(client, "vocab_next")
+            assert len(single["items"]) == 1
+            card = single["items"][0]["card"]
+            chained = await _call(
+                client,
+                "vocab_answer",
+                answers=[{"card": card, "answer": correct(catalog, card)}],
+                then_next=True,
+            )
+            assert chained["results"][0]["grade"] == "know"
+            assert len(chained["next"]["items"]) == 1
+            assert chained["next"]["items"][0]["card"] != card
             refused = await client.call_tool("vocab_plan_change", {"settings": ["--x=1"]})
             assert refused.is_error
             status = await _call(client, "vocab_status")
