@@ -7,8 +7,8 @@ Stan: 2026-11-15, po Etapie 3 (wersja 1.0.0-rc.1, w pakiecie Pythona
 A1–B2 dla czterech języków (21 919 haseł) oraz wtyczka z czterema
 umiejętnościami dla Claude'a i Codexa działają; wyniki etapów opisuje
 rozdział 10. Wydanie kandydujące `v1.0.0-rc.1` jest opublikowane na GitHubie
-(15.11.2026). Do wersji 1.0 pozostają publikacja w PyPI po konfiguracji
-zaufanego wydawcy, testy sesyjne z modelem (bez Twojej zgody), dwie decyzje
+(15.11.2026), a pakiet `vocabbot` jest w PyPI. Do wersji 1.0 pozostają
+testy sesyjne z modelem (bez Twojej zgody), dwie decyzje
 z przejścia ścieżki (hook potwierdzenia, przykłady słów funkcyjnych) oraz
 pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
 `development-plan.md`.
@@ -891,7 +891,7 @@ Przejście przyniosło trzy wnioski.
 | CI | zielone na Pythonie 3.10 i 3.15 oraz w zadaniu wtyczki po dwóch poprawkach: `astral-sh/setup-uv` nie ma ruchomego tagu `v10`, dlatego przepływy przypinają `v10.3.3`; ruff klasyfikuje moduły potoku kursów jawnie, ponieważ lokalny katalog `build/` zmieniał kolejność importów |
 | tag i wydanie | `v1.0.0-rc.1`, wydanie przedpremierowe z kołem, archiwum źródłowym, `vocabbot.pyz`, `vocabbot.plugin`, czterema archiwami umiejętności i `SHA256SUMS`; sumy pobranych plików zgadzają się |
 | instalacja z GitHuba | `claude plugin install vocabbot --marketplace dithiothreitol/vocabbot` w odizolowanej konfiguracji oraz `uvx --from git+https://github.com/dithiothreitol/vocabbot@v1.0.0-rc.1 vocabbot` działają |
-| PyPI | czeka na zaufanego wydawcę na Twoim koncie pypi.org (projekt `vocabbot`, właściciel `dithiothreitol`, repozytorium `vocabbot`, przepływ `release.yml`, środowisko `pypi`); potem `gh workflow run release.yml -f tag=v1.0.0-rc.1` publikuje pakiet |
+| PyPI | `vocabbot 1.0.0rc1` opublikowany 15.11.2026 tokenem z Twojego konta: koło i archiwum źródłowe pobrane z wydania na GitHubie i sprawdzone sumami; `uv tool install vocabbot` i `pip` instalują tę wersję. Kolejne wydania mogą korzystać z zaufanego wydawcy (projekt `vocabbot`, właściciel `dithiothreitol`, repozytorium `vocabbot`, przepływ `release.yml`, środowisko `pypi`) |
 
 ---
 
