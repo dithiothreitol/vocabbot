@@ -1,0 +1,30 @@
+# VocabBot on a server whose Caddy already serves other sites (a shared reverse proxy).
+# scripts/deploy_vps.sh copies this file to /opt/vocabbot together with an .env that
+# names the image, the domain and the proxy's Docker network, and starts it.
+name: vocabbot
+
+services:
+  # a name of its own: in a shared network, a short service name such as `app`
+  # becomes an alias that other projects may already use
+  vocabbot-app:
+    image: ${VOCABBOT_IMAGE:?set by scripts/deploy_vps.sh}
+    container_name: vocabbot-app
+    restart: unless-stopped
+    environment:
+      VOCABBOT_SERVER_URL: https://${VOCABBOT_DOMAIN:?set by scripts/deploy_vps.sh}
+      VOCABBOT_SERVER_TIMEZONE: ${VOCABBOT_TIMEZONE:-Europe/Warsaw}
+    volumes:
+      - ./data:/data
+    networks:
+      - proxy
+    mem_limit: 384m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true
+    name: ${VOCABBOT_PROXY_NETWORK:?set by scripts/deploy_vps.sh}

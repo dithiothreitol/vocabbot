@@ -1,0 +1,7 @@
+# VocabBot for a shared Caddy that loads `import <sites>/*.caddy`.
+# scripts/deploy_vps.sh fills in the domain and installs it after a validation;
+# Caddy obtains the certificate once the domain's A record points at the server.
+@DOMAIN@ {
+	encode zstd gzip
+	reverse_proxy vocabbot-app:8000
+}
