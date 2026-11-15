@@ -31,7 +31,7 @@ python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" <command> --json
 
 `status --json` gives, for each language: `levels` (learned and total per
 level), `cards`, `due_week`, `retention_30` against `target_retention`,
-`reviews_30`, `errors_30` (error classes), `leeches` (words with many
+`reviews_30`, `errors_30_pl` (error classes in Polish), `leeches` (words with many
 lapses), `confusions` (answers given in another language being learned),
 `recent` (words introduced in the last seven days), plus `streak_days` and
 `today`. Run it once and work from it.

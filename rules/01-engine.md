@@ -23,6 +23,9 @@ python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" <command> --json
 - Never read or unpack `vocabbot.pyz`, and never open the files of the
   learner's folder to read or change them. The engine's commands are the only
   way to its data.
+- Run the engine as shown and nothing else: no wrapper program, no patched
+  home folder, no changed environment. When the host refuses a write
+  (`io_error`), show the message and ask the learner how to go on.
 - Without a Python that runs the engine, say that grades and due dates cannot
   be saved here, and offer practice that saves nothing, or the session in a
   terminal (`vocabbot drill`).

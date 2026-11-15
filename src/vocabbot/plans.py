@@ -98,15 +98,22 @@ def init_preview(
         gate.Change(
             folder / store.DECISIONS, "write", assets.text("gate.decisions_header") + "\n\n"
         ),
-        gate.Change(pointer, "write", store.dump_json({"learner": str(folder)})),
+        # the pointer is a convenience: a sandbox may forbid writing outside the folder
+        gate.Change(pointer, "write", store.dump_json({"learner": str(folder)}), optional=True),
     ]
     lines = [assets.text("plan.init_folder", folder=str(folder)), *describe(plan)]
     summary = assets.text(
         "plan.init_summary", languages=", ".join(i["code"] for i in plan["languages"])
     )
-    return gate.preview(
-        store.config_dir() / "pending", summary, lines, changes, now, folder / store.DECISIONS
-    )
+    try:
+        return gate.preview(
+            store.config_dir() / "pending", summary, lines, changes, now, folder / store.DECISIONS
+        )
+    except OSError:
+        # a sandbox that allows writing only in the working folder: wait in the new folder
+        return gate.preview(
+            folder / store.PENDING, summary, lines, changes, now, folder / store.DECISIONS
+        )
 
 
 def _value(key: str, raw: str) -> Any:

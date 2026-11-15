@@ -792,7 +792,7 @@ model. The table gives the results.
 | `claude plugin validate ./plugin --profile directory --strict` | no findings; the marketplace catalog (`claude plugin validate . --strict`) too |
 | `scripts/validate.py` | 0 errors and 0 warnings: manifests and versions, 43 engine calls in 17 commands compared with the program's parser, current copies, translations of the documents, no secrets and no home paths |
 | the engine from a skill's folder | Claude Code 2.1.323 and Codex CLI 0.153.4 install the plugin from the local marketplace in isolated configuration folders; each of the four skills runs `bin/vocabbot.pyz` from its folder in the host's cache (`init`, `commit`, `today`, `status`, `words add`) |
-| checks of Stages 1 and 2 | ruff and mypy without findings; 148 tests on Python 3.15 and 141 on 3.10, where the pipeline tests need the `data` group; `course check` without errors |
+| checks of Stages 1 and 2 | ruff and mypy without findings; 150 tests on Python 3.15 and 143 on 3.10 (after the fixes from the walk through the path), where the pipeline tests need the `data` group; `course check` without errors |
 | release packages | `scripts/build.py package` builds the wheel and the source archive 1.0.0rc1, `vocabbot.pyz` (2.3 MB), `vocabbot.plugin` (9.3 MB), four skill archives and `SHA256SUMS` |
 | session tests | 7 sessions in five groups (setup, the answer after the grade, grades, consent to a write, numbers) with 13 turns; `session_test.py --check` prepares all of them without a model; unit tests confirm that the checks catch a leaked answer and a plan written without a yes |
 | Python versions of the hosts | Claude Code and Codex CLI use the computer's Python (3.14 here); Cowork has Python 3.10.12 on Ubuntu 22.04 according to community reports; claude.ai and the code execution tool have Python 3.11.12 according to the documentation; the lower bound stays at 3.10 |
@@ -854,6 +854,44 @@ consent.
 | the tag `v1.0.0-rc.1` and the release through `release.yml` | none | the release holds the packages from the table of results |
 | publishing on PyPI | none | trusted publishing, the repository variable `PUBLISH_PYPI` |
 | the pilot according to `docs/pilot.md` | none | after the release |
+
+#### The walk through the path with a model (15.11.2026)
+
+With your consent of 15.11.2026 I walked through the whole path in Claude
+Code (the plugin from the repository folder, the Sonnet 5.5 model, 17 turns,
+5.24 USD according to `claude -p`) and in Codex CLI (the plugin from a local
+marketplace, the gpt-6-astra model, 6 turns on your account), on trial
+folders in a temporary directory. The walk covered the setup with a placement
+test, a session with the drill and a grade changed on request, own words
+with a hint, the coach and a plan change. Every grade in the logs comes from
+the engine. The table pairs the observations with the fixes that went into
+version 1.0.0-rc.1.
+
+| Observation | Fix |
+|---|---|
+| On a day off the model offered reviews ahead, which give a new learner no words | the session instructions point to `today --extra` for new words on a day off |
+| The model gave the codes of error classes ("wrong", "article") and field names | the engine returns Polish names (`grade_pl`, `errors_pl`, `errors_30_pl`), and a rule keeps commands, fields and ids out of the conversation |
+| The warning about the same meaning read like the promise of a hint, so the model promised a hint the preview did not hold | a new wording of the warning; the `vocab-words` instructions lead to a new preview with the hint and treat "yes, but…" as a request for a new preview |
+| The Codex sandbox blocks writes outside the working folder, so `init` ended with a traceback while creating `~/.vocabbot/pending` | the preview of a new folder falls back to the folder itself, the pointer in `~/.vocabbot` is optional (the `skipped` field), `commit` also looks for the preview in the current folder and in the folder of `--learner`, and a refused write gives an `io_error` in JSON |
+| Codex worked around that block by patching the home folder in a Python wrapper, and saved the plan in the same turn as the preview, without a confirmation | the rules forbid working around the engine, tell the model to end the turn at the question about saving and explain that a request listing every setting is not a confirmation; in a second trial Codex stopped at the preview and saved the plan only after "tak" |
+| Codex showed the new words and their questions in one message | the session instructions separate the introduction of the words from the questions |
+| An own word given as a JSON object got a lemma with its article | the engine sets the lemma of a noun without the article |
+
+The walk brought three conclusions.
+
+1. The confirmation rule depends on the model, because the engine cannot
+   tell who said "yes". One of the two models broke it at the first attempt.
+   A confirmation hook in Claude Code (the HouseholdBot pattern) would move
+   the confirmation into the host's window; section 2.3 left it out, so adding
+   it stays your decision.
+2. The courses start with function words whose examples often show another
+   part of speech of the same form (French "la" and "le" as pronouns with
+   examples using the article, German "das", Spanish "lo más"), so a learner
+   meets them in the first session. A fix in the pipeline, for example a
+   question without a sentence for such entries, needs a new build of the
+   courses and is a decision before the pilot.
+3. The npm wrapper `codex.CMD` cuts an argument at its first newline, so the
+   walk script passes the text of a turn on standard input (`codex exec -`).
 
 ---
 

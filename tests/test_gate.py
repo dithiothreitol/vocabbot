@@ -118,6 +118,7 @@ def test_own_words(tmp_path: Path, catalog: Catalog) -> None:
     own = fresh.own("de")
     assert [e["display"] for e in own] == ["der Schrank", "die Tasse"]
     assert own[0]["gender"] == "m"
+    assert own[1]["lemma"] == "Tasse"
     assert own[0]["example"]["gap"] == "Der Schrank"
     assert [e["id"] for e in fresh.first("de")] == [own[0]["id"], own[1]["id"], "de-c90023"]
     assert fresh.moved_forward("de") == {"de-c90023"}

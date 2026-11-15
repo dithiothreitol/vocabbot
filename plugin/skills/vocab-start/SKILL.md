@@ -59,7 +59,10 @@ Run `plan show --json`.
    `--lang` is `code:levels[:weight]`; `--set` takes any plan key from
    `reference/plan-keys.md` and repeats. Show the `preview` lines as they
    are and ask whether to save. After an explicit yes:
-   `commit --confirm <token> --json`.
+   `commit --confirm <token> --learner <folder> --json`. `skipped` in its
+   result means the host's sandbox kept the engine from saving the pointer
+   in the home folder; later calls then work from the learner's folder as
+   the current folder, or with `--learner <folder>`.
 6. **Forecast.** `forecast --days 30 --json`: quote `average_minutes`,
    `peak_reviews` and the days in `levels_complete` when each level has been
    introduced in full.

@@ -20,8 +20,9 @@ A short test from the course words, level by level, that writes nothing.
    EOF
    ```
 
-4. Show the results of the level: one line per word with the grade and the
-   right word, then `levels.<level>` (know, almost, asked, share).
+4. Show the results of the level: one line per word with the grade
+   (`grade_pl`, with `errors_pl` for "prawie") and the right word, then
+   `levels.<level>` (know, almost, asked, share).
 5. Go on to the next level while `levels.<level>.known` is true. Stop at the
    first level that is not known.
 6. `suggested_levels` is the engine's proposal, for example `a2-b2`. The

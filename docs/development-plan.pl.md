@@ -780,7 +780,7 @@ każdej umiejętności) sprawdziłem bez modelu. Tabela podaje wyniki.
 | `claude plugin validate ./plugin --profile directory --strict` | bez uwag; katalog marketplace (`claude plugin validate . --strict`) również |
 | `scripts/validate.py` | 0 błędów i 0 ostrzeżeń: manifesty i wersje, 43 wywołania silnika w 17 poleceniach porównane z parserem programu, aktualność kopii, tłumaczenia dokumentów, brak sekretów i ścieżek domowych |
 | silnik z folderu umiejętności | Claude Code 2.1.323 i Codex CLI 0.153.4 instalują wtyczkę z lokalnego marketplace w odizolowanych katalogach konfiguracji; każda z czterech umiejętności uruchamia `bin/vocabbot.pyz` z folderu w pamięci podręcznej gospodarza (`init`, `commit`, `today`, `status`, `words add`) |
-| kontrole Etapów 1 i 2 | ruff i mypy bez uwag; 148 testów na Pythonie 3.15 oraz 141 na 3.10, gdzie testy potoku wymagają grupy `data`; `course check` bez błędów |
+| kontrole Etapów 1 i 2 | ruff i mypy bez uwag; 150 testów na Pythonie 3.15 oraz 143 na 3.10 (po poprawkach z przejścia ścieżki), gdzie testy potoku wymagają grupy `data`; `course check` bez błędów |
 | paczki wydania | `scripts/build.py package` buduje koło i archiwum źródłowe 1.0.0rc1, `vocabbot.pyz` (2,3 MB), `vocabbot.plugin` (9,3 MB), cztery archiwa umiejętności i `SHA256SUMS` |
 | testy sesyjne | 7 sesji w pięciu grupach (konfiguracja, odpowiedź po ocenie, oceny, zgoda na zapis, liczby) z 13 turami; `session_test.py --check` przygotowuje wszystkie bez modelu; testy jednostkowe potwierdzają, że kontrole wychwytują przeciek odpowiedzi i zapis planu bez zgody |
 | wersje Pythona u gospodarzy | Claude Code i Codex CLI korzystają z Pythona komputera (tutaj 3.14); Cowork ma według relacji społeczności Pythona 3.10.12 na Ubuntu 22.04; claude.ai i narzędzie code execution mają według dokumentacji Pythona 3.11.12; dolna granica pozostaje 3.10 |
@@ -842,6 +842,44 @@ zgodę.
 | tag `v1.0.0-rc.1` i wydanie przez `release.yml` | brak | wydanie zawiera paczki z tabeli wyników |
 | publikacja w PyPI | brak | zaufane publikowanie, zmienna repozytorium `PUBLISH_PYPI` |
 | pilotaż według `docs/pilot.pl.md` | brak | po wydaniu |
+
+#### Przejście ścieżki z modelem (15.11.2026)
+
+Za Twoją zgodą z 15.11.2026 przeszedłem pełną ścieżkę w Claude Code
+(wtyczka z folderu repozytorium, model Sonnet 5.5, 17 tur, 5,24 USD według
+`claude -p`) oraz w Codex CLI (wtyczka z lokalnego marketplace, model
+gpt-6-astra, 6 tur na Twoim koncie), na folderach próbnych w katalogu
+tymczasowym. Ścieżka objęła konfigurację z testem poziomującym, sesję
+z utrwalaniem i zmianą oceny na prośbę, własne słowa z dopiskiem, trenera
+oraz zmianę planu. Każda ocena w dziennikach pochodzi z silnika. Tabela
+zestawia obserwacje z poprawkami, które weszły do wersji 1.0.0-rc.1.
+
+| Obserwacja | Poprawka |
+|---|---|
+| W dniu wolnym model proponował powtórki przed terminem, które nowemu uczącemu się nie dają żadnych słów | instrukcja sesji wskazuje `today --extra` dla nowych słów w dniu wolnym |
+| Model podawał kody klas błędów („wrong”, „article”) i nazwy pól wyniku | silnik zwraca polskie nazwy (`grade_pl`, `errors_pl`, `errors_30_pl`), a reguła wyklucza z rozmowy polecenia, pola i identyfikatory |
+| Ostrzeżenie o tym samym znaczeniu brzmiało jak zapowiedź dopisku, więc model obiecał dopisek nieobecny w podglądzie | nowa treść ostrzeżenia; instrukcja `vocab-words` prowadzi do nowego podglądu z dopiskiem i traktuje „tak, ale…” jako prośbę o nowy podgląd |
+| Piaskownica Codexa blokuje zapis poza folderem roboczym, dlatego `init` kończył się śladem stosu przy tworzeniu `~/.vocabbot/pending` | podgląd nowego folderu czeka awaryjnie w samym folderze, wskaźnik w `~/.vocabbot` jest opcjonalny (pole `skipped`), `commit` szuka podglądu także w folderze bieżącym i w folderze z `--learner`, a odmowa zapisu daje błąd `io_error` w JSON |
+| Codex obszedł tę blokadę, podmieniając katalog domowy w opakowaniu Pythona, i zapisał plan w tej samej turze co podgląd, bez potwierdzenia | reguły zakazują obchodzenia silnika, każą zakończyć turę na pytaniu o zapis i wyjaśniają, że prośba z kompletem ustawień nie zastępuje potwierdzenia; w ponownej próbie Codex zatrzymał się na podglądzie i zapisał plan dopiero po „tak” |
+| Codex pokazał nowe słowa i pytania o nie w jednej wiadomości | instrukcja sesji rozdziela wprowadzenie słów i pytania |
+| Własne słowo podane jako obiekt JSON dostawało lemat z rodzajnikiem | silnik wyznacza lemat rzeczownika bez rodzajnika |
+
+Przejście przyniosło trzy wnioski.
+
+1. Reguła potwierdzenia zależy od modelu, ponieważ silnik nie rozróżnia,
+   kto powiedział „tak”. Jeden z dwóch modeli złamał ją przy pierwszej
+   próbie. Hook potwierdzenia w Claude Code (wzorzec HouseholdBota)
+   przeniósłby potwierdzenie do okna gospodarza; rozdział 2.3 go pominął,
+   dlatego jego dodanie pozostaje Twoją decyzją.
+2. Kursy zaczynają się od słów funkcyjnych, których przykłady często
+   pokazują inną część mowy tej samej formy (francuskie „la” i „le” jako
+   zaimki z przykładami z rodzajnikami, niemieckie „das”, hiszpańskie
+   „lo más”), więc uczący się trafia na nie w pierwszej sesji. Poprawka
+   w potoku, na przykład pytanie bez zdania dla takich haseł, wymaga nowej
+   budowy kursów i jest decyzją przed pilotażem.
+3. Nakładka `codex.CMD` z npm obcina argument na pierwszym znaku nowej linii,
+   dlatego skrypt przejścia przekazuje treść tury na wejściu standardowym
+   (`codex exec -`).
 
 ---
 

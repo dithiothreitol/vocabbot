@@ -17,7 +17,7 @@ import statistics
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from vocabbot import answers, store
+from vocabbot import answers, assets, store
 from vocabbot.book import RATING, CardState
 from vocabbot.courses import Catalog, presentation, question, split_card
 from vocabbot.errors import VocabError
@@ -152,12 +152,14 @@ def record(
         "lang": entry["lang"],
         "kind": kind,
         "grade": grade,
+        "grade_pl": assets.text(f"grades.{grade}"),
         "word": presentation(entry),
         "drill": grade in ("almost", "dont_know"),
     }
     if verdict is not None:
         result["auto"] = verdict.grade
         result["errors"] = list(verdict.errors)
+        result["errors_pl"] = [assets.text(f"error_classes.{e}") for e in verdict.errors]
         if verdict.other_lang:
             result["other_lang"] = verdict.other_lang
         if verdict.matched and verdict.matched != entry["display"]:

@@ -48,6 +48,11 @@ python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" <command> --json
    own words or already being learned). Show the `preview` lines as they are
    and ask whether to save. After an explicit yes:
    `commit --confirm <token> --json`.
+   A line about the same meaning (`same_meaning`) means the questions of two
+   words would look alike. Offer a short hint; with the learner's hint, make
+   a new preview in which that word is a JSON line with `hint`, and ask
+   again. A yes given with a change ("tak, ale …") calls for a new preview,
+   never for the commit of the old one.
 4. **What follows.** Own and moved words come first among the new words of
    the next days, within the daily limit of new words.
 

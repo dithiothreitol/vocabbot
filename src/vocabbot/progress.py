@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 from typing import Any
 
-from vocabbot import store
+from vocabbot import assets, store
 from vocabbot.book import RATING, CardState, replay
 from vocabbot.courses import Catalog, card_id, split_card
 from vocabbot.fsrs import AGAIN, GOOD, Memory, Scheduler
@@ -94,6 +94,9 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
             "reviews_30": len(reviews),
             "changed_grades_30": round(changed / len(graded), 3) if graded else None,
             "errors_30": dict(errors.most_common()),
+            "errors_30_pl": {
+                assets.text(f"error_classes.{code}"): count for code, count in errors.most_common()
+            },
             "leeches": leeches[:20],
             "confusions": confusions[:CONFUSIONS_MAX],
             "recent": recent_words(catalog, cards, remaining, day),

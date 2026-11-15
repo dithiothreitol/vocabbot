@@ -7,12 +7,19 @@ name: release
 #
 # The build job runs every check with a read-only token that is not kept in
 # the checkout. The release job only uploads what the build produced. PyPI
-# gets the package only when the repository variable PUBLISH_PYPI is "true"
-# (trusted publishing, environment "pypi").
+# gets the package through trusted publishing (environment "pypi"): on a tag
+# when the repository variable PUBLISH_PYPI is "true", or when the workflow
+# is started by hand for an existing tag (gh workflow run release.yml -f
+# tag=v1.0.0-rc.1), which builds that tag again and publishes it only there.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "An existing tag to publish on PyPI, e.g. v1.0.0-rc.1"
+        required: true
 
 permissions:
   contents: read
@@ -23,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.tag || github.ref }}
           persist-credentials: false
       - uses: astral-sh/setup-uv@v10
         with:
@@ -31,7 +39,7 @@ jobs:
 
       - name: The tag matches the version
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           version=$(python3 -c "import json; print(json.load(open('plugin/.claude-plugin/plugin.json'))['version'])")
           test "v$version" = "$TAG" || { echo "tag $TAG, plugin.json $version"; exit 1; }
@@ -58,7 +66,7 @@ jobs:
 
       - name: Release notes from the changelog
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           python3 - "${TAG#v}" > notes.md <<'EOF'
           import re, sys
@@ -76,6 +84,7 @@ jobs:
 
   release:
     needs: build
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -100,7 +109,7 @@ jobs:
 
   pypi:
     needs: build
-    if: vars.PUBLISH_PYPI == 'true'
+    if: github.event_name == 'workflow_dispatch' || vars.PUBLISH_PYPI == 'true'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:

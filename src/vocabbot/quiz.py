@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from vocabbot import answers, store
+from vocabbot import answers, assets, store
 from vocabbot.courses import Catalog, card_id, presentation, question, split_card
 from vocabbot.errors import VocabError
 
@@ -71,7 +71,9 @@ def check(
                 "card": card,
                 "level": entry["level"],
                 "grade": verdict.grade,
+                "grade_pl": assets.text(f"grades.{verdict.grade}"),
                 "errors": list(verdict.errors),
+                "errors_pl": [assets.text(f"error_classes.{e}") for e in verdict.errors],
                 "word": presentation(entry),
             }
         )

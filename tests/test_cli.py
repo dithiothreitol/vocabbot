@@ -111,6 +111,39 @@ def test_a_day_through_the_commands(program: Program, tmp_path: Path, catalog: C
     assert courses["fr"]["levels"] == {"a1": 40, "a2": 20}
 
 
+def test_setup_where_only_the_working_folder_can_be_written(
+    program: Program, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A sandbox (Codex) forbids ~/.vocabbot: the preview waits in the new folder."""
+    blocked = tmp_path / "not-a-folder"
+    blocked.write_text("a file where the config folder would be", encoding="utf-8")
+    monkeypatch.setenv("VOCABBOT_CONFIG", str(blocked / "config"))
+    folder = tmp_path / "nauka"
+    monkeypatch.chdir(tmp_path)
+    preview = program.run("init", str(folder), "--lang", "fr:a1-a2")
+    assert (folder / "registers" / ".pending" / f"{preview['token']}.json").is_file()
+    assert not (folder / "registers" / "plan.json").exists()
+    done = program.run("commit", "--confirm", preview["token"], "--learner", str(folder))
+    assert done["skipped"] == [str(blocked / "config" / "config.json")]
+    assert (folder / "registers" / "plan.json").is_file()
+    monkeypatch.chdir(folder)
+    assert program.run("today")["languages"]["fr"]["new"] > 0
+    error = program.run("plan", "set", "new_per_day=5", "--learner", str(blocked), code=1)
+    assert error["error"]["code"] == "no_plan"
+
+
+def test_a_refused_write_is_a_json_error(
+    program: Program, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(*args: Any, **kwargs: Any) -> None:
+        raise PermissionError(13, "Access is denied", "C:/somewhere/plan.json")
+
+    monkeypatch.setattr("vocabbot.store.write_text", refuse)
+    monkeypatch.setattr("vocabbot.gate.store.write_text", refuse)
+    error = program.run("init", str(tmp_path / "x"), "--lang", "de:a1", code=1)
+    assert error["error"]["code"] == "io_error"
+
+
 def test_use_points_at_an_existing_folder(program: Program, tmp_path: Path) -> None:
     folder = tmp_path / "nauka"
     preview = program.run("init", str(folder), "--lang", "de:a1")

@@ -273,8 +273,11 @@ def test_status_lists_confused_and_recent_words(tmp_path: Path, catalog: Catalog
     entry = catalog.card(card)
     assert entry is not None
     spanish = next(e for e in catalog.family(entry["concept"]) if e["lang"] == "es")
-    session.answer(learner, catalog, MONDAY, moment(MONDAY), card, spanish["display"])
+    result = session.answer(learner, catalog, MONDAY, moment(MONDAY), card, spanish["display"])
+    assert result["errors_pl"] == ["słowo z innego języka"]
+    assert result["grade_pl"] == "nie wiem"
     report = progress.status(learner, catalog, MONDAY)["languages"]["de"]
+    assert report["errors_30_pl"] == {"słowo z innego języka": 1}
     assert report["confusions"][0]["card"] == card
     assert report["confusions"][0]["other_lang"] == "es"
     assert report["confusions"][0]["given"] == spanish["display"]

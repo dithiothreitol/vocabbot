@@ -158,7 +158,11 @@ def add_preview(
         ):
             if raw.get(key) not in (None, "", [], {}):
                 entry[key] = raw[key]
-        entry.setdefault("lemma", entry.get("display", ""))
+        if not entry.get("lemma"):
+            article, core = split_article(str(entry.get("display", "")), rules(lang))
+            entry["lemma"] = (
+                core if article and entry["pos"] == "noun" else entry.get("display", "")
+            )
         entry["sources"] = ["own"]
         entry["checked"] = False
         existing[_key(label)] = entry["id"]

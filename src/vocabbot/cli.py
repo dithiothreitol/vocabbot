@@ -69,11 +69,15 @@ class Context:
         return not self.args.json and sys.stdin.isatty() and sys.stdout.isatty()
 
     def pending_folders(self) -> list[Path]:
+        """Where previews wait: the learner's folder, ~/.vocabbot, and a new folder's own."""
         folders = []
         with contextlib.suppress(VocabError):
             folders.append(self.learner().path(store.PENDING))
         folders.append(store.config_dir() / "pending")
-        return folders
+        if getattr(self.args, "learner", None):
+            folders.append(Path(self.args.learner).expanduser() / store.PENDING)
+        folders.append(Path.cwd() / store.PENDING)
+        return list(dict.fromkeys(folders))
 
 
 def read_stdin() -> str:
@@ -855,6 +859,15 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     except KeyboardInterrupt:
         return 130
+    except OSError as exc:
+        error = VocabError(
+            "io_error", path=str(exc.filename or ""), detail=exc.strerror or str(exc)
+        )
+        if args.json:
+            print(json.dumps({"ok": False, "error": error.as_dict()}, ensure_ascii=False, indent=1))
+        else:
+            print(str(error), file=sys.stderr)
+        return 1
     ok = bool(data.get("ok", True))
     if args.json:
         print(

@@ -33,8 +33,21 @@ The first release candidate: the plugin, its checks and the documents.
   `scripts/build.py skills` and `package`, the release workflow, the
   documents in English and Polish, and the pilot protocol.
 
+- Results of `answer`, `grade` and `quiz --check` carry the Polish names of
+  the grade and the error classes (`grade_pl`, `errors_pl`); `status`
+  carries `errors_30_pl`.
+- Where a sandbox allows writes only in the working folder (Codex), the
+  preview of a new folder waits in the folder itself, the pointer in
+  `~/.vocabbot` is skipped, and `commit` finds the preview in the current
+  folder or the folder of `--learner`. A refused write is an `io_error` in
+  JSON instead of a traceback.
+
 ### Changed
 
+- The shared rules end a turn at the question about saving, keep commands,
+  field names and ids out of the conversation, and forbid running the engine
+  through a wrapper or a changed environment; found in the walk through the
+  path with Claude Code and Codex.
 - `course check` reports a clash between an own word and a course word with
   the same meaning as a warning; the courses stay valid.
 - `vocabbot.pyz` is built with sorted entries and a fixed time, so the same

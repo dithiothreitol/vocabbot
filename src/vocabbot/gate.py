@@ -30,6 +30,7 @@ class Change:
     path: Path
     action: str  # write, append or delete
     content: str = ""
+    optional: bool = False  # skipped when its place cannot be written (a sandbox)
 
 
 def _sha(path: Path) -> str | None:
@@ -77,6 +78,7 @@ def preview(
                 "action": change.action,
                 "content": change.content,
                 "base": _sha(change.path),
+                "optional": change.optional,
             }
             for change in changes
         ],
@@ -108,9 +110,15 @@ def commit(token: str, folders: list[Path], now: datetime, via: str) -> dict[str
     for change in record["changes"]:
         if _sha(Path(change["path"])) != change["base"]:
             raise VocabError("changed_since_preview", file=change["path"])
+    skipped: list[str] = []
     for change in record["changes"]:
         path = Path(change["path"])
-        if change["action"] == "write":
+        if change.get("optional") and change["action"] == "write":
+            try:
+                store.write_text(path, change["content"])
+            except OSError:
+                skipped.append(str(path))
+        elif change["action"] == "write":
             store.write_text(path, change["content"])
         elif change["action"] == "append":
             for line in change["content"].splitlines():
@@ -129,4 +137,7 @@ def commit(token: str, folders: list[Path], now: datetime, via: str) -> dict[str
         with decisions.open("ab") as fh:
             fh.write(line.encode("utf-8"))
     found.unlink()
-    return {"applied": record["summary"], "lines": record["lines"], "token": token}
+    result = {"applied": record["summary"], "lines": record["lines"], "token": token}
+    if skipped:
+        result["skipped"] = skipped
+    return result

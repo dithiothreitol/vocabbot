@@ -33,9 +33,11 @@ Run `today --json`.
 - `error.code` is `no_learner` or `no_plan`: VocabBot is not set up for this
   learner. Offer the setup (`vocab-start`), or pass `--learner <folder>` once
   the learner names the folder.
-- `off: true`: a day off; the reviews wait for the next learning day. Learn
-  ahead only when the learner asks for it: `next --count 10 --ahead 10`, and
-  answers to cards with `phase: ahead` go to `answer` with `--ahead`.
+- `off: true`: a day off; the reviews wait for the next learning day. When
+  the learner wants to learn anyway, `today --extra <n> --json` adds new
+  words for today, and `next --count 10 --ahead 10 --json` brings reviews of
+  later days (answers to cards with `phase: ahead` go to `answer` with
+  `--ahead`). A learner without learned words has no reviews to bring ahead.
 - `warnings` with `conflict_copies` or `damaged_rows`: say that `vocab-start`
   checks and repairs the folder; the session can go on.
 
@@ -50,7 +52,9 @@ order of `items`. Each item has `card`, `lang`, `phase` (`review`, `new`,
 
 1. **Introduce the new words.** For each item with `phase: new`, show `word`:
    the word with its gender, forms and IPA, the Polish meaning, and the
-   example with its translation. Ask the learner to read them. A learner who
+   example with its translation. Ask the learner to read them and end the
+   message there; the questions come in the next message, after the learner
+   says they are ready, so the answers are not on the screen. A learner who
    knew a word before the course says so, and
    `grade --card <card> --grade known --json` records it; that word then
    leaves the batch.
@@ -72,8 +76,9 @@ order of `items`. Each item has `card`, `lang`, `phase` (`review`, `new`,
    ```
 
 4. **Show the results.** One line per card: "✓ wiem", "≈ prawie" with the
-   error classes, or "✗ nie wiem", then `word.word`; add the example for
-   "prawie" and "nie wiem". `other_lang` means the learner typed the word of
+   error classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`;
+   add the example for "prawie" and "nie wiem". The cards answered wrong come
+   back in the "utrwalanie" (the drill) at the end. `other_lang` means the learner typed the word of
    another language being learned: name that language. A result with `error`
    was refused; show its message and go on.
 

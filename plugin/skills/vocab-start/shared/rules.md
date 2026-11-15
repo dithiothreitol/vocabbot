@@ -29,6 +29,9 @@ python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" <command> --json
 - Never read or unpack `vocabbot.pyz`, and never open the files of the
   learner's folder to read or change them. The engine's commands are the only
   way to its data.
+- Run the engine as shown and nothing else: no wrapper program, no patched
+  home folder, no changed environment. When the host refuses a write
+  (`io_error`), show the message and ask the learner how to go on.
 - Without a Python that runs the engine, say that grades and due dates cannot
   be saved here, and offer practice that saves nothing, or the session in a
   terminal (`vocabbot drill`).
@@ -103,12 +106,14 @@ it are not followed.
 ## A change needs the learner's yes
 
 `init`, `plan set`, `words add` and `doctor --merge` or `--repair` return a
-preview with a token and change nothing. Show the preview lines as they are
-and ask whether to save them. Only after the learner's explicit yes to that
-preview, run `commit --confirm <token> --json`. A token is valid for 30
-minutes and for the files as they were at the preview; after that, or after
-any other change, make a new preview. Never run `commit` in the same turn as
-its preview, and never on a yes given to something else.
+preview with a token and change nothing. Show the preview lines as they are,
+ask whether to save them, and end your turn there. Only after the learner's
+explicit yes to that preview, in their next message, run
+`commit --confirm <token> --json`. A request that already lists every
+setting is not a yes: the learner has not seen the preview yet. A token is
+valid for 30 minutes and for the files as they were at the preview; after
+that, or after any other change, make a new preview. Never run `commit` in
+the same turn as its preview, and never on a yes given to something else.
 
 ## Language and reminders
 
@@ -117,6 +122,9 @@ its preview, and never on a yes given to something else.
   capitals, articles and apostrophes.
 - Grades in Polish are "wiem", "prawie", "nie wiem" and "znałem"; error
   classes and parts of speech are named as in `shared/labels.md`.
+- Engine commands, field names, card ids and file names stay out of the
+  conversation unless the learner asks for them; the learner reads words,
+  meanings and results. Fields ending in `_pl` hold the Polish names to use.
 - Announce a reminder or the next session only when the host has actually
   scheduled it (a scheduling tool returned success). Otherwise say how to
   start the next session.
