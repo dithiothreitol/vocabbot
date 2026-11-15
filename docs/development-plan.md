@@ -10,11 +10,10 @@ package). You accepted the plan on 14.11.2026 and added Stages 4 and 5 on
 15.11.2026. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
-stages. GitHub and PyPI hold the release `v1.0.0-rc.2`, and version rc.3
-waits in the local repository for your consent to the push and the release.
-Version 1.0 still needs the session tests with a model on rc.3 (after your
-consent) and the pilot described in `docs/pilot.md`; Stage 5 (a schedule
-fitted to the learner) uses the pilot's log.
+stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
+(15.11.2026), and the session tests with a model pass 7 of 7. Version 1.0
+still needs the pilot described in `docs/pilot.md`; Stage 5 (a schedule fitted
+to the learner), which you approved on 15.11.2026, uses the pilot's log.
 
 ---
 
@@ -1043,6 +1042,7 @@ passed a model review.
 | reproducibility | two builds of the courses give identical files |
 | tests | 190 on Python 3.15; 173 on Python 3.10 (1 skipped without the `data` group) |
 | plugin checks | `validate.py` 0 errors and 0 warnings, `session_test.py --check` 7 of 7, `claude plugin validate --profile directory --strict` without remarks |
+| release | the tag `v1.0.0-rc.3`, a GitHub pre-release with every package; `vocabbot 1.0.0rc3` on PyPI through trusted publishing (`release.yml` started for the tag, no token), file checksums equal to the GitHub release; the package has no dependencies; the plugin in your Codex refreshed to rc.3 |
 | session tests with a model (Claude Sonnet 5.5, consent of 15.11.2026) | the first run passed 6 of 7 for 1.78 USD; the check of the placement test took a word of a sentence the engine gave, the answer of another question, for a leak; after the fix of the engine (such a question loses its sentence) and of the check (the engine's sentences are no leak) the test passes for 0.31 USD; 7 of 7 in all for 2.09 USD |
 
 A trial of the terminal session found a defect that the starting list made

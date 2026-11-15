@@ -6,12 +6,11 @@ Stan: 2026-11-15, po Etapie 4 (wersja 1.0.0-rc.3, w pakiecie Pythona
 1.0.0rc3). Plan zaakceptowałeś 14.11.2026, a Etapy 4 i 5 dodałeś 15.11.2026.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
-i Codexa działają; wyniki etapów opisuje rozdział 10. Na GitHubie i w PyPI
-leży wydanie `v1.0.0-rc.2`, a wersja rc.3 czeka w lokalnym repozytorium na
-Twoją zgodę na push i wydanie. Do wersji 1.0 pozostają testy sesyjne
-z modelem na wersji rc.3 (po Twojej zgodzie) oraz pilotaż według
-`docs/pilot.pl.md`; Etap 5 (harmonogram dopasowany do uczącego się)
-korzysta z dziennika pilotażu. Wersję angielską planu zawiera
+i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
+jest opublikowane na GitHubie i w PyPI (15.11.2026), a testy sesyjne
+z modelem przechodzą 7 z 7. Do wersji 1.0 pozostaje pilotaż według
+`docs/pilot.pl.md`; Etap 5 (harmonogram dopasowany do uczącego się), który
+zatwierdziłeś 15.11.2026, korzysta z dziennika pilotażu. Wersję angielską planu zawiera
 `development-plan.md`.
 
 ---
@@ -1026,6 +1025,7 @@ audytu jest w kursie, a każde zdanie przykładowe przeszło przegląd modelem.
 | powtarzalność | dwie budowy kursów dają identyczne pliki |
 | testy | 190 na Pythonie 3.15; 173 na Pythonie 3.10 (1 pominięty bez grupy `data`) |
 | kontrole wtyczki | `validate.py` 0 błędów i 0 ostrzeżeń, `session_test.py --check` 7 z 7, `claude plugin validate --profile directory --strict` bez uwag |
+| wydanie | tag `v1.0.0-rc.3`, wydanie przedpremierowe na GitHubie z kompletem paczek; `vocabbot 1.0.0rc3` w PyPI przez zaufane publikowanie (przepływ `release.yml` uruchomiony dla tagu, bez tokenu), sumy plików zgodne z wydaniem na GitHubie; pakiet bez zależności; wtyczka w Twoim Codexie odświeżona do rc.3 |
 | testy sesyjne z modelem (Claude Sonnet 5.5, zgoda z 15.11.2026) | pierwszy przebieg 6 z 7 za 1,78 USD; kontrola testu poziomującego uznała za przeciek słowo ze zdania podanego przez silnik, będące odpowiedzią innego pytania; po poprawce silnika (takie pytanie traci zdanie) i kontroli (zdania silnika nie są przeciekiem) test przechodzi za 0,31 USD; razem 7 z 7 za 2,09 USD |
 
 Próba sesji w terminalu ujawniła błąd, który lista startowa uczyniła
