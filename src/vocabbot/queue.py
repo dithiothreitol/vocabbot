@@ -19,10 +19,11 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from fractions import Fraction
 from typing import Any
 
+from vocabbot import presence as attendance
 from vocabbot import store
 from vocabbot.book import Book, Today, activity, extend, fitted_replay
 from vocabbot.courses import Catalog, card_id, split_card
@@ -66,9 +67,17 @@ class DayPlan:
     extra: int
     orphans: int
     quota: dict[str, int]
+    schedulers: dict[str, Scheduler] = field(default_factory=dict)
+    presence: attendance.Presence | None = None
+    planned_new: int = 0  # the plan's new words for the day, before pacing
+    paced_new: int | None = None  # fewer new words to stay within the usual minutes
+    due_tomorrow: int = 0
 
     def lang_codes(self) -> list[str]:
         return [item["code"] for item in self.plan["languages"]]
+
+    def scheduler_for(self, lang: str) -> Scheduler:
+        return self.schedulers.get(lang, self.scheduler)
 
 
 def split_quota(total: int, weights: dict[str, int], ordinal: int) -> dict[str, int]:
@@ -232,7 +241,9 @@ def select_new(
     return planned, quota
 
 
-def books(learner: store.Learner, day: date) -> tuple[Book, Book]:
+def books(
+    learner: store.Learner, day: date, plan: dict[str, Any] | None = None
+) -> tuple[Book, Book]:
     """The state before `day` and the state after every row.
 
     The first is kept for the rest of the process: rows of the day itself do
@@ -244,22 +255,35 @@ def books(learner: store.Learner, day: date) -> tuple[Book, Book]:
     later: list[dict[str, Any]] = []
     for row in rows:
         (earlier if isinstance(row.get("day"), str) and row["day"] < limit else later).append(row)
-    key = (limit, len(earlier), max((str(r.get("ts")) for r in earlier), default=""))
+    parameters = (plan if plan is not None else learner.plan()).get("parameters") or {}
+    key = (
+        limit,
+        len(earlier),
+        max((str(r.get("ts")) for r in earlier), default=""),
+        repr(sorted(parameters.items())),
+    )
     cached = learner.cache.get("before")
     if cached is not None and cached[0] == key:
         before: Book = cached[1]
     else:
-        before = fitted_replay(earlier)
+        before = fitted_replay(earlier, parameters)
         learner.cache["before"] = (key, before)
     return before, extend(before, later)
 
 
 def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int = 0) -> DayPlan:
     plan = learner.plan()
-    before, book = books(learner, day)
+    before, book = books(learner, day, plan)
     today = activity(book, day)
-    scheduler = Scheduler(retention=float(plan["retention"]), parameters=before.parameters)
+    profile = attendance.profile(before.rows, day) if plan.get("presence") == "on" else None
+    weekdays = profile.weekdays if profile else None
+    retention = float(plan["retention"])
+    scheduler = Scheduler(retention, before.parameters.default, presence=weekdays)
     codes = [item["code"] for item in plan["languages"]]
+    schedulers = {
+        code: Scheduler(retention, before.parameters.for_lang(code), presence=weekdays)
+        for code in codes
+    }
     directions = {DIRECTION_CODES[d] for d in plan["directions"]}
     suspended = learner.suspended()
     off = store.WEEKDAYS[day.weekday()] in plan["days_off"]
@@ -277,7 +301,7 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
             continue
         if entry_id in suspended or direction not in directions:
             continue
-        due = state.due(scheduler)
+        due = state.due(schedulers.get(state.lang, scheduler))
         (due_list if due <= day else later).append((due, card))
     due_list.sort()
     later.sort()
@@ -291,7 +315,13 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         reviews = due_cards
     overflow = 0 if off else len(due_cards) - len(reviews)
 
-    base = 0 if off else int(plan["new_per_day"])
+    planned = 0 if off else int(plan["new_per_day"])
+    base = planned
+    paced_new = None
+    if profile is not None and profile.minutes and planned:
+        per_card = attendance.seconds(before.rows)
+        base = attendance.paced(planned, len(reviews), profile.minutes, per_card)
+        paced_new = base if base < planned else None
     total = base + extra
     new, quota = select_new(plan, catalog, before, today, day, total, suspended, base=base)
 
@@ -358,4 +388,9 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         extra=extra,
         orphans=orphans,
         quota=quota,
+        schedulers=schedulers,
+        presence=profile,
+        planned_new=planned,
+        paced_new=paced_new,
+        due_tomorrow=sum(1 for due, card in later if due == day + timedelta(days=1)),
     )

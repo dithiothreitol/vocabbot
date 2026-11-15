@@ -25,11 +25,13 @@ from vocabbot import (
     plans,
     progress,
     quiz,
+    replay,
     session,
     store,
     term,
     words,
 )
+from vocabbot.book import ParameterSet
 from vocabbot.courses import Catalog, split_card
 from vocabbot.errors import VocabError
 from vocabbot.queue import compute
@@ -167,6 +169,94 @@ def _days(days: int) -> str:
     return assets.text("cli.one_day" if days == 1 else "cli.days", days=days)
 
 
+def cmd_replay(ctx: Context) -> dict[str, Any]:
+    learner = ctx.learner()
+    plan = learner.plan()
+    rows, _ = learner.rows()
+    own = plan.get("parameters") or {}
+    current = replay.plan_parameters(own) if own else None
+    result = replay.compare(rows, share=ctx.args.share, current=current)
+    if ctx.args.days > 0:
+        fitted = ParameterSet.of_plan(own) if own else None
+        result["workload"] = progress.workload(
+            learner, ctx.catalog(), ctx.day(), ctx.args.days, fitted=fitted
+        )
+    return result
+
+
+def _score(value: Any, digits: int = 3) -> str:
+    return f"{value:.{digits}f}" if isinstance(value, (int, float)) else "-"
+
+
+def render_replay(data: dict[str, Any]) -> list[str]:
+    style = _style()
+    if not data.get("reviews"):
+        return [assets.text("replay.empty")]
+    lines = [
+        style(
+            assets.text(
+                "replay.title",
+                since=data["since"],
+                test=data["test_reviews"],
+                total=data["reviews"],
+            ),
+            "bold",
+        )
+    ]
+    if not data.get("enough"):
+        lines.append(assets.text("replay.too_few", need=replay.MIN_TEST))
+    width = 40
+    lines.append(
+        style(
+            "  " + term.pad(assets.text("replay.variant"), width) + assets.text("replay.columns"),
+            "dim",
+        )
+    )
+    for variant in data["variants"]:
+        name = term.pad(assets.text(f"replay.names.{variant['name']}"), width)
+        if not variant.get("available"):
+            need = variant.get("needed")
+            reviews = variant.get("reviews")
+            if isinstance(reviews, dict):
+                reviews = max(reviews.values(), default=0)
+            reason = (
+                assets.text("replay.need_reviews", have=reviews, need=need)
+                if need
+                else assets.text("replay.need_answers", have=variant.get("second_answers", 0))
+            )
+            lines.append(f"  {name}" + style(reason, "dim"))
+            continue
+        got = variant["scores"]
+        delta = variant.get("delta", {}).get("log_loss")
+        change = "" if variant["name"] == "fsrs6" or delta is None else f"{delta:+.3f}"
+        line = (
+            f"  {name}{_score(got.get('log_loss')):>8}{_score(got.get('rmse_bins')):>11}"
+            f"{_score(got.get('auc')):>8}{change:>10}"
+        )
+        if variant["name"] == data.get("best") and variant["name"] != "fsrs6":
+            line += style("  " + assets.text("replay.best"), "green")
+        lines.append(line)
+    work = data.get("workload")
+    if work:
+        lines.append("")
+        key = "replay.workload_title" if work.get("presence") else "replay.workload_no_profile"
+        lines.append(style(assets.text(key, days=work["days"]), "bold"))
+        lines.append(
+            style(
+                "  " + term.pad(assets.text("replay.variant"), width) + assets.text("replay.load"),
+                "dim",
+            )
+        )
+        for variant in work["variants"]:
+            name = term.pad(assets.text(f"replay.load_names.{variant['name']}"), width)
+            late = f"{round(variant['late_share'] * 100)}%"
+            lines.append(
+                f"  {name}{variant['average_reviews']:>8}{variant['average_minutes']:>8}"
+                f"{late:>10}{variant['overdue_days']:>9}{_score(variant['recall'], 2):>10}"
+            )
+    return lines
+
+
 def render_summary(data: dict[str, Any]) -> list[str]:
     style = _style()
     lines = [style(assets.text("cli.day", day=data["day"], weekday=_weekday(data["day"])), "bold")]
@@ -184,6 +274,20 @@ def render_summary(data: dict[str, Any]) -> list[str]:
         lines.append(style(assets.text("cli.done"), "green"))
     if data.get("extra_new"):
         lines.append(assets.text("cli.extra", count=data["extra_new"]))
+    if data.get("paced"):
+        lines.append(style(assets.text("cli.paced", **data["paced"]), "dim"))
+    if data.get("ahead_hint"):
+        hint = data["ahead_hint"]
+        lines.append(
+            style(
+                assets.text(
+                    f"cli.ahead_{hint['reason']}",
+                    count=hint["count"],
+                    weekday=_weekday(hint["day"]),
+                ),
+                "cyan",
+            )
+        )
     for warning in data["warnings"]:
         if warning["code"] == "conflict_copies":
             lines.append(assets.text("cli.warning_conflict"))
@@ -296,6 +400,30 @@ def render_status(data: dict[str, Any]) -> list[str]:
                 "dim",
             )
         )
+        for code, info in (plan.get("languages") or {}).items():
+            if info["source"] == "plan" and info.get("fit"):
+                fit = info["fit"]
+                lines.append(
+                    style(
+                        assets.text(
+                            "cli.schedule_plan",
+                            name=assets.language_name(code),
+                            reviews=fit.get("reviews", "?"),
+                            loss=_score(fit.get("log_loss")),
+                            base=_score(fit.get("log_loss_fsrs6")),
+                        ),
+                        "dim",
+                    )
+                )
+        seen = plan.get("presence")
+        if seen:
+            week = " ".join(
+                f"{assets.text(f'weekdays_short.{day}')} {round(chance * 100)}%"
+                for day, chance in zip(store.WEEKDAYS, seen["weekdays"], strict=True)
+            )
+            minutes = seen.get("minutes")
+            key = "cli.presence_minutes" if minutes else "cli.presence"
+            lines.append(style(assets.text(key, week=week, minutes=minutes), "dim"))
     return lines
 
 
@@ -312,7 +440,8 @@ def render_forecast(data: dict[str, Any]) -> list[str]:
     peak = max((row["reviews"] for row in rows), default=0)
     for row in rows[:FORECAST_TABLE_DAYS]:
         day = date.fromisoformat(row["day"])
-        label = f"{_weekday(row['day'])[:2]} {day.day:02d}.{day.month:02d}"
+        short = assets.text(f"weekdays_short.{store.WEEKDAYS[day.weekday()]}")
+        label = f"{short} {day.day:02d}.{day.month:02d}"
         if row.get("off"):
             lines.append(f"  {label}  " + style(assets.text("cli.forecast_off_short"), "dim"))
             continue
@@ -548,6 +677,8 @@ def cmd_plan(ctx: Context) -> dict[str, Any]:
     if ctx.args.plan_action == "set":
         preview = plans.set_preview(learner, ctx.catalog(), ctx.args.assignments, ctx.now)
         return finish_preview(ctx, preview)
+    if ctx.args.plan_action == "fit":
+        return finish_preview(ctx, plans.fit_preview(learner, ctx.catalog(), ctx.now))
     plan = learner.plan()
     return {"plan": plan, "lines": plans.describe(plan), "folder": str(learner.root)}
 
@@ -836,6 +967,28 @@ def build_parser() -> argparse.ArgumentParser:
     plan_set = plan_sub.add_parser("set", parents=[common], help="change the plan (preview first)")
     plan_set.add_argument("assignments", nargs="+", metavar="KEY=VALUE")
     plan_set.set_defaults(render=render_preview)
+    plan_sub.add_parser(
+        "fit",
+        parents=[common],
+        help="FSRS-6 parameters fitted to the log, for the languages where they predict better"
+        " (preview first)",
+    ).set_defaults(render=render_preview)
+
+    p = add(
+        "replay",
+        cmd_replay,
+        render_replay,
+        "replay the log and compare variants of the schedule with FSRS-6",
+    )
+    p.add_argument(
+        "--share",
+        type=float,
+        default=replay.SHARE,
+        help="the earlier part of the reviews a fitted variant learns from (default 0.7)",
+    )
+    p.add_argument(
+        "--days", type=int, default=28, help="days of the simulated load (0 leaves it out)"
+    )
 
     p = add("words", cmd_words, render_preview, "add own words (preview first)", group=True)
     words_sub = p.add_subparsers(dest="words_action", required=True)

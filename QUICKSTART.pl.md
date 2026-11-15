@@ -93,6 +93,14 @@ ponieważ są już w nauce. Zapis następuje dopiero po potwierdzeniu.
   najpierw jako podgląd.
 - „Wyjaśnij mi słowo …”, „ciągle mylę …”: trener wyjaśnia słowa, proponuje
   skojarzenia i zestawia słowa z różnych języków.
+- Po dwóch tygodniach plan uwzględnia Twoją obecność: terminy omijają dni
+  tygodnia, w które zwykle się nie uczysz, liczba nowych słów mieści się
+  w Twoim zwykłym czasie, a dzień przed takim dniem proponuje powtórki
+  przed terminem. Ustawienie `presence=off` w planie to wyłącza.
+- `vocabbot replay` porównuje harmonogram dopasowany do Twojego dziennika
+  z FSRS-6 na późniejszej części dziennika, a `vocabbot plan fit` zapisuje
+  dopasowane parametry języka tylko tam, gdzie przewidują lepiej, i dopiero
+  po potwierdzeniu.
 
 ## 6. Dwa komputery
 

@@ -55,7 +55,16 @@ def describe(plan: dict[str, Any]) -> list[str]:
         assets.text("plan.days_off", value=days_off),
         assets.text("plan.day_starts_at", value=plan["day_starts_at"]),
         assets.text("plan.diacritics", value=assets.text(f"diacritics.{plan['diacritics']}")),
+        assets.text("plan.presence", value=assets.text(f"presence.{plan.get('presence', 'on')}")),
     ]
+    own = sorted((plan.get("parameters") or {}).keys())
+    lines.append(
+        assets.text(
+            "plan.parameters",
+            value=", ".join(assets.language_name(code) for code in own)
+            or assets.text("plan.parameters_default"),
+        )
+    )
     return lines
 
 
@@ -140,8 +149,12 @@ def _value(key: str, raw: str) -> Any:
         if raw.lower() in ("none", "brak", ""):
             return []
         return [part.strip().lower() for part in raw.split(",") if part.strip()]
-    if key in ("mix", "diacritics"):
+    if key in ("mix", "diacritics", "presence"):
         return raw.lower()
+    if key == "parameters":
+        if raw.lower() not in ("default", "fsrs6", "none"):
+            raise VocabError("bad_value", key=key, value=raw)
+        return {}
     raise VocabError("unknown_key", key=key)
 
 
@@ -152,6 +165,8 @@ def _apply(plan: dict[str, Any], assignment: str) -> None:
         raise VocabError("bad_assignment", value=assignment)
     if not key.startswith("lang."):
         plan[key] = _value(key, raw)
+        if key == "parameters":
+            plan["parameters_info"] = {}
         return
     parts = key.split(".")
     code = parts[1].lower() if len(parts) > 1 else ""
@@ -195,7 +210,12 @@ def _apply(plan: dict[str, Any], assignment: str) -> None:
 def _diff(old: dict[str, Any], new: dict[str, Any]) -> list[str]:
     lines = []
     for key in store.DEFAULT_PLAN:
-        if key == "languages" or old.get(key) == new.get(key):
+        if key in ("languages", "parameters_info") or old.get(key) == new.get(key):
+            continue
+        if key == "parameters":
+            was = ", ".join(sorted(old.get(key) or {})) or "FSRS-6"
+            now = ", ".join(sorted(new.get(key) or {})) or "FSRS-6"
+            lines.append(f"{key}: {was} → {now}")
             continue
         lines.append(f"{key}: {_show(old.get(key))} → {_show(new.get(key))}")
     old_langs = {item["code"]: item for item in old["languages"]}
@@ -221,6 +241,59 @@ def _show_lang(item: dict[str, Any] | None) -> str:
         return "off"
     state = " (paused)" if item.get("paused") else ""
     return f"{'-'.join([item['levels'][0], item['levels'][-1]])}:{item.get('weight', 1)}{state}"
+
+
+def fit_preview(learner: store.Learner, catalog: Catalog, now: datetime) -> dict[str, Any]:
+    """Preview of FSRS-6 parameters fitted to the log, for the languages where they win.
+
+    A language gets parameters of its own only when, on the later part of the
+    log, they predict the reviews better than FSRS-6 with its defaults
+    (replay.compare); the other languages keep FSRS-6.
+    """
+    from vocabbot import replay
+
+    if any(p.name.startswith("plan") for p in store.conflict_copies(learner.root)):
+        raise VocabError("conflict_copies")
+    old = learner.plan()
+    rows, _ = learner.rows()
+    codes = [item["code"] for item in old["languages"]]
+    found = replay.fit_languages(rows, codes)
+    new = copy.deepcopy(old)
+    new["parameters"] = {code: info["parameters"] for code, info in found.items()}
+    new["parameters_info"] = {
+        code: {k: v for k, v in info.items() if k != "parameters"} for code, info in found.items()
+    }
+    _check(new, catalog)
+    if new["parameters"] == (old.get("parameters") or {}):
+        raise VocabError("no_better_fit")
+    lines = []
+    for code in codes:
+        name = assets.language_name(code)
+        if code in found:
+            info = found[code]
+            lines.append(
+                assets.text(
+                    "plan.fit_line",
+                    name=name,
+                    reviews=info["reviews"],
+                    loss=f"{info['log_loss']:.3f}",
+                    base=f"{info['log_loss_fsrs6']:.3f}",
+                )
+            )
+        else:
+            lines.append(assets.text("plan.fit_default", name=name))
+    summary = assets.text(
+        "plan.fit_summary",
+        languages=", ".join(assets.language_name(code) for code in found) or "-",
+    )
+    return gate.preview(
+        learner.path(store.PENDING),
+        summary,
+        lines,
+        [gate.Change(learner.path(store.PLAN), "write", store.dump_json(new))],
+        now,
+        learner.path(store.DECISIONS),
+    )
 
 
 def set_preview(

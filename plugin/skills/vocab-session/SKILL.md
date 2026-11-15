@@ -40,6 +40,12 @@ Run `today --json`.
   `--ahead`). A learner without learned words has no reviews to bring ahead.
 - `warnings` with `conflict_copies` or `damaged_rows`: say that `vocab-start`
   checks and repairs the folder; the session can go on.
+- `paced`: the engine gives fewer new words today (`today` instead of
+  `planned`) so that the day fits the learner's usual minutes; say so in one
+  sentence.
+- `ahead_hint`: tomorrow is a day off or a day the learner usually skips.
+  After today's cards, offer its `count` reviews ahead of their day:
+  `next --count <count> --ahead <count> --json`, answered with `--ahead`.
 
 Show the day in two or three lines from `languages` (reviews, new words,
 drill per language) and `minutes`.

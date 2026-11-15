@@ -47,7 +47,8 @@
     "no_course": "Nie ma kursu języka „{lang}”.",
     "io_error": "Nie udało się zapisać ani odczytać pliku {path}: {detail}. Gospodarz mógł zablokować zapis poza folderem roboczym.",
     "nothing_to_add": "Nie ma nic do dodania: {detail}",
-    "reveal_production": "Karta {card} wymaga wpisania odpowiedzi; odpowiedź pokazuje dopiero polecenie answer."
+    "reveal_production": "Karta {card} wymaga wpisania odpowiedzi; odpowiedź pokazuje dopiero polecenie answer.",
+    "no_better_fit": "Dopasowanie nie zmienia planu: dla żadnego języka nie przewiduje powtórek lepiej niż obecne parametry, albo dziennik ma za mało powtórek (porównanie pokazuje vocabbot replay)."
   },
   "quiz": {
     "title": "Test poziomujący: {name}, poziomy {levels}. Wpisz słowo w języku nauki; pusta odpowiedź oznacza „nie wiem”.",
@@ -83,7 +84,13 @@
     "diacritics": "Znaki diakrytyczne: {value}",
     "init_folder": "Folder nauki: {folder}",
     "init_summary": "nowy plan nauki ({languages})",
-    "set_summary": "zmiana planu: {changes}"
+    "set_summary": "zmiana planu: {changes}",
+    "presence": "Plan według obecności: {value}",
+    "parameters": "Parametry FSRS-6 dopasowane do dziennika: {value}",
+    "parameters_default": "brak, obowiązują domyślne",
+    "fit_line": "{name}: parametry dopasowane do {reviews} powtórek; na późniejszej części dziennika log loss {loss} zamiast {base} dla FSRS-6",
+    "fit_default": "{name}: zostaje FSRS-6, bo dopasowanie nie przewiduje lepiej albo dziennik ma za mało powtórek",
+    "fit_summary": "parametry FSRS-6 dopasowane do dziennika ({languages})"
   },
   "weekdays": {
     "mon": "poniedziałek",
@@ -223,7 +230,13 @@
     "start_no_learner": "Folder nauki jeszcze nie istnieje. Konfigurację zaczyna polecenie: vocabbot init --lang de:a1",
     "start_help": "Wszystkie polecenia: vocabbot --help",
     "start_hint": "Sesję zaczyna polecenie: vocabbot drill",
-    "start_keys": "Enter zaczyna sesję · q koniec"
+    "start_keys": "Enter zaczyna sesję · q koniec",
+    "paced": "Dziś nowych słów: {today} zamiast {planned}, żeby dzień zmieścił się w Twoich zwykłych {usual_minutes} min.",
+    "ahead_day_off": "Jutro ({weekday}) masz dzień wolny: {count} powtórek możesz zrobić dziś (vocabbot drill --ahead {count}).",
+    "ahead_usually_skipped": "W {weekday} zwykle nie masz sesji: {count} jutrzejszych powtórek możesz zrobić dziś (vocabbot drill --ahead {count}).",
+    "schedule_plan": "{name}: parametry FSRS-6 z planu, dopasowane do {reviews} powtórek (log loss {loss} zamiast {base}).",
+    "presence": "Twoja obecność w dni tygodnia: {week}.",
+    "presence_minutes": "Twoja obecność w dni tygodnia: {week}; zwykle {minutes} min dziennie."
   },
   "drill": {
     "summary": "powtórki {reviews} · nowe słowa {new} · utrwalanie {drill} · około {minutes} min",
@@ -270,5 +283,44 @@
     "10": "października",
     "11": "listopada",
     "12": "grudnia"
+  },
+  "presence": {
+    "on": "włączony",
+    "off": "wyłączony"
+  },
+  "replay": {
+    "empty": "Dziennik nie ma jeszcze powtórek do porównania.",
+    "title": "Porównanie z FSRS-6 na późniejszej części dziennika (od {since}; powtórki: {test} z {total})",
+    "too_few": "Późniejsza część dziennika ma mniej niż {need} powtórek, dlatego wyniki są orientacyjne.",
+    "variant": "wariant",
+    "columns": "log loss  RMSE(bins)     AUC  zmiana",
+    "best": "najlepszy",
+    "need_reviews": "za mało powtórek: {have} z {need}",
+    "need_answers": "za mało drugich odpowiedzi: {have}",
+    "names": {
+      "fsrs6": "FSRS-6, parametry domyślne",
+      "initial": "FSRS-6, dopasowane odstępy początkowe",
+      "fit": "FSRS-6 dopasowany do całego dziennika",
+      "fit_lang": "FSRS-6 dopasowany dla każdego języka",
+      "current": "parametry z Twojego planu"
+    },
+    "workload_title": "Obciążenie przez {days} dni, z dniami bez nauki według Twojej obecności",
+    "workload_no_profile": "Obciążenie przez {days} dni (profil obecności powstaje po dwóch tygodniach nauki)",
+    "load": "powt./d    min/d  spóźnione  dni sp.  trwałość",
+    "load_names": {
+      "fsrs6": "FSRS-6",
+      "fsrs6_presence": "FSRS-6 i plan według obecności",
+      "fit": "parametry z planu",
+      "fit_presence": "parametry z planu i obecność"
+    }
+  },
+  "weekdays_short": {
+    "mon": "pn",
+    "tue": "wt",
+    "wed": "śr",
+    "thu": "cz",
+    "fri": "pt",
+    "sat": "sb",
+    "sun": "nd"
   }
 }

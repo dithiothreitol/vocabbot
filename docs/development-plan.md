@@ -5,15 +5,16 @@
 This is the English translation of `development-plan.pl.md`, which is the
 version kept up to date first.
 
-Status: 2026-11-15, after Stage 4 (version 1.0.0-rc.3, 1.0.0rc3 in the Python
+Status: 2026-11-15, after Stage 5 (version 1.0.0-rc.4, 1.0.0rc4 in the Python
 package). You accepted the plan on 14.11.2026 and added Stages 4 and 5 on
 15.11.2026. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
-(15.11.2026), and the session tests with a model pass 7 of 7. Version 1.0
-still needs the pilot described in `docs/pilot.md`; Stage 5 (a schedule fitted
-to the learner), which you approved on 15.11.2026, uses the pilot's log.
+(15.11.2026), and the session tests with a model pass 7 of 7. Stage 5 (a
+schedule fitted to the learner) ended with version 1.0.0-rc.4 in the local
+repository, which waits for your consent to the release. Version 1.0 still
+needs the pilot described in `docs/pilot.md`.
 
 ---
 
@@ -1126,6 +1127,32 @@ Data: the fit and the plan by presence need a few weeks of the log, so the
 `replay` tool is ready before the end of the pilot, and the fit and the plan
 use the pilot's log. The stage needs no model costs.
 
+#### Result of Stage 5 (15.11.2026, version 1.0.0-rc.4)
+
+Stage 5 gave the engine a comparison with FSRS-6, the full fit of the
+parameters and the plan by presence. All three parts run on the standard
+library and follow from the log, so both computers compute the same plan.
+
+| Criterion | Result |
+|---|---|
+| `vocabbot replay` | predicts every review before its outcome; for FSRS-6 with the defaults it gives the same values as the `fsrs` module; reports log loss, RMSE(bins) with the bins of fsrs-optimizer and AUC of every variant and the difference from FSRS-6, overall and for each language; simulates four weeks of every schedule with the days without learning from the presence profile |
+| full fit (`optimize.py`) | the forward pass matches the `fsrs` module to 1e-12, the derivatives match finite differences; 2272 reviews in 0.6–2 s; on six synthetic learners the test loss fell on average from 0.3582 (FSRS-6) to 0.3548, against 0.3529 for the generator's parameters |
+| recovering the generator's parameters | the quality of the predictions comes close to the generator, while single parameters, for example the stability after "znałem", cannot be read from a few thousand reviews; for a learner who differs from FSRS-6 only in the initial stabilities the fit predicted the test part worse than the defaults |
+| the gate of `plan fit` | a language gets parameters of its own only when they predict the later part of the log better than FSRS-6; otherwise the preview ends with a message and the plan stays as it is |
+| the plan by presence | for a synthetic learner who skips weekends (56 days, 901 reviews), the simulated share of late reviews fell from 34% to 19%, the mean delay from 0.43 to 0.24 days, and the predicted recall stayed at 0.89 against a target of 0.90 |
+| the pace of new words and reviews ahead | `today` and the chat session give fewer new words when the day would exceed the usual minutes by more than a quarter, and offer reviews ahead before a day off or a day usually skipped |
+| tests | 14 new tests in `tests/test_schedule.py`; 204 in all on Python 3.15 and 187 on 3.10 (1 skipped without the `data` group); the plugin checks without remarks |
+
+Conclusions:
+
+1. On the log of one learner after a few weeks, the full fit need not
+   predict better than FSRS-6, so the comparison on the later part of the
+   log is the condition of its use, not an extra.
+2. The plan by presence lowers the backlog without a cost to the recall,
+   because it moves due dates only within the FSRS fuzz.
+3. The pilot's log will decide whether the full fit enters the plan of any of
+   your languages; `vocabbot replay` shows it after two weeks.
+
 ---
 
 ## 11. Completeness check
@@ -1138,7 +1165,7 @@ use the pilot's log. The stage needs no model costs.
 | A word page: meaning, example, pronunciation | yes | the Polish meaning, a sentence with a gap, IPA |
 | Three grades | yes | `know`, `almost`, `dont_know` |
 | Learning, reviews, drill | yes | one queue of the day in this order |
-| A review at a recall of about 90% | yes | FSRS-6, the recall in the plan, the spread of due dates, initial intervals fitted to the log; the full fit in Stage 5 |
+| A review at a recall of about 90% | yes | FSRS-6, the recall in the plan, the spread of due dates, initial intervals fitted to the log, the full fit of a language after a win in `replay`, due dates by presence |
 | Skipping known words | yes | the grade "known" and the placement test |
 | Cards a day, the length of the course | yes | `plan`, `forecast` |
 | A calendar with days off | yes | `days_off` |

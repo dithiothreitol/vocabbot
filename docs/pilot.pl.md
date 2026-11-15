@@ -5,11 +5,11 @@
 Pilotaż jest ostatnim warunkiem wersji 1.0 (rozdział 1 planu, warunek 7):
 dwa tygodnie codziennej nauki w dwóch lub trzech językach, w czacie
 i w terminalu, kończą się bez otwartego błędu blokującego. Pilotaż odbywa
-się na wersji 1.0.0-rc.3.
+się na wersji 1.0.0-rc.4.
 
 ## Przed pierwszą sesją
 
-- **VocabBot 1.0.0-rc.3** zainstalowany jako wtyczka w Claude Code (oraz
+- **VocabBot 1.0.0-rc.4** zainstalowany jako wtyczka w Claude Code (oraz
   w Codex CLI, jeśli pilotaż obejmuje Codexa) i jako program `vocabbot`
   (`uv tool install vocabbot`, z PyPI). Wersję pokazuje `vocabbot --version`.
 - **Folder nauki poza repozytorium**, najlepiej w folderze synchronizowanym,
@@ -34,6 +34,7 @@ się na wersji 1.0.0-rc.3.
 | 10 | Trener | „przegląd tygodnia”, „ciągle mylę …” | liczby zgodne ze `vocabbot status`; treść modelu oznaczona jako wygenerowana |
 | 11 | Dzień wolny i zaległości | dzień bez nauki, potem sesja | zaległe powtórki następnego dnia; prognoza się aktualizuje |
 | 12 | Dwa komputery | ten sam folder na drugim komputerze (`vocabbot use`) | wspólny stan; `vocabbot doctor` wykrywa kopie konfliktowe i łączy je po potwierdzeniu |
+| 13 | Harmonogram dopasowany do Ciebie | po dwóch tygodniach: `vocabbot status`, `vocabbot replay`, `vocabbot plan fit` | profil obecności zgadza się z Twoim tygodniem; dzień przed pomijanym dniem proponuje powtórki przed terminem; `plan fit` zapisuje parametry tylko przy wyniku lepszym niż FSRS-6 |
 
 ## Mierniki
 

@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter, defaultdict
+from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
 from vocabbot import assets, store
-from vocabbot.book import RATING, CardState, second_answers, spread_key
+from vocabbot import presence as attendance
+from vocabbot.book import RATING, Book, CardState, ParameterSet, replay, second_answers, spread_key
 from vocabbot.courses import Catalog, card_id, split_card
-from vocabbot.fsrs import AGAIN, FIT_MIN_ANSWERS, GOOD, Memory
+from vocabbot.fsrs import AGAIN, DEFAULT_PARAMETERS, FIT_MIN_ANSWERS, GOOD, Memory, Scheduler
 from vocabbot.queue import DIRECTION_CODES, compute, split_quota
 from vocabbot.session import _seconds, summary
 
@@ -25,7 +27,6 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
     dp = compute(learner, catalog, day)
     plan = dp.plan
     book = dp.book
-    scheduler = dp.scheduler
     directions = [DIRECTION_CODES[d] for d in plan["directions"]]
     since = day - timedelta(days=WINDOW_DAYS)
     week = day + timedelta(days=7)
@@ -88,7 +89,9 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
         languages[code] = {
             "cards": len(cards),
             "levels": levels,
-            "due_week": sum(1 for state in cards.values() if state.due(scheduler) <= week),
+            "due_week": sum(
+                1 for state in cards.values() if state.due(dp.scheduler_for(code)) <= week
+            ),
             "lapses": sum(state.lapses for state in cards.values()),
             "retention_30": round(recalled / len(reviews), 3) if reviews else None,
             "reviews_30": len(reviews),
@@ -120,17 +123,41 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
 
 
 def schedule(dp: Any) -> dict[str, Any]:
-    """The intervals after a first answer, and whether they fit the learner's log yet."""
-    scheduler = dp.scheduler
-    have = sum(len(points) for points in second_answers(dp.before).values())
+    """The parameters in force for each language, the intervals after a first answer,
+    and the presence profile."""
+    parameters = dp.before.parameters
+    own = dict(parameters.languages)
+    info = dp.plan.get("parameters_info") or {}
+    have = sum(len(points) for points in second_answers(dp.before, set(own)).values())
+    languages = {}
+    for code in dp.lang_codes():
+        scheduler = dp.scheduler_for(code)
+        if code in own:
+            source = "plan"
+        elif parameters.default != DEFAULT_PARAMETERS:
+            source = "initial"
+        else:
+            source = "default"
+        languages[code] = {
+            "source": source,
+            **({"fit": info[code]} if code in own and code in info else {}),
+            "first_intervals": {
+                grade: scheduler.interval(scheduler.first(RATING[grade]).stability)
+                for grade in ("dont_know", "almost", "know", "known")
+            },
+        }
+    default = dp.scheduler
     return {
-        "fitted": dp.before.fitted,
+        "fitted": parameters.fitted,
         "second_answers": have,
         "fit_from": FIT_MIN_ANSWERS,
         "first_intervals": {
-            grade: scheduler.interval(scheduler.first(RATING[grade]).stability)
+            grade: default.interval(default.first(RATING[grade]).stability)
             for grade in ("dont_know", "almost", "know", "known")
         },
+        "languages": languages,
+        "presence": dp.presence.as_dict() if dp.presence is not None else None,
+        "presence_setting": dp.plan.get("presence", "on"),
     }
 
 
@@ -180,14 +207,34 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
     """
     days = max(1, min(days, FORECAST_MAX))
     dp = compute(learner, catalog, day)
+    pace = dp.presence if dp.presence is not None and dp.presence.minutes else None
+    return simulate(dp, catalog, days, book=dp.book, scheduler_for=dp.scheduler_for, pace=pace)
+
+
+def simulate(
+    dp: Any,
+    catalog: Catalog,
+    days: int,
+    *,
+    book: Book,
+    scheduler_for: Callable[[str], Scheduler],
+    absent: Callable[[date], bool] | None = None,
+    pace: attendance.Presence | None = None,
+) -> dict[str, Any]:
+    """The coming days under one schedule: load, delays and the recall at each review.
+
+    `absent` names the days the learner does not learn (besides the days off);
+    `pace` keeps the new words within the usual minutes, as the plan's
+    presence setting does.
+    """
+    day = dp.day
     plan = dp.plan
-    scheduler = dp.scheduler
     seconds = _seconds(dp)
     directions = [DIRECTION_CODES[d] for d in plan["directions"]]
     codes = {item["code"] for item in plan["languages"]}
-    book = dp.book
     memory: dict[str, Memory] = {}
     last: dict[str, date] = {}
+    due_of: dict[str, date] = {}
     buckets: dict[date, list[str]] = defaultdict(list)
     for card, state in book.cards.items():
         if state.lang not in codes or split_card(card)[1] not in directions:
@@ -196,7 +243,8 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
             continue
         memory[card] = state.memory
         last[card] = state.last_day
-        due = state.due(scheduler)
+        due = state.due(scheduler_for(state.lang))
+        due_of[card] = due
         buckets[
             max(due, day + timedelta(days=1)) if card in dp.today.seen else max(due, day)
         ].append(card)
@@ -228,42 +276,69 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
     complete: dict[str, dict[str, str]] = defaultdict(dict)
     rows: list[dict[str, Any]] = []
     carry: list[str] = []
+    reviewed = late = 0
+    overdue = 0
+    recall = 0.0
     for offset in range(days):
         current = day + timedelta(days=offset)
         off = store.WEEKDAYS[current.weekday()] in plan["days_off"]
+        away = absent is not None and offset > 0 and absent(current)
         due_now = carry + buckets.pop(current, [])
-        if off:
+        if off or away:
             carry = due_now
             rows.append(
-                {"day": current.isoformat(), "reviews": 0, "new": 0, "minutes": 0, "off": True}
+                {
+                    "day": current.isoformat(),
+                    "reviews": 0,
+                    "new": 0,
+                    "minutes": 0,
+                    "off": True,
+                    **({"absent": True} if away and not off else {}),
+                }
             )
             continue
         limit = plan.get("review_limit")
         todays = due_now[:limit] if isinstance(limit, int) else due_now
         carry = due_now[len(todays) :]
         for card in todays:
+            scheduler = scheduler_for(card[:2])
             elapsed = (current - last[card]).days
-            recalled = _chance(card, current) < scheduler.retrievability(memory[card], elapsed)
+            chance = scheduler.retrievability(memory[card], elapsed)
+            recalled = _chance(card, current) < chance
+            reviewed += 1
+            recall += chance
+            delay = (current - due_of.get(card, current)).days
+            if delay > 0:
+                late += 1
+                overdue += delay
             memory[card] = scheduler.review(
                 memory[card], GOOD if recalled else AGAIN, max(elapsed, 1)
             )
             last[card] = current
-            days_later = scheduler.due_interval(memory[card].stability, spread_key(card, current))
-            buckets[current + timedelta(days=days_later)].append(card)
+            stamp = spread_key(card, current)
+            later = scheduler.due_interval(memory[card].stability, stamp, current)
+            due_of[card] = current + timedelta(days=later)
+            buckets[due_of[card]].append(card)
         if offset == 0:
             new_cards = [item.card for item in dp.sequence if item.phase == "new"]
         else:
-            quota = split_quota(int(plan["new_per_day"]), weights, current.toordinal())
+            planned = int(plan["new_per_day"])
+            if pace is not None and pace.minutes:
+                planned = attendance.paced(planned, len(todays), pace.minutes, seconds)
+            quota = split_quota(planned, weights, current.toordinal())
             new_cards = []
             for code, count in quota.items():
                 take, queues[code] = queues[code][:count], queues[code][count:]
                 new_cards += take
         for card in new_cards:
+            scheduler = scheduler_for(card[:2])
             first = RATING["know"] if _chance(card, current) < 0.8 else RATING["dont_know"]
             memory[card] = scheduler.first(first)
             last[card] = current
-            days_later = scheduler.due_interval(memory[card].stability, spread_key(card, current))
-            buckets[current + timedelta(days=days_later)].append(card)
+            stamp = spread_key(card, current)
+            later = scheduler.due_interval(memory[card].stability, stamp, current)
+            due_of[card] = current + timedelta(days=later)
+            buckets[due_of[card]].append(card)
             if card in level_of:
                 key = level_of[card]
                 remaining_by_level[key] -= 1
@@ -302,8 +377,91 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
         "levels_complete": {
             code: dict(sorted(levels.items())) for code, levels in complete.items()
         },
+        "reviews_total": reviewed,
+        "late_share": round(late / reviewed, 3) if reviewed else 0.0,
+        "overdue_days": round(overdue / reviewed, 2) if reviewed else 0.0,
+        "recall": round(recall / reviewed, 3) if reviewed else None,
         "assumes": (
             "reviews recalled with the predicted probability; "
             "four in five new words known at the first test"
         ),
+    }
+
+
+WORKLOAD_DAYS = 28
+
+
+def _chooser(schedulers: dict[str, Scheduler], fallback: Scheduler) -> Callable[[str], Scheduler]:
+    return lambda lang: schedulers.get(lang, fallback)
+
+
+def workload(
+    learner: store.Learner,
+    catalog: Catalog,
+    day: date,
+    days: int = WORKLOAD_DAYS,
+    fitted: ParameterSet | None = None,
+) -> dict[str, Any]:
+    """The coming weeks under FSRS-6 and the other schedules, with the learner's usual
+    days without learning taken from the presence profile."""
+    dp = compute(learner, catalog, day)
+    rows, _ = learner.rows()
+    profile = dp.presence or attendance.profile(dp.before.rows, day)
+    absent: Callable[[date], bool] | None = None
+    if profile is not None:
+        known = profile
+
+        def away(current: date) -> bool:
+            return _chance("absent", current) >= known.chance(current)
+
+        absent = away
+    retention = float(dp.plan["retention"])
+    options: list[tuple[str, ParameterSet, bool]] = [
+        ("fsrs6", ParameterSet(), False),
+        ("fsrs6_presence", ParameterSet(), True),
+    ]
+    if fitted is not None and fitted.fitted:
+        options += [("fit", fitted, False), ("fit_presence", fitted, True)]
+    out = []
+    for name, params, by_presence in options:
+        if by_presence and profile is None:
+            continue
+        book = replay(rows, parameters=params)
+        weekdays = profile.weekdays if by_presence and profile is not None else None
+        schedulers = {
+            code: Scheduler(retention, params.for_lang(code), presence=weekdays)
+            for code in dp.lang_codes()
+        }
+        fallback = Scheduler(retention, params.default, presence=weekdays)
+        pace = profile if by_presence and profile is not None and profile.minutes else None
+        result = simulate(
+            dp,
+            catalog,
+            days,
+            book=book,
+            scheduler_for=_chooser(schedulers, fallback),
+            absent=absent,
+            pace=pace,
+        )
+        out.append(
+            {
+                "name": name,
+                **{
+                    key: result[key]
+                    for key in (
+                        "average_reviews",
+                        "average_minutes",
+                        "peak_reviews",
+                        "late_share",
+                        "overdue_days",
+                        "recall",
+                    )
+                },
+            }
+        )
+    return {
+        "days": days,
+        "target_retention": retention,
+        "presence": profile.as_dict() if profile else None,
+        "variants": out,
     }

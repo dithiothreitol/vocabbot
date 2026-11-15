@@ -28,7 +28,10 @@ learner ── chat ── skill ── bin/vocabbot.pyz --json ┘     │     
 | `quiz.py` | the placement test, graded without the log |
 | `gate.py` | previews with a token, `commit`, the decisions log |
 | `plans.py`, `words.py`, `doctor.py` | changes of the plan, own words, repairs of the folder; all as previews |
-| `progress.py` | `status` and `forecast` |
+| `progress.py` | `status`, `forecast` and the simulation of the coming weeks under several schedules |
+| `optimize.py` | the full fit of the 21 FSRS-6 parameters on the standard library (reverse-mode derivatives, Adam as in py-fsrs) |
+| `replay.py` | `replay`: predictions of every review before its outcome, log loss, RMSE(bins) and AUC of each variant against FSRS-6 on the later part of the log |
+| `presence.py` | the presence profile from the log (the chance of a session on each weekday, the usual minutes), pacing of new words |
 | `cli.py`, `drill.py`, `term.py` | the program, its terminal session and the terminal layer (colour by `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb`, ASCII symbols for consoles without Unicode fonts, widths of wide and combining characters) |
 
 Texts the learner reads live in `data/i18n/pl.json`; the answer rules of a

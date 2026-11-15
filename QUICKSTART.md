@@ -90,6 +90,13 @@ already learn them. Nothing is saved before your yes.
   first.
 - "Wyjaśnij mi słowo …", "ciągle mylę …": the coach explains, finds
   mnemonics and compares words between your languages.
+- After two weeks the plan follows your presence: due dates avoid the
+  weekdays you usually skip, new words stay within your usual minutes, and
+  the day before a skipped day offers reviews ahead. `presence=off` in the
+  plan turns this off.
+- `vocabbot replay` compares the schedule fitted to your own log with FSRS-6
+  on the later part of the log; `vocabbot plan fit` saves the fitted
+  parameters for a language only where they predict better, after your yes.
 
 ## 6. Two computers
 

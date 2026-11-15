@@ -3,6 +3,29 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## 1.0.0-rc.4 - 2026-11-15
+
+### Added
+
+- `vocabbot replay` replays the log and predicts every review before its
+  outcome. It scores FSRS-6 with its defaults and the variants fitted to the
+  earlier 70% of the reviews (initial intervals, the whole log, each
+  language) on the later part, with log loss, RMSE(bins) and AUC, and
+  simulates the coming four weeks of each schedule with the learner's usual
+  days without learning.
+- The full fit of the 21 FSRS-6 parameters on the standard library
+  (`optimize.py`): reverse-mode derivatives and Adam as in the optimizer of
+  py-fsrs, from 512 reviews. `vocabbot plan fit` is a preview that gives a
+  language parameters of its own only where they predict the later reviews
+  better than FSRS-6; `plan set parameters=default` goes back.
+- A plan by presence (`presence=on`, the default): from two weeks of the log,
+  due dates avoid the weekdays the learner usually skips, new words stay
+  within the usual minutes, and the day before a day off or a skipped day
+  offers its reviews ahead. Everything follows from the log, without a
+  network.
+- `status` shows the parameters in force for each language and the presence
+  profile; the coach reads them in the weekly review.
+
 ## 1.0.0-rc.3 - 2026-11-15
 
 ### Added

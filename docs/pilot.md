@@ -5,11 +5,11 @@
 The pilot is the last condition of version 1.0 (section 1 of the plan,
 condition 7): two weeks of daily learning in two or three languages, in the
 chat and in the terminal, end without an open blocking defect. The pilot runs
-on version 1.0.0-rc.3.
+on version 1.0.0-rc.4.
 
 ## Before the first session
 
-- **VocabBot 1.0.0-rc.3** installed as a plugin in Claude Code (and in Codex
+- **VocabBot 1.0.0-rc.4** installed as a plugin in Claude Code (and in Codex
   CLI, if the pilot covers Codex) and as the `vocabbot` program
   (`uv tool install vocabbot`, from PyPI). `vocabbot --version` shows it.
 - **A learning folder outside the repository**, best in a synced folder such
@@ -33,6 +33,7 @@ on version 1.0.0-rc.3.
 | 10 | The coach | "przegląd tygodnia", "ciągle mylę …" | numbers match `vocabbot status`; the model's content is marked as generated |
 | 11 | A day off and a backlog | a day without learning, then a session | the reviews come on the next day; the forecast follows |
 | 12 | Two computers | the same folder on a second computer (`vocabbot use`) | one shared state; `vocabbot doctor` finds conflict copies and joins them after a yes |
+| 13 | A schedule fitted to you | after two weeks: `vocabbot status`, `vocabbot replay`, `vocabbot plan fit` | the presence profile matches your week; the day before a skipped day offers reviews ahead; `plan fit` saves parameters only with a better score than FSRS-6 |
 
 ## Measures
 

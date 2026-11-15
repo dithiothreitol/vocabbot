@@ -20,6 +20,8 @@ and give one preview.
 | `day_starts_at` | 0 to 12, the hour a learning day starts (default 4) | `day_starts_at=5` |
 | `sibling_gap_days` | 0 to 14, days between learning one concept in two languages (default 3) | `sibling_gap_days=5` |
 | `max_languages` | 1 to 6; a fourth language needs this raised first | `max_languages=4` |
+| `presence` | `on` (default): due dates avoid the weekdays the learner usually skips, new words stay within the usual minutes, and a day before a skipped day offers reviews ahead; `off`: none of this | `presence=off` |
+| `parameters` | `default` removes the FSRS-6 parameters fitted by `plan fit` | `parameters=default` |
 
 A lower `retention` means fewer reviews and more forgetting; a higher one,
 the opposite. `forecast` shows the effect of the current plan only, so

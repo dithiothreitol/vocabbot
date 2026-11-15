@@ -2,15 +2,16 @@
 
 [English](development-plan.md) · **Polski**
 
-Stan: 2026-11-15, po Etapie 4 (wersja 1.0.0-rc.3, w pakiecie Pythona
-1.0.0rc3). Plan zaakceptowałeś 14.11.2026, a Etapy 4 i 5 dodałeś 15.11.2026.
+Stan: 2026-11-15, po Etapie 5 (wersja 1.0.0-rc.4, w pakiecie Pythona
+1.0.0rc4). Plan zaakceptowałeś 14.11.2026, a Etapy 4 i 5 dodałeś 15.11.2026.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
 jest opublikowane na GitHubie i w PyPI (15.11.2026), a testy sesyjne
-z modelem przechodzą 7 z 7. Do wersji 1.0 pozostaje pilotaż według
-`docs/pilot.pl.md`; Etap 5 (harmonogram dopasowany do uczącego się), który
-zatwierdziłeś 15.11.2026, korzysta z dziennika pilotażu. Wersję angielską planu zawiera
+z modelem przechodzą 7 z 7. Etap 5 (harmonogram dopasowany do uczącego się)
+zakończył się wersją 1.0.0-rc.4 w lokalnym repozytorium, która czeka na
+Twoją zgodę na wydanie. Do wersji 1.0 pozostaje pilotaż według
+`docs/pilot.pl.md`. Wersję angielską planu zawiera
 `development-plan.md`.
 
 ---
@@ -1113,6 +1114,34 @@ dziennika, dlatego narzędzie `replay` powstaje przed końcem pilotażu,
 a dopasowanie i plan korzystają z dziennika pilotażu. Etap nie wymaga
 kosztów modeli.
 
+#### Wynik Etapu 5 (15.11.2026, wersja 1.0.0-rc.4)
+
+Etap 5 dał silnikowi narzędzie porównania z FSRS-6, pełne dopasowanie
+parametrów i plan według obecności. Wszystkie trzy części działają na
+bibliotece standardowej i wynikają z dziennika, więc oba komputery liczą ten
+sam plan.
+
+| Kryterium | Wynik |
+|---|---|
+| `vocabbot replay` | przewiduje każdą powtórkę przed jej wynikiem; dla FSRS-6 z parametrami domyślnymi daje te same wartości co moduł `fsrs`; podaje log loss, RMSE(bins) z przedziałami fsrs-optimizer i AUC każdego wariantu oraz różnicę względem FSRS-6, całość i dla każdego języka; symuluje cztery tygodnie każdego harmonogramu z dniami bez nauki według profilu obecności |
+| pełne dopasowanie (`optimize.py`) | przebieg zgodny z modułem `fsrs` do 1e-12, pochodne zgodne z różnicami skończonymi; 2272 powtórki w 0,6–2 s; na sześciu syntetycznych uczących się strata na danych testowych spadła średnio z 0,3582 (FSRS-6) do 0,3548, przy 0,3529 dla parametrów generatora |
+| odtworzenie parametrów generatora | jakość przewidywania zbliża się do generatora, natomiast pojedyncze parametry, na przykład stabilność po ocenie „znałem”, nie dają się odczytać z kilku tysięcy powtórek; u uczącego się różniącego się od FSRS-6 tylko początkowymi stabilnościami dopasowanie przewidziało część testową gorzej niż wartości domyślne |
+| bramka `plan fit` | język dostaje własne parametry tylko wtedy, gdy na późniejszej części dziennika przewidują lepiej niż FSRS-6; w przeciwnym razie podgląd kończy się komunikatem i plan zostaje bez zmian |
+| plan według obecności | na syntetycznym uczącym się, który pomija weekendy (56 dni, 901 powtórek), udział spóźnionych powtórek spadł w symulacji z 34% do 19%, średnie spóźnienie z 0,43 do 0,24 dnia, a przewidywana trwałość pozostała 0,89 przy celu 0,90 |
+| tempo nowych słów i powtórki przed przerwą | `today` i sesja w czacie podają mniejszą liczbę nowych słów, gdy dzień przekroczyłby zwykłe minuty o ponad jedną czwartą, oraz proponują powtórki przed dniem wolnym albo zwykle pomijanym |
+| testy | 14 nowych testów w `tests/test_schedule.py`; razem 204 na Pythonie 3.15 i 187 na 3.10 (1 pominięty bez grupy `data`); kontrole wtyczki bez uwag |
+
+Wnioski:
+
+1. Na dzienniku jednego uczącego się po kilku tygodniach pełne dopasowanie
+   nie musi przewidywać lepiej niż FSRS-6, dlatego bramka porównania na
+   późniejszej części dziennika jest warunkiem jego użycia, a nie dodatkiem.
+2. Plan według obecności zmniejsza zaległości bez kosztu dla trwałości, bo
+   przesuwa terminy wyłącznie w granicach rozrzutu FSRS.
+3. Wyniki na dzienniku pilotażu rozstrzygną, czy pełne dopasowanie trafi do
+   planu którejkolwiek z Twoich nauk; `vocabbot replay` pokaże to po dwóch
+   tygodniach.
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -1125,7 +1154,7 @@ kosztów modeli.
 | Strona słowa: znaczenie, przykład, wymowa | tak | znaczenie polskie, zdanie z luką, IPA |
 | Trzy oceny | tak | `know`, `almost`, `dont_know` |
 | Nauka, powtórki, utrwalanie | tak | jedna kolejka dnia w tej kolejności |
-| Powtórka przy trwałości około 90% | tak | FSRS-6, trwałość w planie, rozrzut terminów, początkowe odstępy dopasowane do dziennika; pełne dopasowanie w Etapie 5 |
+| Powtórka przy trwałości około 90% | tak | FSRS-6, trwałość w planie, rozrzut terminów, początkowe odstępy dopasowane do dziennika, pełne dopasowanie dla języka po wygranej w `replay`, terminy według obecności |
 | Pomijanie znanych słów | tak | ocena „znałem” i test poziomujący |
 | Liczba kart dziennie, czas trwania kursu | tak | `plan`, `forecast` |
 | Kalendarz z dniami wolnymi | tak | `days_off` |

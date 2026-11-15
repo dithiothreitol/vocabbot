@@ -7,7 +7,9 @@ compares this module with py-fsrs.
 
 The fuzz uses the ranges of py-fsrs, but the day inside a range comes from a
 hash of the card and the day of its answer instead of a random number, so the
-same log gives the same due dates on every computer.
+same log gives the same due dates on every computer. With a presence profile
+(the chance of a session on each weekday, presence.py) the day inside the
+range is the one nearest to that hash among the days with a good chance.
 """
 
 from __future__ import annotations
@@ -15,8 +17,9 @@ from __future__ import annotations
 import hashlib
 import math
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import date, timedelta
 
 DEFAULT_PARAMETERS: tuple[float, ...] = (
     0.212,
@@ -49,6 +52,8 @@ MAXIMUM_INTERVAL = 36500
 # (from, to, share): an interval of `days` may move by 1 day plus the share of
 # the days it has in each range, as in py-fsrs; intervals under 2.5 days stay
 FUZZ_RANGES = ((2.5, 7.0, 0.15), (7.0, 20.0, 0.1), (20.0, math.inf, 0.05))
+# weekdays this close to the best chance of a session in a range count as equally good
+PRESENCE_TOLERANCE = 0.2
 
 AGAIN, HARD, GOOD, EASY = 1, 2, 3, 4
 RATINGS = (AGAIN, HARD, GOOD, EASY)
@@ -78,6 +83,7 @@ class Scheduler:
         retention: float = 0.9,
         parameters: tuple[float, ...] = DEFAULT_PARAMETERS,
         maximum_interval: int = MAXIMUM_INTERVAL,
+        presence: Sequence[float] | None = None,
     ) -> None:
         if len(parameters) != 21:
             raise ValueError("FSRS-6 takes 21 parameters")
@@ -88,6 +94,7 @@ class Scheduler:
         self.maximum_interval = maximum_interval
         self.decay = -parameters[20]
         self.factor = 0.9 ** (1 / self.decay) - 1
+        self.presence = tuple(presence) if presence else None
 
     def retrievability(self, memory: Memory, elapsed_days: float) -> float:
         """Probability of recall after the given number of days."""
@@ -110,13 +117,24 @@ class Scheduler:
         high = min(round(interval + delta), self.maximum_interval)
         return min(low, high), high
 
-    def due_interval(self, stability: float, key: str) -> int:
-        """The interval with its spread: the same key always gives the same number of days."""
+    def due_interval(self, stability: float, key: str, start: date | None = None) -> int:
+        """The interval with its spread: the same key always gives the same number of days.
+
+        With a presence profile and the day of the answer (`start`), the days of
+        the range with a much lower chance of a session than the best one drop out.
+        """
         low, high = self.fuzz_range(self.interval(stability))
         if low == high:
             return low
         digest = hashlib.sha256(key.encode("utf-8")).digest()
-        return low + int.from_bytes(digest[:8], "big") % (high - low + 1)
+        pick = low + int.from_bytes(digest[:8], "big") % (high - low + 1)
+        if self.presence is None or start is None:
+            return pick
+        options = range(low, high + 1)
+        chance = {days: self.presence[(start + timedelta(days=days)).weekday()] for days in options}
+        best = max(chance.values())
+        good = [days for days in options if chance[days] >= best - PRESENCE_TOLERANCE]
+        return min(good, key=lambda days: (abs(days - pick), days))
 
     def first(self, rating: int) -> Memory:
         """Memory after the first answer to a new card."""

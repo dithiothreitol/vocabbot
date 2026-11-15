@@ -53,6 +53,9 @@ DEFAULT_PLAN: dict[str, Any] = {
     "leech_lapses": 4,
     "max_languages": 3,
     "diacritics": "strict",
+    "presence": "on",
+    "parameters": {},
+    "parameters_info": {},
 }
 
 # key: (type, minimum, maximum) for the numbers of the plan
@@ -68,7 +71,30 @@ NUMBERS: dict[str, tuple[type, float, float]] = {
 CHOICES: dict[str, tuple[str, ...]] = {
     "mix": ("interleaved", "blocks"),
     "diacritics": ("strict", "lenient"),
+    "presence": ("on", "off"),
 }
+PARAMETER_COUNT = 21
+
+
+def parameter_problems(parameters: Any) -> list[str]:
+    """FSRS-6 parameters of the plan: {language: 21 numbers within the bounds of py-fsrs}."""
+    from vocabbot.optimize import LOWER, UPPER
+
+    if parameters is None or parameters == {}:
+        return []
+    if not isinstance(parameters, dict):
+        return ["parameters must map a language to its FSRS-6 parameters"]
+    problems = []
+    for code, values in parameters.items():
+        if (
+            not isinstance(values, list)
+            or len(values) != PARAMETER_COUNT
+            or any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in values)
+        ):
+            problems.append(f"parameters.{code} must be {PARAMETER_COUNT} numbers")
+        elif any(not lo <= v <= hi for v, lo, hi in zip(values, LOWER, UPPER, strict=True)):
+            problems.append(f"parameters.{code} lie outside the bounds of FSRS-6")
+    return problems
 
 
 def config_dir() -> Path:
@@ -253,6 +279,7 @@ def plan_problems(plan: dict[str, Any], installed: dict[str, list[str]]) -> list
     for key, options in CHOICES.items():
         if plan.get(key) not in options:
             problems.append(f"{key} must be one of {', '.join(options)}")
+    problems += parameter_problems(plan.get("parameters"))
     limit = plan.get("review_limit")
     if limit is not None and (
         isinstance(limit, bool) or not isinstance(limit, int) or not 10 <= limit <= 1000

@@ -13,11 +13,11 @@ These functions hold the guarantees of the engine:
 from __future__ import annotations
 
 import re
-import statistics
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from vocabbot import answers, assets, store
+from vocabbot import presence as attendance
 from vocabbot.book import RATING, CardState, spread_key
 from vocabbot.courses import Catalog, presentation, question, split_card
 from vocabbot.errors import VocabError
@@ -63,7 +63,7 @@ def classify(
         return entry, "drill", dp.book.cards.get(card)
     state = dp.before.cards.get(card)
     if state is not None:
-        due = state.due(dp.scheduler)
+        due = state.due(dp.scheduler_for(state.lang))
         if due <= dp.day or ahead:
             return entry, "review", state
         raise VocabError("not_due", card=card, due=due.isoformat())
@@ -82,15 +82,15 @@ def _left(dp: DayPlan) -> dict[str, int]:
 def _schedule_after(
     dp: DayPlan, card: str, kind: str, state: CardState | None, grade: str
 ) -> tuple[date | None, int | None]:
-    scheduler = dp.scheduler
+    scheduler = dp.scheduler_for(card[:2])
     key = spread_key(card, dp.day)
     if kind == "learn":
         memory = scheduler.first(RATING[grade])
-        interval = scheduler.due_interval(memory.stability, key)
+        interval = scheduler.due_interval(memory.stability, key, dp.day)
         return dp.day + timedelta(days=interval), interval
     if kind == "review" and state is not None:
         memory = scheduler.review(state.memory, RATING[grade], (dp.day - state.last_day).days)
-        interval = scheduler.due_interval(memory.stability, key)
+        interval = scheduler.due_interval(memory.stability, key, dp.day)
         return dp.day + timedelta(days=interval), interval
     if state is not None:
         return state.due(scheduler), None
@@ -144,7 +144,8 @@ def record(
         row["given"] = given[:MAX_GIVEN]
     if ms is not None and ms > 0:
         row["ms"] = int(ms)
-    if kind == "review" and state is not None and state.due(dp.scheduler) > dp.day and ahead:
+    early = state is not None and state.due(dp.scheduler_for(state.lang)) > dp.day
+    if ahead and kind == "review" and early:
         row["ahead"] = True
     learner.append_review(row)
     due, interval = _schedule_after(dp, card, kind, state, grade)
@@ -331,7 +332,7 @@ def regrade(
     state = after.book.cards.get(card)
     out: dict[str, Any] = {"card": card, "grade": grade, "was": target.grade, "kind": target.kind}
     if state is not None:
-        out["next_due"] = state.due(after.scheduler).isoformat()
+        out["next_due"] = state.due(after.scheduler_for(state.lang)).isoformat()
     out["left"] = _left(after)
     return out
 
@@ -390,7 +391,7 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
         warnings.append({"code": "orphans", "count": dp.orphans})
     if dp.overflow:
         warnings.append({"code": "review_limit", "count": dp.overflow})
-    return {
+    out: dict[str, Any] = {
         "day": dp.day.isoformat(),
         "off": dp.off,
         "extra_new": dp.extra,
@@ -399,22 +400,35 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
         "minutes": round(minutes),
         "warnings": warnings,
     }
+    # pacing matters only while the courses still have the words it holds back
+    if dp.paced_new is not None and dp.presence is not None and len(dp.new) >= dp.paced_new:
+        out["paced"] = {
+            "planned": dp.planned_new,
+            "today": dp.paced_new,
+            "usual_minutes": dp.presence.minutes,
+        }
+    hint = ahead_hint(dp)
+    if hint:
+        out["ahead_hint"] = hint
+    return out
+
+
+def ahead_hint(dp: DayPlan) -> dict[str, Any] | None:
+    """Reviews of tomorrow worth doing today: tomorrow is a day off or one usually skipped."""
+    tomorrow = dp.day + timedelta(days=1)
+    off = store.WEEKDAYS[tomorrow.weekday()] in dp.plan["days_off"]
+    skipped = dp.presence is not None and dp.presence.chance(tomorrow) < attendance.LOW
+    if dp.off or not (off or skipped) or not dp.due_tomorrow:
+        return None
+    return {
+        "day": tomorrow.isoformat(),
+        "count": min(dp.due_tomorrow, attendance.AHEAD_MAX),
+        "reason": "day_off" if off else "usually_skipped",
+    }
 
 
 def _seconds(dp: DayPlan) -> dict[str, float]:
-    times: dict[str, list[int]] = {"learn": [], "review": [], "drill": []}
-    for row in dp.book.rows[-500:]:
-        ms = row.raw.get("ms")
-        if isinstance(ms, int) and 0 < ms < 600_000 and row.kind in times:
-            times[row.kind].append(ms)
-    out = {phase: float(value) for phase, value in SECONDS.items()}
-    if len(times["review"]) >= 20:
-        out["review"] = statistics.median(times["review"]) / 1000
-    if len(times["learn"]) >= 20:
-        out["new"] = statistics.median(times["learn"]) / 1000 * 2
-    if len(times["drill"]) >= 20:
-        out["drill"] = statistics.median(times["drill"]) / 1000
-    return out
+    return attendance.seconds(dp.book.rows)
 
 
 def add_extra(learner: store.Learner, catalog: Catalog, day: date, count: int) -> dict[str, Any]:

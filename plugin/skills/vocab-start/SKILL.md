@@ -77,6 +77,14 @@ Run `plan show --json`.
 `reference/plan-keys.md`. After a change of the new words a day, the levels
 or the languages, run `forecast --days 30 --json` again and quote it.
 
+The schedule can follow the learner's own log. `replay --json` replays the
+log and compares FSRS-6 with its defaults against the variants fitted to the
+earlier part of the log (`variants`, with `scores` and `delta` against
+FSRS-6) and simulates the coming weeks (`workload`). `plan fit --json` is a
+preview: it gives a language parameters of its own only where they predict
+the later reviews better than FSRS-6; after the learner's yes, `commit`
+saves them. `plan set parameters=default --json` goes back to FSRS-6.
+
 ## C. The terminal program
 
 The same engine runs as the `vocabbot` program with a coloured session

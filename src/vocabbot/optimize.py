@@ -217,9 +217,7 @@ class Model:
         w = self.w
         r = self.recall(s, days)
         if rating == AGAIN:
-            long_term = (
-                w[11] * d ** (-w[12]) * ((s + 1.0) ** w[13] - 1.0) * exp((1.0 - r) * w[14])
-            )
+            long_term = w[11] * d ** (-w[12]) * ((s + 1.0) ** w[13] - 1.0) * exp((1.0 - r) * w[14])
             short_term = s / exp(w[17] * w[18])
             stability = smaller(long_term, short_term)
         else:

@@ -45,8 +45,35 @@ class CardState:
     known: bool = False
 
     def due(self, scheduler: Scheduler) -> date:
-        days = scheduler.due_interval(self.memory.stability, spread_key(self.card, self.last_day))
+        days = scheduler.due_interval(
+            self.memory.stability, spread_key(self.card, self.last_day), self.last_day
+        )
         return self.last_day + timedelta(days=days)
+
+
+@dataclass(frozen=True)
+class ParameterSet:
+    """FSRS parameters: one set for every language and own sets for some languages."""
+
+    default: tuple[float, ...] = DEFAULT_PARAMETERS
+    languages: tuple[tuple[str, tuple[float, ...]], ...] = ()
+
+    def for_lang(self, lang: str) -> tuple[float, ...]:
+        return dict(self.languages).get(lang, self.default)
+
+    @property
+    def fitted(self) -> bool:
+        return self.default != DEFAULT_PARAMETERS or bool(self.languages)
+
+    @classmethod
+    def of_plan(cls, plan_parameters: Any) -> ParameterSet:
+        """The languages' own sets from plan["parameters"] ({code: [21 numbers]})."""
+        if not isinstance(plan_parameters, dict):
+            return cls()
+        own = sorted(
+            (str(code), tuple(float(x) for x in values)) for code, values in plan_parameters.items()
+        )
+        return cls(languages=tuple(own))
 
 
 def spread_key(card: str, day: date) -> str:
@@ -75,11 +102,11 @@ class Book:
     cards: dict[str, CardState]
     rows: list[Row]
     invalid: int = 0
-    parameters: tuple[float, ...] = DEFAULT_PARAMETERS
+    parameters: ParameterSet = field(default_factory=lambda: ParameterSet())
 
     @property
     def fitted(self) -> bool:
-        return self.parameters != DEFAULT_PARAMETERS
+        return self.parameters.fitted
 
     def rows_on(self, day: date) -> list[Row]:
         return [row for row in self.rows if row.day == day]
@@ -105,33 +132,41 @@ def replay(
     raw_rows: list[dict[str, Any]],
     *,
     before: date | None = None,
-    parameters: tuple[float, ...] = DEFAULT_PARAMETERS,
+    parameters: ParameterSet | None = None,
 ) -> Book:
     """Card states from the log; with `before`, only rows of earlier days count."""
+    parameters = parameters or ParameterSet()
     good = [r for r in raw_rows if valid_row(r)]
     invalid = len(raw_rows) - len(good)
     if before is not None:
         limit = before.isoformat()
         good = [r for r in good if r["day"] < limit]
     cards: dict[str, CardState] = {}
-    rows = _apply(cards, good, Scheduler(parameters=parameters))
+    rows = _apply(cards, good, parameters)
     return Book(cards=cards, rows=rows, invalid=invalid, parameters=parameters)
 
 
-def fitted_replay(raw_rows: list[dict[str, Any]]) -> Book:
-    """The replay with initial stabilities fitted to the learner's second answers."""
-    book = replay(raw_rows)
-    parameters = fit_initial(second_answers(book))
-    if parameters == book.parameters:
+def fitted_replay(raw_rows: list[dict[str, Any]], plan_parameters: Any = None) -> Book:
+    """The replay with the plan's parameters for their languages and, for the others,
+    initial stabilities fitted to the learner's second answers."""
+    base = ParameterSet.of_plan(plan_parameters)
+    book = replay(raw_rows, parameters=base)
+    own = {code for code, _ in base.languages}
+    initial = fit_initial(second_answers(book, leave_out=own))
+    if initial == DEFAULT_PARAMETERS:
         return book
-    return replay(raw_rows, parameters=parameters)
+    return replay(raw_rows, parameters=ParameterSet(initial, base.languages))
 
 
-def second_answers(book: Book) -> dict[int, list[tuple[int, bool]]]:
+def second_answers(
+    book: Book, leave_out: set[str] | frozenset[str] = frozenset()
+) -> dict[int, list[tuple[int, bool]]]:
     """For each first rating: days to the second answer and whether it was recalled."""
     first: dict[str, Row] = {}
     points: dict[int, list[tuple[int, bool]]] = {rating: [] for rating in RATING.values()}
     for row in book.rows:
+        if row.lang in leave_out:
+            continue
         if row.kind == "learn":
             first[row.card] = row
         elif row.kind == "review" and row.card in first:
@@ -146,7 +181,7 @@ def extend(book: Book, raw_rows: list[dict[str, Any]]) -> Book:
     """`book` followed by rows of the same or later days; `book` itself stays as it was."""
     good = [r for r in raw_rows if valid_row(r)]
     cards = dict(book.cards)
-    rows = _apply(cards, good, Scheduler(parameters=book.parameters))
+    rows = _apply(cards, good, book.parameters)
     return Book(
         cards=cards,
         rows=[*book.rows, *rows],
@@ -156,9 +191,10 @@ def extend(book: Book, raw_rows: list[dict[str, Any]]) -> Book:
 
 
 def _apply(
-    cards: dict[str, CardState], good: list[dict[str, Any]], scheduler: Scheduler
+    cards: dict[str, CardState], good: list[dict[str, Any]], parameters: ParameterSet
 ) -> list[Row]:
     """Apply valid rows in order. States are replaced, never changed in place."""
+    schedulers: dict[str, Scheduler] = {}
     good = sorted(good, key=order_key)
     regrades: dict[tuple[str, str], str] = {}
     for raw in good:
@@ -183,6 +219,9 @@ def _apply(
             raw=raw,
         )
         state = cards.get(card)
+        scheduler = schedulers.get(row.lang)
+        if scheduler is None:
+            scheduler = schedulers[row.lang] = Scheduler(parameters=parameters.for_lang(row.lang))
         if state is None:
             row.kind = "learn"
             cards[card] = CardState(
@@ -251,6 +290,7 @@ __all__ = [
     "RATING",
     "Book",
     "CardState",
+    "ParameterSet",
     "Row",
     "Today",
     "fitted_replay",
