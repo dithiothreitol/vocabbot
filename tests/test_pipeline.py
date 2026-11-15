@@ -10,9 +10,8 @@ import pytest
 pytest.importorskip("wordfreq")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools" / "courses"))
 
-import wiktionary
-
 import build
+import wiktionary
 
 
 def test_spanish_feminine_nouns_with_stressed_a_take_el() -> None:

@@ -19,11 +19,10 @@ import sys
 import time
 from typing import Any
 
+import build as builder
 import concepts
 import sources
 import wiktionary
-
-import build as builder
 
 SAMPLE_SIZE = 150
 BANDS = {"a1-a2": ("a1", "a2"), "b1-b2": ("b1", "b2")}

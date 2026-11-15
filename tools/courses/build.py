@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import wordfreq
+
 from concepts import Concept
 from concepts import read as read_concepts
 from sources import COURSES, TOOLS, WORK

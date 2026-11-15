@@ -22,11 +22,10 @@ import time
 from datetime import date
 from typing import Any
 
+import build as builder
 from concepts import read as read_concepts
 from sources import REPO, TOOLS, WORK
 from wiktionary import load
-
-import build as builder
 
 MODEL = "claude-sonnet-5-5"
 PRICE_INPUT, PRICE_OUTPUT = (
