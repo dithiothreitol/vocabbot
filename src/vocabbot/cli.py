@@ -71,6 +71,14 @@ class Context:
     def interactive(self) -> bool:
         return not self.args.json and sys.stdin.isatty() and sys.stdout.isatty()
 
+    def text(self) -> str:
+        """The text the learner wrote (answers, own words, a note): standard input."""
+        return read_stdin()
+
+    def courses(self) -> Catalog:
+        """The installed courses without a learner's own words."""
+        return Catalog()
+
     def pending_folders(self) -> list[Path]:
         """Where previews wait: the learner's folder, ~/.vocabbot, and a new folder's own."""
         folders = []
@@ -568,7 +576,7 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
     if not ctx.args.batch:
         if not ctx.args.card:
             raise VocabError("bad_card", card="")
-        given = read_stdin().rstrip("\r\n")
+        given = ctx.text().rstrip("\r\n")
         return session.answer(
             learner,
             catalog,
@@ -581,7 +589,7 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
         )
     results: list[dict[str, Any]] = []
     refused = 0
-    for number, item in answer_lines(read_stdin()):
+    for number, item in answer_lines(ctx.text()):
         if item is None:
             results.append(
                 {"line": number, "error": VocabError("bad_batch_line", line=number).as_dict()}
@@ -636,7 +644,7 @@ def cmd_lookup(ctx: Context) -> dict[str, Any]:
         day: date | None = ctx.day()
     except VocabError:
         learner, day = None, None
-    return session.lookup(learner, ctx.catalog(), day, lang, read_stdin())
+    return session.lookup(learner, ctx.catalog(), day, lang, ctx.text())
 
 
 def render_lookup(data: dict[str, Any]) -> list[str]:
@@ -685,7 +693,7 @@ def cmd_plan(ctx: Context) -> dict[str, Any]:
 
 def cmd_words(ctx: Context) -> dict[str, Any]:
     learner = ctx.learner()
-    preview = words.add_preview(learner, ctx.catalog(), ctx.args.lang, read_stdin(), ctx.now)
+    preview = words.add_preview(learner, ctx.catalog(), ctx.args.lang, ctx.text(), ctx.now)
     return finish_preview(ctx, preview)
 
 
@@ -710,10 +718,10 @@ def cmd_course(ctx: Context) -> dict[str, Any]:
 
 
 def cmd_quiz(ctx: Context) -> dict[str, Any]:
-    catalog = Catalog()
+    catalog = ctx.courses()
     if ctx.args.check:
         lines = []
-        for number, item in answer_lines(read_stdin()):
+        for number, item in answer_lines(ctx.text()):
             if item is None:
                 raise VocabError("bad_batch_line", line=number)
             lines.append(item)
@@ -762,7 +770,7 @@ def cmd_flag(ctx: Context) -> dict[str, Any]:
     if ctx.args.clear:
         row["clear"] = True
     else:
-        row["note"] = read_stdin().strip()[:500] if ctx.args.stdin else ""
+        row["note"] = ctx.text().strip()[:500] if ctx.args.stdin else ""
     store.append_jsonl(learner.path(store.FLAGS), row)
     return {"entry": entry_id, "cleared": bool(ctx.args.clear)}
 
@@ -853,7 +861,10 @@ def render_drill(data: dict[str, Any]) -> list[str]:
 # ---------------------------------------------------------------- parser
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(
+    parser_class: type[argparse.ArgumentParser] = argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
+    """The program's options; `parser_class` lets a server turn a mistake into an error."""
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
         "--json", action="store_true", help="print one JSON object (for the skills)"
@@ -861,7 +872,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--learner", help="the learner's folder (default: the saved pointer)")
     common.add_argument("--today", help="the learning day as YYYY-MM-DD (default: today)")
 
-    parser = argparse.ArgumentParser(
+    parser = parser_class(
         prog="vocabbot",
         description="Vocabulary in one to three languages at once, with spaced repetition.",
     )

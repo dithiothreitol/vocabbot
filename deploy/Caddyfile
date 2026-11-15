@@ -1,0 +1,4 @@
+{$VOCABBOT_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy vocabbot:8000
+}

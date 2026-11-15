@@ -32,6 +32,7 @@ learner ── chat ── skill ── bin/vocabbot.pyz --json ┘     │     
 | `optimize.py` | the full fit of the 21 FSRS-6 parameters on the standard library (reverse-mode derivatives, Adam as in py-fsrs) |
 | `replay.py` | `replay`: predictions of every review before its outcome, log loss, RMSE(bins) and AUC of each variant against FSRS-6 on the later part of the log |
 | `presence.py` | the presence profile from the log (the chance of a session on each weekday, the usual minutes), pacing of new words |
+| `server/` | the remote MCP server with accounts (`vocabbot-server`, the `server` extra): OAuth 2.1 with the MCP SDK, accounts and tokens in SQLite, the sign-in page, one learner folder per account, the guides for the model; outside `vocabbot.pyz` and the only part that needs packages beyond the standard library |
 | `cli.py`, `drill.py`, `term.py` | the program, its terminal session and the terminal layer (colour by `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb`, ASCII symbols for consoles without Unicode fonts, widths of wide and combining characters) |
 
 Texts the learner reads live in `data/i18n/pl.json`; the answer rules of a

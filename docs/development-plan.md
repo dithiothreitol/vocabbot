@@ -5,16 +5,18 @@
 This is the English translation of `development-plan.pl.md`, which is the
 version kept up to date first.
 
-Status: 2026-11-15, after Stage 5 (version 1.0.0-rc.4, 1.0.0rc4 in the Python
-package). You accepted the plan on 14.11.2026 and added Stages 4 and 5 on
+Status: 2026-11-15, after Stage 6 (version 1.0.0-rc.5, 1.0.0rc5 in the Python
+package). You accepted the plan on 14.11.2026 and added Stages 4, 5 and 6 on
 15.11.2026. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
 (15.11.2026), and the session tests with a model pass 7 of 7. Stage 5 (a
 schedule fitted to the learner) ended with the release `v1.0.0-rc.4` on GitHub
-and on PyPI (15.11.2026). Version 1.0 still needs the pilot described in
-`docs/pilot.md`.
+and on PyPI (15.11.2026). Stage 6 (the server for chat applications) ended
+with version 1.0.0-rc.5 in the local repository, which waits for your consent
+to the deployment and the release. Version 1.0 still needs the pilot
+described in `docs/pilot.md`.
 
 ---
 
@@ -1154,6 +1156,84 @@ Conclusions:
 3. The pilot's log will decide whether the full fit enters the plan of any of
    your languages; `vocabbot replay` shows it after two weeks.
 
+### Stage 6. The server for chat applications
+
+You added Stage 6 on 15.11.2026, after the analysis of a service with a chat
+window and a subscription. Instead of a chat window of its own, VocabBot runs
+as a remote MCP server with accounts: Claude on the web, on the desktop and
+on the phone, ChatGPT, Claude Code and Codex connect to it as to any
+connector, and the chat application's model runs the conversation on the
+learner's subscription. The server measures interest without model costs on
+your side and runs on your VPS at Hetzner.
+
+| Topic | State on 15.11.2026 | Source |
+|---|---|---|
+| The MCP SDK for Python | version 2.3.0 (02.10.2026): `MCPServer`, the Streamable HTTP transport, an authorization server with dynamic client registration, PKCE and refresh tokens | PyPI, the package's code |
+| Connectors in Claude | custom connectors to remote MCP servers work on every plan (the free plan: one connector); the redirect address `https://claude.ai/api/mcp/auth_callback`, later also `claude.com` | Anthropic's help center |
+| Apps in ChatGPT | an MCP server over Streamable HTTP with OAuth 2.1, resource metadata and the `resource` indicator; a stable redirect address with RFC 9207; tools that write data in developer mode on the Business, Enterprise and Edu plans according to the help center | the Apps SDK documentation, OpenAI's help center |
+
+Scope:
+
+1. The package `vocabbot.server` with the program `vocabbot-server` in the
+   extra `vocabbot[server]`; the engine and `vocabbot.pyz` stay on the
+   standard library.
+2. Accounts with invitation codes, passwords in scrypt, the OAuth records in
+   SQLite as SHA-256 hashes, a sign-in and sign-up page in Polish.
+3. An OAuth 2.1 authorization server from the MCP SDK: dynamic client
+   registration with a list of allowed redirect addresses, PKCE, an access
+   token for an hour, a refresh token that changes at every use, the resource
+   indicator and the issuer in the sign-in response.
+4. MCP tools that run the program's commands on the account's folder and
+   return the same JSON as the plugin, and guides for the model that follow
+   the plugin's skills.
+5. The engine for many accounts in one process: a shared catalog of courses,
+   the preview of a new plan in the account's folder without a pointer, the
+   learning day in the server's time zone.
+6. Docker behind Caddy with a TLS certificate, and the document
+   `docs/server.md`.
+
+Acceptance criteria:
+
+- The MCP SDK's OAuth client, acting as a chat application, registers, signs
+  in through the server's page and uses the tools; two accounts work apart
+  and no result reveals the server's paths.
+- The engine's guarantees hold through the server: a question without its
+  answer, the engine's grade, a change only through a preview and its token,
+  the learner's text outside the command's options.
+- The Docker image passes the whole path on the real courses, also behind
+  Caddy with TLS.
+- The tests of every module pass on Python 3.10 and 3.15.
+
+#### Result of Stage 6 (15.11.2026, version 1.0.0-rc.5)
+
+Stage 6 gave VocabBot a server with accounts for chat applications. The
+server uses the same engine commands as the program and the plugin, so a
+session in Claude on a phone follows the same rules as a session in Claude
+Code.
+
+| Criterion | Result |
+|---|---|
+| OAuth 2.1 | the MCP SDK's reference client passes the resource discovery, the registration, the sign-in on the server's page, the code exchange with PKCE and the issuer check (RFC 9207); a refresh token works once, and after a refresh the previous access token ends |
+| sign-in safeguards | redirects only to Claude, ChatGPT and the learner's computer; a limit of failed attempts per login and per address; a single-use authorization code; a new password ends the account's connections |
+| tools | 22 tools with read and write annotations; values passed as a command's options end with the error `bad_arguments`, and plan settings must have the form KEY=VALUE |
+| accounts apart | a second account sees no plan of the first one and cannot commit its preview; results give paths relative to the account's folder |
+| the engine for many accounts | the catalog of courses loads once (0.33 s and 70 MB), and every account gets a copy of it with its own words without a new load |
+| the Docker image | on the real courses all 22 tools work with response times from 11 to 87 ms; the same path passes behind Caddy with TLS, with correct addresses in the metadata and in the `WWW-Authenticate` header |
+| clients | Claude Code connects to the server with a token and recognises the OAuth sign-in without one; connecting claude.ai and ChatGPT needs a public address, that is the deployment on the VPS |
+| tests | 14 new tests in `tests/test_server.py`; 218 in all on Python 3.15 and 201 on 3.10 (1 skipped without the `data` group); the repository checks without remarks |
+
+Conclusions:
+
+1. An MCP server with accounts gives a chat window in Claude and ChatGPT,
+   also on a phone, without model costs on the server's side, so it fits a
+   test of interest before a decision about a service of your own.
+2. In ChatGPT, tools that write data depend on the account's plan; a trial
+   on the Plus or Pro plan shows whether the answers of a session reach the
+   log.
+3. The next step is the deployment on the VPS with a domain, the connection
+   of claude.ai and ChatGPT, and a session test with a model through the
+   connector.
+
 ---
 
 ## 11. Completeness check
@@ -1204,6 +1284,9 @@ of words confused between languages, own words from any text.
 | Stage 4, review of the examples through the Message Batches API | up to 8 USD with Claude Sonnet 5.5 | approved on 15.11.2026 |
 | Stage 4, session tests on version rc.3 | an estimated 3–6 USD with Claude Sonnet 5.5 | separate |
 | Stage 5, a schedule fitted to the learner | none | acceptance of the stage |
+| Stage 6, the server for chat applications | none | acceptance of the stage on 15.11.2026 |
+| Stage 6, a session test with a model through the connector | an estimate before the run | separate |
+| Stage 6, the deployment on the VPS | no model costs | separate |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub
@@ -1222,6 +1305,8 @@ account on 14.11.2026.
 | Typing diacritics in a terminal | replacement characters in the language rules, "almost" for a missing diacritic, a manual trial in Stage 1 |
 | The wordfreq data comes from the period until 2021 | A1–B2 vocabulary changes slowly; frequency serves only the order |
 | The model in the chat gives the answer away | `next` without the answer, rule 1, a session test of this rule |
+| A public server attracts unwanted accounts and sign-in attempts | accounts only with an invitation code, a limit of failed attempts, passwords in scrypt, tokens as hashes, redirects from a list of allowed addresses |
+| ChatGPT on the Plus and Pro plans gives custom connectors read access only | Claude as the first application of the pilot; a trial of saving answers in ChatGPT on the learner's account before inviting more people |
 
 ---
 
@@ -1229,8 +1314,8 @@ account on 14.11.2026.
 
 - Pronunciation through the speech synthesis of the operating system and
   recordings from Wiktionary.
-- A session on a phone: a server on your own VPS or a page in the home
-  network, using the same learner's folder.
+- A session on a phone outside chat applications: a page in the home network
+  or on the server of Stage 6, using the same learner's folder.
 - More languages to learn and English as a second base language.
 - Recognition cards and sentence cards as the default for B1–B2.
 - Images for entries from open collections.
@@ -1250,6 +1335,12 @@ account on 14.11.2026.
 - kaikki.org, Wiktionary data: https://kaikki.org/dictionary/rawdata.html
 - CEFR-J Vocabulary Profile: https://github.com/openlanguageprofiles/olp-en-cefrj
 - Tatoeba, downloads: https://tatoeba.org/downloads
+- MCP, authorization: https://modelcontextprotocol.io/specification/draft/basic/authorization
+- The MCP SDK for Python: https://github.com/modelcontextprotocol/python-sdk
+- Anthropic, custom connectors using remote MCP: https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp
+- Anthropic, building custom connectors: https://support.anthropic.com/en/articles/11503834-building-custom-connectors-via-remote-mcp-servers
+- OpenAI, authentication in the Apps SDK: https://developers.openai.com/apps-sdk/build/auth
+- OpenAI, developer mode and MCP apps: https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt
 - fsrs-rs: https://docs.rs/fsrs/
 - Benchmark of spaced-repetition algorithms: https://github.com/open-spaced-repetition/srs-benchmark and https://expertium.github.io/Benchmark.html
 - FSRS Helper (Easy Days, load balancing): https://github.com/open-spaced-repetition/fsrs4anki-helper

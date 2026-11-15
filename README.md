@@ -77,6 +77,11 @@ vocabbot drill
 Python 3.10 or later is the only requirement. [QUICKSTART.md](QUICKSTART.md)
 walks through the first week.
 
+The server for chat applications, with accounts for many learners, runs on
+your own machine with Docker; Claude on the web and on the phone, ChatGPT,
+Claude Code and Codex connect to it as to a remote MCP server.
+[docs/server.md](docs/server.md) describes the setup and the connection.
+
 ## Documents
 
 - [QUICKSTART.md](QUICKSTART.md): installation, setup and the daily session.
@@ -84,6 +89,7 @@ walks through the first week.
 - [docs/architecture.md](docs/architecture.md): the engine, the guarantees and the checks.
 - [docs/development-plan.md](docs/development-plan.md): the staged plan and the results of each stage.
 - [docs/pilot.md](docs/pilot.md): the protocol of the pilot before version 1.0.
+- [docs/server.md](docs/server.md): the server for chat applications, its accounts and the connection.
 - [CHANGELOG.md](CHANGELOG.md): the versions.
 
 ## Development

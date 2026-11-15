@@ -1,0 +1,9 @@
+# the image needs the package sources and nothing else of the repository
+*
+!pyproject.toml
+!README.md
+!LICENSE
+!NOTICE
+!src/
+**/__pycache__
+**/*.pyc

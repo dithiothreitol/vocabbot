@@ -1,6 +1,6 @@
 [project]
 name = "vocabbot"
-version = "1.0.0rc4"
+version = "1.0.0rc5"
 description = "Vocabulary in one to three languages at once with spaced repetition, in the terminal and in Claude or Codex."
 readme = "README.md"
 license = "Apache-2.0"
@@ -18,8 +18,16 @@ classifiers = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+# the remote MCP server with accounts (vocabbot-server); the engine needs none of it
+server = [
+    "mcp>=2.3.0,<3",
+    "tzdata>=2026.6",
+]
+
 [project.scripts]
 vocabbot = "vocabbot.cli:main"
+vocabbot-server = "vocabbot.server.cli:main"
 
 [dependency-groups]
 dev = [
@@ -27,6 +35,7 @@ dev = [
     "ruff>=0.17.5",
     "mypy>=2.4.1",
     "fsrs>=6.3.3",
+    "vocabbot[server]",
 ]
 data = [
     "anthropic>=2.8.0",

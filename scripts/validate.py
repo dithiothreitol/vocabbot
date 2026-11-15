@@ -37,6 +37,7 @@ TRANSLATED = [
     "README.md",
     "QUICKSTART.md",
     "docs/pilot.md",
+    "docs/server.md",
     "docs/development-plan.md",
     "plugin/README.md",
     "plugin/PRIVACY.md",

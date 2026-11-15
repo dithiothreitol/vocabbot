@@ -73,6 +73,16 @@ def text(name: str, /, **values: Any) -> str:
     return node.format(**values) if values else node
 
 
+def paragraphs(name: str, /) -> list[str]:
+    """A list of interface texts in the base language, e.g. the paragraphs of a page."""
+    node: Any = _texts()
+    for part in name.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return []
+        node = node[part]
+    return [str(item) for item in node] if isinstance(node, list) else []
+
+
 def language_name(code: str) -> str:
     try:
         return str(language(code)["name"]["pl"])

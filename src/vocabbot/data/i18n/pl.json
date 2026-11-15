@@ -48,7 +48,10 @@
     "io_error": "Nie udało się zapisać ani odczytać pliku {path}: {detail}. Gospodarz mógł zablokować zapis poza folderem roboczym.",
     "nothing_to_add": "Nie ma nic do dodania: {detail}",
     "reveal_production": "Karta {card} wymaga wpisania odpowiedzi; odpowiedź pokazuje dopiero polecenie answer.",
-    "no_better_fit": "Dopasowanie nie zmienia planu: dla żadnego języka nie przewiduje powtórek lepiej niż obecne parametry, albo dziennik ma za mało powtórek (porównanie pokazuje vocabbot replay)."
+    "no_better_fit": "Dopasowanie nie zmienia planu: dla żadnego języka nie przewiduje powtórek lepiej niż obecne parametry, albo dziennik ma za mało powtórek (porównanie pokazuje vocabbot replay).",
+    "no_account_plan": "Twoje konto nie ma jeszcze planu nauki. Wybierz języki, poziomy i liczbę nowych słów dziennie, a powstanie podgląd planu do zatwierdzenia.",
+    "account_has_plan": "Twoje konto ma już plan nauki; zmiany wprowadza zmiana planu.",
+    "bad_arguments": "Serwer nie przyjął parametrów wywołania: {detail}."
   },
   "quiz": {
     "title": "Test poziomujący: {name}, poziomy {levels}. Wpisz słowo w języku nauki; pusta odpowiedź oznacza „nie wiem”.",
@@ -322,5 +325,40 @@
     "fri": "pt",
     "sat": "sb",
     "sun": "nd"
+  },
+  "server": {
+    "title": "VocabBot",
+    "connect": "Połącz VocabBota z aplikacją {app}",
+    "connect_hint": "Aplikacja {app} ({host}) otrzyma dostęp do Twojej nauki: planu, powtórek i postępów. Połączenie odłączysz w ustawieniach tej aplikacji.",
+    "login_title": "Mam konto",
+    "signup_title": "Zakładam konto",
+    "login": "Login",
+    "password": "Hasło",
+    "password_again": "Hasło jeszcze raz",
+    "invite": "Kod zaproszenia",
+    "login_button": "Zaloguj i połącz",
+    "signup_button": "Załóż konto i połącz",
+    "signup_rules": "Login ma od 3 do 40 znaków: małe litery, cyfry, kropkę, myślnik lub podkreślenie. Hasło ma co najmniej 12 znaków.",
+    "expired_title": "Link wygasł",
+    "expired": "Ten link do logowania wygasł albo został już użyty. Połącz VocabBota ponownie w aplikacji.",
+    "home": "VocabBot uczy słownictwa w jednym, dwóch lub trzech językach naraz (angielski, niemiecki, hiszpański, francuski; poziomy od A1 do B2) metodą powtórek w odstępach. Ten serwer udostępnia VocabBota aplikacjom czatu, które obsługują serwery MCP.",
+    "home_address": "Adres serwera do wpisania w aplikacji:",
+    "privacy_link": "Prywatność",
+    "privacy_title": "Prywatność",
+    "privacy": [
+      "Serwer przechowuje login, skrót hasła (scrypt), plan nauki, dziennik odpowiedzi, własne słowa i zgłoszenia błędów w kursie. Nie potrzebuje adresu e-mail ani imienia.",
+      "Aplikacja czatu, którą połączysz (na przykład Claude albo ChatGPT), przetwarza rozmowę według własnych zasad; serwer otrzymuje od niej tylko wywołania narzędzi VocabBota z Twoimi odpowiedziami.",
+      "Dane służą wyłącznie Twojej nauce. Serwer ich nie udostępnia ani nie sprzedaje.",
+      "Konto i wszystkie dane usuwa administrator serwera na Twoją prośbę."
+    ],
+    "errors": {
+      "bad_login": "Login ma od 3 do 40 znaków: małe litery, cyfry, kropkę, myślnik lub podkreślenie.",
+      "bad_password": "Hasło ma od 12 do 200 znaków.",
+      "password_mismatch": "Hasła się różnią.",
+      "login_taken": "Ten login jest już zajęty.",
+      "bad_invite": "Kod zaproszenia jest nieprawidłowy, wykorzystany albo wygasł.",
+      "wrong_credentials": "Nieprawidłowy login lub hasło.",
+      "throttled": "Zbyt wiele nieudanych prób. Spróbuj ponownie za kwadrans."
+    }
   }
 }

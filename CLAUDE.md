@@ -12,6 +12,13 @@
     widths) use the standard library too; `term.py` follows `NO_COLOR`,
     `FORCE_COLOR`, `TERM=dumb` and falls back to ASCII symbols, so
     `vocabbot.pyz` and the installed program look the same.
+  - `server/` is the remote MCP server with accounts (`vocabbot-server`,
+    the `server` extra, `docs/server.md`). It is the only part that needs
+    packages beyond the standard library (the MCP SDK, uvicorn), it runs the
+    program's command handlers through `server/service.py`, and
+    `scripts/build.py` leaves it out of `vocabbot.pyz`. Its guides for the
+    model (`server/guides/*.md`) follow the skills: a change of a skill's
+    steps or of `rules/` changes them too.
   - `data/courses/<lang>/<level>.jsonl` and `meta.json` are the courses. In
     Stage 1 they hold the starter course that `tools/courses/starter.py`
     generates; Stage 2 replaces them with the A1 to B2 courses.

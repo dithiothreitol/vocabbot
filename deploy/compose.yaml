@@ -1,0 +1,44 @@
+# The VocabBot server behind Caddy, which obtains and renews the TLS certificate.
+#
+#   cp deploy/example.env deploy/.env      # then set VOCABBOT_DOMAIN
+#   docker compose -f deploy/compose.yaml up -d --build
+#   docker compose -f deploy/compose.yaml exec vocabbot vocabbot-server invite --note "Ola"
+#
+# The domain's DNS record must point at this machine, and ports 80 and 443 must be free.
+name: vocabbot
+
+services:
+  vocabbot:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    environment:
+      VOCABBOT_SERVER_URL: https://${VOCABBOT_DOMAIN:?set VOCABBOT_DOMAIN in deploy/.env}
+      VOCABBOT_SERVER_TIMEZONE: ${VOCABBOT_TIMEZONE:-Europe/Warsaw}
+      VOCABBOT_SERVER_OPEN_SIGNUP: ${VOCABBOT_OPEN_SIGNUP:-}
+    volumes:
+      - vocabbot-data:/data
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - vocabbot
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      VOCABBOT_DOMAIN: ${VOCABBOT_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  vocabbot-data:
+  caddy-data:
+  caddy-config:

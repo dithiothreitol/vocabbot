@@ -82,10 +82,15 @@ def init_preview(
     now: datetime,
     base: str = "pl",
     assignments: list[str] | None = None,
+    *,
+    pending: Path | None = None,
+    pointer: bool = True,
 ) -> dict[str, Any]:
     """Preview of a new learner folder with its plan and the pointer to it.
 
     `assignments` are further settings in the form of `plan set` (days_off=sun).
+    `pending` names the folder where the preview waits (by default ~/.vocabbot/pending),
+    and `pointer=False` leaves out the pointer, as a server with many learners does.
     """
     folder = folder.expanduser().resolve()
     if (folder / store.PLAN).exists():
@@ -100,20 +105,29 @@ def init_preview(
     for assignment in assignments or []:
         _apply(plan, assignment)
     _check(plan, catalog)
-    pointer = store.config_dir() / store.CONFIG
     changes = [
         gate.Change(folder / store.PLAN, "write", store.dump_json(plan)),
         gate.Change(folder / store.REVIEWS, "write", ""),
         gate.Change(
             folder / store.DECISIONS, "write", assets.text("gate.decisions_header") + "\n\n"
         ),
-        # the pointer is a convenience: a sandbox may forbid writing outside the folder
-        gate.Change(pointer, "write", store.dump_json({"learner": str(folder)}), optional=True),
     ]
+    if pointer:
+        # the pointer is a convenience: a sandbox may forbid writing outside the folder
+        changes.append(
+            gate.Change(
+                store.config_dir() / store.CONFIG,
+                "write",
+                store.dump_json({"learner": str(folder)}),
+                optional=True,
+            )
+        )
     lines = [assets.text("plan.init_folder", folder=str(folder)), *describe(plan)]
     summary = assets.text(
         "plan.init_summary", languages=", ".join(i["code"] for i in plan["languages"])
     )
+    if pending is not None:
+        return gate.preview(pending, summary, lines, changes, now, folder / store.DECISIONS)
     try:
         return gate.preview(
             store.config_dir() / "pending", summary, lines, changes, now, folder / store.DECISIONS

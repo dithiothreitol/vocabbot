@@ -70,8 +70,18 @@ def _gap_pattern(gap: str) -> re.Pattern[str]:
 class Catalog:
     """All entries a learner can meet: installed courses and own words."""
 
-    def __init__(self, root: assets.Resource | None = None, learner: Path | None = None) -> None:
-        self.root = root if root is not None else assets.course_root()
+    def __init__(
+        self,
+        root: assets.Resource | None = None,
+        learner: Path | None = None,
+        base: Catalog | None = None,
+    ) -> None:
+        """`base` is a catalog of the same courses already in memory: this one shares its
+        course entries (they are never changed) and adds only the learner's own words."""
+        self.base = base
+        self.root: assets.Resource = (
+            base.root if base is not None else root if root is not None else assets.course_root()
+        )
         self.learner = learner
         self.problems: list[str] = []
         self._loaded = False
@@ -89,7 +99,14 @@ class Catalog:
         if self._loaded:
             return
         self._loaded = True
-        if self.root.is_dir():
+        if self.base is not None:
+            self.base._load()
+            self.problems = list(self.base.problems)
+            self._entries = dict(self.base._entries)
+            self._course = self.base._course
+            self._concepts = defaultdict(list, self.base._concepts)
+            self._meta = self.base._meta
+        elif self.root.is_dir():
             for folder in sorted(self.root.iterdir(), key=lambda item: item.name):
                 if not folder.is_dir() or not (folder / "meta.json").is_file():
                     continue
@@ -117,8 +134,9 @@ class Catalog:
                                 self._add_ref(row, folder.name)
                             else:
                                 self._add(row, own=True)
-        for items in self._course.values():
-            items.sort(key=lambda e: int(e.get("rank", 0)))
+        if self.base is None:
+            for items in self._course.values():
+                items.sort(key=lambda e: int(e.get("rank", 0)))
 
     def _add_ref(self, row: dict[str, Any], lang: str) -> None:
         """A course word the learner moved forward with `words add`."""
@@ -153,7 +171,9 @@ class Catalog:
         else:
             self._course[(str(entry.get("lang")), str(entry.get("level")))].append(entry)
         if isinstance(entry.get("concept"), str):
-            self._concepts[entry["concept"]].append(entry)
+            # a new list, so a catalog that shares the lists of its base never changes them
+            concept = entry["concept"]
+            self._concepts[concept] = [*self._concepts.get(concept, []), entry]
 
     # ---------------------------------------------------------------- reading
 

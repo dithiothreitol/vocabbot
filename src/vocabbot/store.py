@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, tzinfo
 from pathlib import Path
 from typing import Any
 
@@ -128,9 +128,12 @@ def locate(learner: str | None = None) -> Path:
     return root.resolve()
 
 
-def learning_day(now: datetime, day_starts_at: int) -> date:
-    """The learning day of a moment: it starts at `day_starts_at` local time."""
-    local = now.astimezone()
+def learning_day(now: datetime, day_starts_at: int, tz: tzinfo | None = None) -> date:
+    """The learning day of a moment: it starts at `day_starts_at` local time.
+
+    Local time is the computer's, or the time zone `tz` (a server's learners).
+    """
+    local = now.astimezone(tz)
     if local.hour < day_starts_at:
         return (local - timedelta(days=1)).date()
     return local.date()

@@ -2,15 +2,18 @@
 
 [English](development-plan.md) · **Polski**
 
-Stan: 2026-11-15, po Etapie 5 (wersja 1.0.0-rc.4, w pakiecie Pythona
-1.0.0rc4). Plan zaakceptowałeś 14.11.2026, a Etapy 4 i 5 dodałeś 15.11.2026.
+Stan: 2026-11-15, po Etapie 6 (wersja 1.0.0-rc.5, w pakiecie Pythona
+1.0.0rc5). Plan zaakceptowałeś 14.11.2026, a Etapy 4, 5 i 6 dodałeś
+15.11.2026.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
 jest opublikowane na GitHubie i w PyPI (15.11.2026), a testy sesyjne
 z modelem przechodzą 7 z 7. Etap 5 (harmonogram dopasowany do uczącego się)
-zakończył się wydaniem `v1.0.0-rc.4` na GitHubie i w PyPI (15.11.2026). Do
-wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
+zakończył się wydaniem `v1.0.0-rc.4` na GitHubie i w PyPI (15.11.2026).
+Etap 6 (serwer dla aplikacji czatu) zakończył się wersją 1.0.0-rc.5
+w lokalnym repozytorium, która czeka na Twoją zgodę na wdrożenie i wydanie.
+Do wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
 `development-plan.md`.
 
 ---
@@ -1142,6 +1145,81 @@ Wnioski:
    planu którejkolwiek z Twoich nauk; `vocabbot replay` pokaże to po dwóch
    tygodniach.
 
+### Etap 6. Serwer dla aplikacji czatu
+
+Etap 6 dodałeś 15.11.2026 po analizie serwisu z oknem czatu i subskrypcją.
+Zamiast własnego okna czatu VocabBot działa jako zdalny serwer MCP z kontami:
+Claude w przeglądarce, w aplikacji desktopowej i w telefonie, ChatGPT,
+Claude Code oraz Codex łączą się z nim jak z każdym łącznikiem, a model
+aplikacji czatu prowadzi rozmowę w ramach subskrypcji uczącego się. Serwer
+mierzy zainteresowanie bez kosztów modeli po Twojej stronie i działa na
+Twoim VPS w Hetznerze.
+
+| Zagadnienie | Stan na 15.11.2026 | Źródło |
+|---|---|---|
+| SDK MCP dla Pythona | wersja 2.3.0 (02.10.2026): `MCPServer`, transport Streamable HTTP, serwer autoryzacji z dynamiczną rejestracją klientów, PKCE i tokenami odświeżania | PyPI, kod pakietu |
+| Łączniki w Claude | własne łączniki zdalnych serwerów MCP działają w każdym planie (plan bezpłatny: jeden łącznik); adres zwrotny `https://claude.ai/api/mcp/auth_callback`, w przyszłości również `claude.com` | centrum pomocy Anthropic |
+| Aplikacje w ChatGPT | serwer MCP przez Streamable HTTP z OAuth 2.1, metadanymi zasobu i wskaźnikiem `resource`; stały adres zwrotny przy obsłudze RFC 9207; narzędzia zapisujące w trybie dewelopera według centrum pomocy w planach Business, Enterprise i Edu | dokumentacja Apps SDK, centrum pomocy OpenAI |
+
+Zakres:
+
+1. Pakiet `vocabbot.server` z programem `vocabbot-server` w dodatku
+   `vocabbot[server]`; silnik i `vocabbot.pyz` pozostają na bibliotece
+   standardowej.
+2. Konta z kodami zaproszeń, hasła w scrypt, rekordy OAuth w SQLite jako
+   skróty SHA-256, strona logowania i zakładania konta po polsku.
+3. Serwer autoryzacji OAuth 2.1 z SDK MCP: dynamiczna rejestracja klientów
+   z listą dozwolonych adresów zwrotnych, PKCE, token dostępu na godzinę,
+   token odświeżania wymieniany przy każdym użyciu, wskaźnik zasobu i
+   wystawca w odpowiedzi logowania.
+4. Narzędzia MCP, które uruchamiają polecenia programu na folderze konta
+   i zwracają ten sam JSON co wtyczka, oraz przewodniki dla modelu zgodne
+   z umiejętnościami wtyczki.
+5. Silnik dla wielu kont w jednym procesie: wspólny katalog kursów, podgląd
+   nowego planu w folderze konta bez wskaźnika, dzień nauki w strefie
+   czasowej serwera.
+6. Uruchomienie w Dockerze za Caddy z certyfikatem TLS oraz dokument
+   `docs/server.pl.md`.
+
+Kryteria akceptacji:
+
+- Klient OAuth z SDK MCP, działający jak aplikacja czatu, rejestruje się,
+  loguje przez stronę serwera i korzysta z narzędzi; dwa konta pracują
+  rozdzielnie i żadna odpowiedź nie zdradza ścieżek serwera.
+- Gwarancje silnika obowiązują przez serwer: pytanie bez odpowiedzi, ocena
+  silnika, zmiana tylko przez podgląd i token, tekst uczącego się poza
+  opcjami polecenia.
+- Obraz Dockera przechodzi całą ścieżkę na prawdziwych kursach, również
+  za Caddy z TLS.
+- Testy wszystkich modułów przechodzą na Pythonie 3.10 i 3.15.
+
+#### Wynik Etapu 6 (15.11.2026, wersja 1.0.0-rc.5)
+
+Etap 6 dał VocabBotowi serwer z kontami dla aplikacji czatu. Serwer korzysta
+z tych samych poleceń silnika co program i wtyczka, więc sesja w Claude na
+telefonie przebiega według tych samych reguł co sesja w Claude Code.
+
+| Kryterium | Wynik |
+|---|---|
+| OAuth 2.1 | klient referencyjny SDK MCP przechodzi wykrywanie zasobu, rejestrację, logowanie na stronie serwera, wymianę kodu z PKCE i sprawdzenie wystawcy (RFC 9207); token odświeżania działa jeden raz, a po odświeżeniu poprzedni token dostępu wygasa |
+| zabezpieczenia logowania | adresy zwrotne wyłącznie do Claude, ChatGPT i komputera uczącego się; limit nieudanych prób na login i na adres; kod autoryzacji jednorazowy; nowe hasło kończy połączenia konta |
+| narzędzia | 22 narzędzia z adnotacjami odczytu i zapisu; wartości przekazane jako opcje polecenia kończą się błędem `bad_arguments`, a ustawienia planu muszą mieć postać KLUCZ=WARTOŚĆ |
+| rozdzielność kont | drugie konto nie widzi planu pierwszego i nie zatwierdzi jego podglądu; odpowiedzi podają ścieżki względem folderu konta |
+| silnik dla wielu kont | katalog kursów wczytuje się raz (0,33 s i 70 MB), a każde konto dostaje jego kopię z własnymi słowami bez ponownego wczytania |
+| obraz Dockera | na prawdziwych kursach wszystkie 22 narzędzia działają z czasem odpowiedzi od 11 do 87 ms; ta sama ścieżka przechodzi za Caddy z TLS z poprawnymi adresami w metadanych i w nagłówku `WWW-Authenticate` |
+| zgodność z klientami | Claude Code łączy się z serwerem z tokenem i bez tokenu rozpoznaje logowanie OAuth; połączenia z claude.ai i ChatGPT wymagają adresu publicznego, czyli wdrożenia na VPS |
+| testy | 14 nowych testów w `tests/test_server.py`; razem 218 na Pythonie 3.15 i 201 na 3.10 (1 pominięty bez grupy `data`); kontrole repozytorium bez uwag |
+
+Wnioski:
+
+1. Serwer MCP z kontami daje okno czatu w Claude i ChatGPT, także na
+   telefonie, bez kosztów modeli po stronie serwera, więc nadaje się do
+   sprawdzenia zainteresowania przed decyzją o własnym serwisie.
+2. W ChatGPT narzędzia zapisujące zależą od planu konta; próba w planie
+   Plus albo Pro pokaże, czy odpowiedzi z sesji trafiają do dziennika.
+3. Następny krok to wdrożenie na VPS z domeną, połączenie z claude.ai
+   i ChatGPT oraz test sesji z modelem przez łącznik.
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -1192,6 +1270,9 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 4, przegląd przykładów przez Message Batches API | do 8 USD przy Claude Sonnet 5.5 | zatwierdzony 15.11.2026 |
 | Etap 4, testy sesyjne na wersji rc.3 | szacunkowo 3–6 USD przy Claude Sonnet 5.5 | osobna |
 | Etap 5, harmonogram dopasowany do uczącego się | brak | akceptacja etapu |
+| Etap 6, serwer dla aplikacji czatu | brak | akceptacja etapu 15.11.2026 |
+| Etap 6, test sesji z modelem przez łącznik | wycena przed uruchomieniem | osobna |
+| Etap 6, wdrożenie na VPS | brak kosztów modeli | osobna |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
@@ -1210,14 +1291,16 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 | Wpisywanie znaków diakrytycznych w terminalu | znaki zastępcze w regułach języka, ocena „prawie” za brak znaku, próba ręczna w Etapie 1 |
 | Dane wordfreq pochodzą z okresu do 2021 roku | słownictwo A1–B2 zmienia się wolno; częstość służy wyłącznie do kolejności |
 | Model w czacie podpowiada odpowiedź | `next` bez odpowiedzi, reguła 1, test sesyjny tej reguły |
+| Publiczny serwer przyciąga nieproszone konta i próby logowania | konta wyłącznie z kodem zaproszenia, limit nieudanych prób, hasła w scrypt, tokeny jako skróty, adresy zwrotne z listy dozwolonych |
+| ChatGPT w planach Plus i Pro udostępnia własnym łącznikom tylko odczyt | Claude jako pierwsza aplikacja pilotażu; próba zapisu odpowiedzi w ChatGPT na koncie uczącego się przed zaproszeniem kolejnych osób |
 
 ---
 
 ## 14. Rozszerzenia po wersji 1.0
 
 - Wymowa przez syntezę mowy systemu operacyjnego oraz nagrania z Wikisłownika.
-- Sesja na telefonie: serwer na własnym VPS albo strona w sieci domowej,
-  korzystające z tego samego folderu nauki.
+- Sesja na telefonie poza aplikacjami czatu: strona w sieci domowej albo na
+  serwerze z Etapu 6, korzystająca z tego samego folderu nauki.
 - Kolejne języki nauki i angielski jako drugi język bazowy.
 - Karty rozpoznawania i karty ze zdaniem jako ustawienie domyślne dla
   poziomu B1–B2.
@@ -1238,6 +1321,12 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 - kaikki.org, dane Wikisłownika: https://kaikki.org/dictionary/rawdata.html
 - CEFR-J Vocabulary Profile: https://github.com/openlanguageprofiles/olp-en-cefrj
 - Tatoeba, pliki do pobrania: https://tatoeba.org/downloads
+- MCP, autoryzacja: https://modelcontextprotocol.io/specification/draft/basic/authorization
+- SDK MCP dla Pythona: https://github.com/modelcontextprotocol/python-sdk
+- Anthropic, własne łączniki przez zdalny MCP: https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp
+- Anthropic, budowa łączników: https://support.anthropic.com/en/articles/11503834-building-custom-connectors-via-remote-mcp-servers
+- OpenAI, uwierzytelnianie w Apps SDK: https://developers.openai.com/apps-sdk/build/auth
+- OpenAI, tryb dewelopera i aplikacje MCP: https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt
 - fsrs-rs: https://docs.rs/fsrs/
 - Benchmark algorytmów powtórek: https://github.com/open-spaced-repetition/srs-benchmark oraz https://expertium.github.io/Benchmark.html
 - FSRS Helper (Easy Days, równoważenie obciążenia): https://github.com/open-spaced-repetition/fsrs4anki-helper

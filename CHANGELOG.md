@@ -3,6 +3,35 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## 1.0.0-rc.5 - 2026-11-15
+
+### Added
+
+- `vocabbot-server`, VocabBot as a remote MCP server with accounts
+  (`pip install "vocabbot[server]"`). Chat applications that connect to
+  remote MCP servers (Claude on the web, the desktop and the phone, ChatGPT,
+  Claude Code, Codex) sign in with OAuth 2.1: dynamic client registration,
+  PKCE, refresh tokens that change at every use, the resource indicator and
+  the issuer in the sign-in response. A learner opens an account on the
+  server's page with an invitation code; passwords are kept as scrypt
+  hashes, codes and tokens as SHA-256 hashes.
+- 22 tools run the program's commands on the account's own folder and return
+  the same JSON as the plugin's skills read; `vocab_guide` gives the model
+  the rules and steps of the skills with the tools in place of the commands.
+- `deploy/` runs the server with Docker behind Caddy, which obtains the TLS
+  certificate; `docs/server.md` describes the setup, the accounts and the
+  connection of each chat application.
+
+### Changed
+
+- The engine serves many learners in one process: a catalog can share the
+  courses of another one already in memory, `init_preview` can keep its
+  preview in the new folder without a pointer, the learning day can follow a
+  given time zone, and the program's commands read the learner's text
+  through their context.
+- `vocabbot.pyz` leaves the server out, so the skills keep running on the
+  standard library alone.
+
 ## 1.0.0-rc.4 - 2026-11-15
 
 ### Added

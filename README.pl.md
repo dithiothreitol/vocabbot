@@ -79,6 +79,11 @@ vocabbot drill
 Jedynym wymaganiem jest Python 3.10 lub nowszy. [QUICKSTART.pl.md](QUICKSTART.pl.md)
 prowadzi przez pierwszy tydzień nauki.
 
+Serwer dla aplikacji czatu, z kontami dla wielu uczących się, działa na
+Twojej maszynie w Dockerze, a Claude w przeglądarce i w telefonie, ChatGPT,
+Claude Code oraz Codex łączą się z nim jak ze zdalnym serwerem MCP.
+[docs/server.pl.md](docs/server.pl.md) opisuje uruchomienie i podłączenie.
+
 ## Dokumenty
 
 - [QUICKSTART.pl.md](QUICKSTART.pl.md): instalacja, konfiguracja i codzienna sesja.
@@ -86,6 +91,7 @@ prowadzi przez pierwszy tydzień nauki.
 - [docs/architecture.md](docs/architecture.md): silnik, gwarancje i kontrole (po angielsku).
 - [docs/development-plan.pl.md](docs/development-plan.pl.md): plan etapów i ich wyniki.
 - [docs/pilot.pl.md](docs/pilot.pl.md): protokół pilotażu przed wersją 1.0.
+- [docs/server.pl.md](docs/server.pl.md): serwer dla aplikacji czatu, jego konta i podłączenie.
 - [CHANGELOG.md](CHANGELOG.md): wersje (po angielsku).
 
 ## Rozwój
