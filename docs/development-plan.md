@@ -12,9 +12,9 @@ the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
 (15.11.2026), and the session tests with a model pass 7 of 7. Stage 5 (a
-schedule fitted to the learner) ended with version 1.0.0-rc.4 in the local
-repository, which waits for your consent to the release. Version 1.0 still
-needs the pilot described in `docs/pilot.md`.
+schedule fitted to the learner) ended with the release `v1.0.0-rc.4` on GitHub
+and on PyPI (15.11.2026). Version 1.0 still needs the pilot described in
+`docs/pilot.md`.
 
 ---
 
@@ -925,7 +925,7 @@ version 1.0.0-rc.2 carries them out.
 
 The social preview image needs a one-time upload in the repository settings
 (Settings, Social preview), because GitHub offers no programming interface for
-it.
+it. You uploaded it on 15.11.2026.
 
 ---
 
@@ -1142,6 +1142,7 @@ library and follow from the log, so both computers compute the same plan.
 | the plan by presence | for a synthetic learner who skips weekends (56 days, 901 reviews), the simulated share of late reviews fell from 34% to 19%, the mean delay from 0.43 to 0.24 days, and the predicted recall stayed at 0.89 against a target of 0.90 |
 | the pace of new words and reviews ahead | `today` and the chat session give fewer new words when the day would exceed the usual minutes by more than a quarter, and offer reviews ahead before a day off or a day usually skipped |
 | tests | 14 new tests in `tests/test_schedule.py`; 204 in all on Python 3.15 and 187 on 3.10 (1 skipped without the `data` group); the plugin checks without remarks |
+| release | with your consent of 15.11.2026: the tag `v1.0.0-rc.4`, a GitHub pre-release with every package, `vocabbot 1.0.0rc4` on PyPI through trusted publishing with checksums equal to GitHub's, CI green, the plugin in your Codex refreshed to rc.4 |
 
 Conclusions:
 

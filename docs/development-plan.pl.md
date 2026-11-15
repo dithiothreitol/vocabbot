@@ -9,9 +9,8 @@ języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
 jest opublikowane na GitHubie i w PyPI (15.11.2026), a testy sesyjne
 z modelem przechodzą 7 z 7. Etap 5 (harmonogram dopasowany do uczącego się)
-zakończył się wersją 1.0.0-rc.4 w lokalnym repozytorium, która czeka na
-Twoją zgodę na wydanie. Do wersji 1.0 pozostaje pilotaż według
-`docs/pilot.pl.md`. Wersję angielską planu zawiera
+zakończył się wydaniem `v1.0.0-rc.4` na GitHubie i w PyPI (15.11.2026). Do
+wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
 `development-plan.md`.
 
 ---
@@ -913,7 +912,7 @@ Obie decyzje z przejścia ścieżki zatwierdziłeś 15.11.2026, a wersja
 
 Obraz do udostępniania wymaga jednorazowego wgrania w ustawieniach
 repozytorium (Settings, Social preview), ponieważ GitHub nie udostępnia do
-tego interfejsu programistycznego.
+tego interfejsu programistycznego. Wgrałeś go 15.11.2026.
 
 ---
 
@@ -1130,6 +1129,7 @@ sam plan.
 | plan według obecności | na syntetycznym uczącym się, który pomija weekendy (56 dni, 901 powtórek), udział spóźnionych powtórek spadł w symulacji z 34% do 19%, średnie spóźnienie z 0,43 do 0,24 dnia, a przewidywana trwałość pozostała 0,89 przy celu 0,90 |
 | tempo nowych słów i powtórki przed przerwą | `today` i sesja w czacie podają mniejszą liczbę nowych słów, gdy dzień przekroczyłby zwykłe minuty o ponad jedną czwartą, oraz proponują powtórki przed dniem wolnym albo zwykle pomijanym |
 | testy | 14 nowych testów w `tests/test_schedule.py`; razem 204 na Pythonie 3.15 i 187 na 3.10 (1 pominięty bez grupy `data`); kontrole wtyczki bez uwag |
+| wydanie | za Twoją zgodą z 15.11.2026: tag `v1.0.0-rc.4`, wydanie przedpremierowe na GitHubie z kompletem paczek, `vocabbot 1.0.0rc4` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.4 |
 
 Wnioski:
 
