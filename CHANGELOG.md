@@ -3,7 +3,7 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
-## Unreleased
+## 1.0.0-rc.6 - 2026-11-15
 
 ### Added
 
