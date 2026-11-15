@@ -5,15 +5,14 @@
 This is the English translation of `development-plan.pl.md`, which is the
 version kept up to date first.
 
-Status: 2026-11-15, after Stage 3 (version 1.0.0-rc.1, 1.0.0rc1 in the Python
+Status: 2026-11-15, after Stage 3 (version 1.0.0-rc.2, 1.0.0rc2 in the Python
 package). You accepted the plan on 14.11.2026. The engine, the `vocabbot`
 program, the A1–B2 courses for four languages (21 919 entries) and the plugin
 with four skills for Claude and Codex work; section 10 describes the results
-of the stages. The release candidate `v1.0.0-rc.1` is published on GitHub
-(15.11.2026), and the `vocabbot` package is on PyPI. Version 1.0 still needs
-the session tests with a model (not approved), two
-decisions from the walk through the path (a confirmation hook, examples of
-function words) and the pilot described in `docs/pilot.md`.
+of the stages. The release candidate `v1.0.0-rc.2` is published on GitHub
+and on PyPI (15.11.2026), with the confirmation hook and the fix of the
+examples of function words. Version 1.0 still needs the session tests with a
+model (not approved) and the pilot described in `docs/pilot.md`.
 
 ---
 
@@ -100,7 +99,8 @@ decision D12).
 | Outside text off the command line | taken over | answers and own words reach the engine on standard input |
 | Four levels of verification | taken over | structure, arithmetic, behaviour, use |
 | Two manifests and two marketplace catalogs | taken over | Claude and Codex from one plugin folder |
-| Router, skill chains, read-only agent, confirmation hook, managed agent cookbook | left out | four skills need no router; a change of a learning plan has no legal or financial effect, so the confirmation with a token in the engine is enough |
+| Router, skill chains, read-only agent, managed agent cookbook | left out | four skills need no router; learning needs no unattended work |
+| Confirmation hook | taken over in version 1.0.0-rc.2 | the walk through the path showed that a model can save a change without a confirmation; the hook moves the confirmation into the host's permission prompt in Claude Code and Cowork |
 | A path without Python | left out | a manual calculation gives no reliable due dates; without the engine the skill says so and offers practice without saving |
 
 ### 2.4 Learning several languages at once
@@ -904,6 +904,23 @@ The walk brought three conclusions.
 | tag and release | `v1.0.0-rc.1`, a pre-release with the wheel, the source archive, `vocabbot.pyz`, `vocabbot.plugin`, four skill archives and `SHA256SUMS`; the sums of the downloaded files match |
 | installing from GitHub | `claude plugin install vocabbot --marketplace dithiothreitol/vocabbot` in an isolated configuration and `uvx --from git+https://github.com/dithiothreitol/vocabbot@v1.0.0-rc.1 vocabbot` work |
 | PyPI | `vocabbot 1.0.0rc1` published on 15.11.2026 with a token from your account: the wheel and the source archive downloaded from the GitHub release and checked against their sums; `uv tool install vocabbot` and `pip` install this version. Later releases can use a trusted publisher (project `vocabbot`, owner `dithiothreitol`, repository `vocabbot`, workflow `release.yml`, environment `pypi`) |
+
+#### Version 1.0.0-rc.2 (15.11.2026)
+
+You approved both decisions from the walk through the path on 15.11.2026, and
+version 1.0.0-rc.2 carries them out.
+
+| Change | Result |
+|---|---|
+| confirmation hook (`plugin/hooks/`) | in Claude Code and Cowork every engine `commit` and every direct write into a learner's folder goes to the host's permission prompt with the content of the preview; `VOCABBOT_HOOK=off` turns the prompt off in tests without a person; 4 tests, a check in `validate.py`, `claude plugin validate --profile directory --strict` without findings |
+| examples of function words (courses 2026.11.3) | a word spelt like an article but of another part of speech (French and Spanish "la", "le", "les", "los", "un", "unos") is asked without a sentence; German "das" keeps an example only where no noun follows it; 7 entries changed and a few neighbouring entries got other examples; `course check` without errors, two builds identical |
+| graphics (`docs/assets/`) | the logo at the top of both READMEs, also shown on the PyPI page, and a 1280×640 social preview image for the repository; the HTML sources and the render command sit next to the PNG files |
+| tests | 154 on Python 3.15 and 147 on 3.10; CI green |
+| release | the tag `v1.0.0-rc.2`, a GitHub pre-release with all packages, `vocabbot 1.0.0rc2` on PyPI (the release files checked against their sums), the plugin in your Codex refreshed to rc.2 |
+
+The social preview image needs a one-time upload in the repository settings
+(Settings, Social preview), because GitHub offers no programming interface for
+it.
 
 ---
 

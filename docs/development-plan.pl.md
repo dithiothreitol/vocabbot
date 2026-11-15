@@ -2,15 +2,14 @@
 
 [English](development-plan.md) · **Polski**
 
-Stan: 2026-11-15, po Etapie 3 (wersja 1.0.0-rc.1, w pakiecie Pythona
-1.0.0rc1). Plan zaakceptowałeś 14.11.2026. Silnik, program `vocabbot`, kursy
+Stan: 2026-11-15, po Etapie 3 (wersja 1.0.0-rc.2, w pakiecie Pythona
+1.0.0rc2). Plan zaakceptowałeś 14.11.2026. Silnik, program `vocabbot`, kursy
 A1–B2 dla czterech języków (21 919 haseł) oraz wtyczka z czterema
 umiejętnościami dla Claude'a i Codexa działają; wyniki etapów opisuje
-rozdział 10. Wydanie kandydujące `v1.0.0-rc.1` jest opublikowane na GitHubie
-(15.11.2026), a pakiet `vocabbot` jest w PyPI. Do wersji 1.0 pozostają
-testy sesyjne z modelem (bez Twojej zgody), dwie decyzje
-z przejścia ścieżki (hook potwierdzenia, przykłady słów funkcyjnych) oraz
-pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
+rozdział 10. Wydanie kandydujące `v1.0.0-rc.2` jest opublikowane na GitHubie
+i w PyPI (15.11.2026) razem z hookiem potwierdzenia i poprawką przykładów
+słów funkcyjnych. Do wersji 1.0 pozostają testy sesyjne z modelem (bez
+Twojej zgody) oraz pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
 `development-plan.md`.
 
 ---
@@ -97,7 +96,8 @@ nauki i buduje słownictwo z otwartych źródeł (rozdział 3, decyzja D12).
 | Tekst z zewnątrz poza wierszem poleceń | przejęty | odpowiedzi i własne słowa trafiają do silnika na wejściu standardowym |
 | Cztery poziomy weryfikacji | przejęte | struktura, arytmetyka, zachowanie, użycie |
 | Dwa manifesty i dwa katalogi marketplace | przejęte | Claude oraz Codex z jednego folderu wtyczki |
-| Router, łańcuchy umiejętności, agent tylko do odczytu, hook potwierdzenia, cookbook agenta zarządzanego | pominięte | cztery umiejętności obywają się bez routera; zmiana planu nauki nie ma skutków prawnych ani finansowych, dlatego potwierdzenie tokenem w silniku wystarcza |
+| Router, łańcuchy umiejętności, agent tylko do odczytu, cookbook agenta zarządzanego | pominięte | cztery umiejętności obywają się bez routera; nauka nie wymaga pracy bez nadzoru |
+| Hook potwierdzenia | przejęty w wersji 1.0.0-rc.2 | przejście ścieżki pokazało, że model potrafi zapisać zmianę bez potwierdzenia; hook przenosi potwierdzenie do okna zgody gospodarza w Claude Code i Coworku |
 | Ścieżka bez Pythona | pominięta | ręczny rachunek nie daje rzetelnych terminów powtórek; bez wykonania silnika umiejętność informuje o tym i proponuje ćwiczenie bez zapisu |
 
 ### 2.4 Nauka kilku języków równocześnie
@@ -892,6 +892,23 @@ Przejście przyniosło trzy wnioski.
 | tag i wydanie | `v1.0.0-rc.1`, wydanie przedpremierowe z kołem, archiwum źródłowym, `vocabbot.pyz`, `vocabbot.plugin`, czterema archiwami umiejętności i `SHA256SUMS`; sumy pobranych plików zgadzają się |
 | instalacja z GitHuba | `claude plugin install vocabbot --marketplace dithiothreitol/vocabbot` w odizolowanej konfiguracji oraz `uvx --from git+https://github.com/dithiothreitol/vocabbot@v1.0.0-rc.1 vocabbot` działają |
 | PyPI | `vocabbot 1.0.0rc1` opublikowany 15.11.2026 tokenem z Twojego konta: koło i archiwum źródłowe pobrane z wydania na GitHubie i sprawdzone sumami; `uv tool install vocabbot` i `pip` instalują tę wersję. Kolejne wydania mogą korzystać z zaufanego wydawcy (projekt `vocabbot`, właściciel `dithiothreitol`, repozytorium `vocabbot`, przepływ `release.yml`, środowisko `pypi`) |
+
+#### Wersja 1.0.0-rc.2 (15.11.2026)
+
+Obie decyzje z przejścia ścieżki zatwierdziłeś 15.11.2026, a wersja
+1.0.0-rc.2 je wprowadza.
+
+| Zmiana | Wynik |
+|---|---|
+| hook potwierdzenia (`plugin/hooks/`) | w Claude Code i Coworku każdy `commit` silnika oraz każdy bezpośredni zapis w folderze nauki trafia do okna zgody gospodarza z treścią podglądu; zmienna `VOCABBOT_HOOK=off` wyłącza okno w testach bez człowieka; 4 testy, kontrola w `validate.py`, `claude plugin validate --profile directory --strict` bez uwag |
+| przykłady słów funkcyjnych (kursy 2026.11.3) | słowo pisane jak rodzajnik, ale będące inną częścią mowy (francuskie i hiszpańskie „la”, „le”, „les”, „los”, „un”, „unos”), dostaje pytanie bez zdania; niemieckie „das” zachowuje przykład tylko wtedy, gdy po nim nie stoi rzeczownik; zmieniło się 7 haseł, a kilka sąsiednich dostało inne przykłady; `course check` bez błędów, dwie budowy identyczne |
+| grafiki (`docs/assets/`) | logo na początku obu README, widoczne także na stronie PyPI, oraz obraz do udostępniania repozytorium 1280×640; źródła HTML i polecenie renderowania leżą obok plików PNG |
+| testy | 154 na Pythonie 3.15 i 147 na 3.10; CI zielone |
+| wydanie | tag `v1.0.0-rc.2`, wydanie przedpremierowe na GitHubie z kompletem paczek, `vocabbot 1.0.0rc2` w PyPI (pliki z wydania sprawdzone sumami), wtyczka w Twoim Codexie odświeżona do rc.2 |
+
+Obraz do udostępniania wymaga jednorazowego wgrania w ustawieniach
+repozytorium (Settings, Social preview), ponieważ GitHub nie udostępnia do
+tego interfejsu programistycznego.
 
 ---
 
