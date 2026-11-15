@@ -1274,6 +1274,7 @@ Scope:
 | quality sample | 40 random entries: meanings, equivalents, articles and genders right; the sample showed Wiktionary's stress mark in 887 participles (organizzàto), which the build now removes; two of the 40 lists of other answers are too broad (il calore beside il bagliore) |
 | the other courses | English unchanged; in German, Spanish and French 7 entries have a new or another example sentence through Italian translations in Tatoeba |
 | cost | 3.54 USD of the 7 USD limit |
+| release | with your consent of 15.11.2026: the tag `v1.0.0-rc.6`, a GitHub pre-release with every package, `vocabbot 1.0.0rc6` on PyPI through trusted publishing with checksums equal to GitHub's, CI green, the plugin in your Codex refreshed to rc.6 |
 
 Conclusions:
 

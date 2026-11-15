@@ -1261,6 +1261,7 @@ Zakres:
 | próba jakości | 40 losowych haseł: znaczenia, odpowiedniki, rodzajniki i rodzaj poprawne; próba wykazała akcent pomocniczy w 887 imiesłowach (organizzàto), który budowa teraz usuwa; dwie z 40 list dodatkowych odpowiedzi są zbyt szerokie (il calore przy il bagliore) |
 | pozostałe kursy | angielski bez zmian; w niemieckim, hiszpańskim i francuskim 7 haseł ma nowe lub inne zdanie przykładowe dzięki włoskim tłumaczeniom w Tatoebie |
 | koszt | 3,54 USD z limitu 7 USD |
+| wydanie | za Twoją zgodą z 15.11.2026: tag `v1.0.0-rc.6`, wydanie przedpremierowe na GitHubie z kompletem paczek, `vocabbot 1.0.0rc6` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.6 |
 
 Wnioski:
 
