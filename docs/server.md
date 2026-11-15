@@ -57,8 +57,20 @@ docker compose -f deploy/compose.yaml exec vocabbot vocabbot-server invite --not
 data of every account lives in the `vocabbot-data` volume; a copy of that
 volume is a complete backup.
 
-A machine that already runs a reverse proxy (nginx, Caddy, Traefik) can run
-the program without Docker and point the proxy at `127.0.0.1:8000`:
+A server whose Caddy already serves other sites in Docker takes VocabBot as
+one more site. `scripts/deploy_vps.sh` builds the image on your computer, sends
+it over SSH, starts it in the Caddy's network as `vocabbot-app`, installs the
+site in Caddy's folder of sites after a validation (an invalid configuration
+brings back the previous state) and adds a daily backup to
+`/opt/vocabbot/backups`:
+
+```
+VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
+CADDY=proxy-caddy-1 CADDY_SITES=/opt/caddy/conf.d scripts/deploy_vps.sh
+```
+
+A machine that already runs a reverse proxy (nginx, Caddy, Traefik) can also
+run the program without Docker and point the proxy at `127.0.0.1:8000`:
 
 ```
 uv tool install "vocabbot[server]"

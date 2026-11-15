@@ -58,6 +58,18 @@ Adres `https://<domena>/health` po uruchomieniu odpowiada numerem wersji.
 Dane wszystkich kont znajdują się w wolumenie `vocabbot-data`, więc kopia tego
 wolumenu stanowi pełną kopię zapasową.
 
+Na serwerze, na którym Caddy w Dockerze obsługuje już inne strony, VocabBot
+staje się kolejną stroną. Skrypt `scripts/deploy_vps.sh` buduje obraz na
+Twoim komputerze, przesyła go przez SSH, uruchamia go w sieci Caddy jako
+`vocabbot-app`, instaluje stronę w folderze stron Caddy po sprawdzeniu
+konfiguracji (przy błędzie przywraca poprzedni stan) i dodaje codzienną kopię
+zapasową w `/opt/vocabbot/backups`:
+
+```
+VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
+CADDY=proxy-caddy-1 CADDY_SITES=/opt/caddy/conf.d scripts/deploy_vps.sh
+```
+
 Na maszynie z działającym już serwerem pośredniczącym (nginx, Caddy, Traefik)
 program działa również bez Dockera, a serwer pośredniczący kieruje ruch na
 `127.0.0.1:8000`:

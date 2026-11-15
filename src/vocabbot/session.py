@@ -19,7 +19,7 @@ from typing import Any
 from vocabbot import answers, assets, store
 from vocabbot import presence as attendance
 from vocabbot.book import RATING, CardState, spread_key
-from vocabbot.courses import Catalog, presentation, question, split_card
+from vocabbot.courses import Catalog, hide_other_answers, presentation, question, split_card
 from vocabbot.errors import VocabError
 from vocabbot.queue import DayPlan, compute
 
@@ -353,6 +353,7 @@ def next_items(
         if item.phase == "new":
             out["word"] = presentation(item.entry)
         items.append(out)
+    hide_other_answers(catalog, items)
     return {"day": day.isoformat(), "items": items, "left": _left(dp), "off": dp.off}
 
 

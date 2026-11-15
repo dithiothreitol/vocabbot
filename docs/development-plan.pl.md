@@ -11,8 +11,8 @@ i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
 jest opublikowane na GitHubie i w PyPI (15.11.2026), a testy sesyjne
 z modelem przechodzą 7 z 7. Etap 5 (harmonogram dopasowany do uczącego się)
 zakończył się wydaniem `v1.0.0-rc.4` na GitHubie i w PyPI (15.11.2026).
-Etap 6 (serwer dla aplikacji czatu) zakończył się wersją 1.0.0-rc.5
-w lokalnym repozytorium, która czeka na Twoją zgodę na wdrożenie i wydanie.
+Etap 6 (serwer dla aplikacji czatu) zakończył się wersją 1.0.0-rc.5, którą
+serwer obsługuje pod `https://vocab.archxs.com`.
 Do wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
 `development-plan.md`.
 
@@ -1208,7 +1208,11 @@ telefonie przebiega według tych samych reguł co sesja w Claude Code.
 | silnik dla wielu kont | katalog kursów wczytuje się raz (0,33 s i 70 MB), a każde konto dostaje jego kopię z własnymi słowami bez ponownego wczytania |
 | obraz Dockera | na prawdziwych kursach wszystkie 22 narzędzia działają z czasem odpowiedzi od 11 do 87 ms; ta sama ścieżka przechodzi za Caddy z TLS z poprawnymi adresami w metadanych i w nagłówku `WWW-Authenticate` |
 | zgodność z klientami | Claude Code łączy się z serwerem z tokenem i bez tokenu rozpoznaje logowanie OAuth; połączenia z claude.ai i ChatGPT wymagają adresu publicznego, czyli wdrożenia na VPS |
-| testy | 14 nowych testów w `tests/test_server.py`; razem 218 na Pythonie 3.15 i 201 na 3.10 (1 pominięty bez grupy `data`); kontrole repozytorium bez uwag |
+| testy | 14 nowych testów w `tests/test_server.py` i test paczki sesji; razem 219 na Pythonie 3.15 i 202 na 3.10 (1 pominięty bez grupy `data`); kontrole repozytorium bez uwag |
+| wdrożenie | za Twoją zgodą z 15.11.2026 serwer działa pod `https://vocab.archxs.com` na Twoim VPS w Hetznerze jako kolejna strona wspólnego Caddy, z certyfikatem Let's Encrypt, limitem 384 MB (zajmuje 132 MB) i codzienną kopią zapasową o 4:00; pozostałe strony serwera działają bez przerwy; `scripts/deploy_vps.sh` powtarza wdrożenie |
+| test na produkcji | wszystkie 22 narzędzia przez klienta OAuth z SDK MCP na prawdziwych kursach; metadane, nagłówek `WWW-Authenticate` i odmowa obcego adresu zwrotnego zgodne z testami lokalnymi |
+| test z modelem | Claude Code z Claude Sonnet 5.5, połączony wyłącznie z serwerem, przeszedł 8 tur za 1,54 USD: konfigurację z podglądem i zapisem dopiero po „tak”, sesję z przedstawieniem nowych słów, pytania bez odpowiedzi, ocenę odpowiedzi przekazanych bez zmian (pusta za „?”), utrwalanie i podsumowanie; dziennik konta na serwerze zgadza się z rozmową |
+| poprawka silnika | test z modelem pokazał zdanie z odpowiedzią innej karty tej samej paczki („„___, danke.”” obok pytania o „danke”); paczka sesji ukrywa teraz takie zdania tak samo jak test poziomujący |
 
 Wnioski:
 
@@ -1217,8 +1221,9 @@ Wnioski:
    sprawdzenia zainteresowania przed decyzją o własnym serwisie.
 2. W ChatGPT narzędzia zapisujące zależą od planu konta; próba w planie
    Plus albo Pro pokaże, czy odpowiedzi z sesji trafiają do dziennika.
-3. Następny krok to wdrożenie na VPS z domeną, połączenie z claude.ai
-   i ChatGPT oraz test sesji z modelem przez łącznik.
+3. Połączenie z claude.ai i ChatGPT z Twojego konta zamyka sprawdzenie
+   serwera; potem serwer może przyjąć pierwszych uczących się z
+   zaproszeniami.
 
 ---
 
@@ -1271,8 +1276,8 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 4, testy sesyjne na wersji rc.3 | szacunkowo 3–6 USD przy Claude Sonnet 5.5 | osobna |
 | Etap 5, harmonogram dopasowany do uczącego się | brak | akceptacja etapu |
 | Etap 6, serwer dla aplikacji czatu | brak | akceptacja etapu 15.11.2026 |
-| Etap 6, test sesji z modelem przez łącznik | wycena przed uruchomieniem | osobna |
-| Etap 6, wdrożenie na VPS | brak kosztów modeli | osobna |
+| Etap 6, test sesji z modelem przez łącznik | 1,54 USD przy Claude Sonnet 5.5 (szacunek 1–3 USD) | zatwierdzony 15.11.2026 |
+| Etap 6, wdrożenie na VPS | brak kosztów modeli | zatwierdzone 15.11.2026 |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie

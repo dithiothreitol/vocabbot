@@ -22,6 +22,15 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
   certificate; `docs/server.md` describes the setup, the accounts and the
   connection of each chat application.
 
+### Fixed
+
+- A batch of the session no longer shows a sentence that holds the answer of
+  another card of the same batch; the sentence and its translation stay out,
+  as in the placement test. The session test through the server found it
+  ("„___, danke.”" next to the question about "danke").
+- `scripts/deploy_vps.sh` deploys the server to a machine whose Caddy already
+  serves other sites.
+
 ### Changed
 
 - The engine serves many learners in one process: a catalog can share the

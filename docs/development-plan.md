@@ -14,8 +14,7 @@ stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
 (15.11.2026), and the session tests with a model pass 7 of 7. Stage 5 (a
 schedule fitted to the learner) ended with the release `v1.0.0-rc.4` on GitHub
 and on PyPI (15.11.2026). Stage 6 (the server for chat applications) ended
-with version 1.0.0-rc.5 in the local repository, which waits for your consent
-to the deployment and the release. Version 1.0 still needs the pilot
+with version 1.0.0-rc.5, which the server runs at `https://vocab.archxs.com`. Version 1.0 still needs the pilot
 described in `docs/pilot.md`.
 
 ---
@@ -1220,7 +1219,11 @@ Code.
 | the engine for many accounts | the catalog of courses loads once (0.33 s and 70 MB), and every account gets a copy of it with its own words without a new load |
 | the Docker image | on the real courses all 22 tools work with response times from 11 to 87 ms; the same path passes behind Caddy with TLS, with correct addresses in the metadata and in the `WWW-Authenticate` header |
 | clients | Claude Code connects to the server with a token and recognises the OAuth sign-in without one; connecting claude.ai and ChatGPT needs a public address, that is the deployment on the VPS |
-| tests | 14 new tests in `tests/test_server.py`; 218 in all on Python 3.15 and 201 on 3.10 (1 skipped without the `data` group); the repository checks without remarks |
+| tests | 14 new tests in `tests/test_server.py` and a test of the session batch; 219 in all on Python 3.15 and 202 on 3.10 (1 skipped without the `data` group); the repository checks without remarks |
+| deployment | with your consent of 15.11.2026 the server runs at `https://vocab.archxs.com` on your VPS at Hetzner as one more site of the shared Caddy, with a Let's Encrypt certificate, a limit of 384 MB (it uses 132 MB) and a daily backup at 4:00; the server's other sites run without a break; `scripts/deploy_vps.sh` repeats the deployment |
+| test in production | all 22 tools through the MCP SDK's OAuth client on the real courses; the metadata, the `WWW-Authenticate` header and the refusal of a foreign redirect match the local tests |
+| test with a model | Claude Code with Claude Sonnet 5.5, connected only to the server, went through 8 turns for 1.54 USD: the setup with a preview and the saving only after "tak", the session with the introduction of new words, questions without answers, the grading of answers passed unchanged (an empty one for "?"), the drill and the summary; the account's log on the server matches the conversation |
+| engine fix | the test with a model showed a sentence with the answer of another card of the same batch ("„___, danke.”" next to the question about "danke"); the session batch now hides such sentences as the placement test does |
 
 Conclusions:
 
@@ -1230,9 +1233,9 @@ Conclusions:
 2. In ChatGPT, tools that write data depend on the account's plan; a trial
    on the Plus or Pro plan shows whether the answers of a session reach the
    log.
-3. The next step is the deployment on the VPS with a domain, the connection
-   of claude.ai and ChatGPT, and a session test with a model through the
-   connector.
+3. Connecting claude.ai and ChatGPT from your account closes the check of
+   the server; after that the server can take the first learners with
+   invitations.
 
 ---
 
@@ -1285,8 +1288,8 @@ of words confused between languages, own words from any text.
 | Stage 4, session tests on version rc.3 | an estimated 3–6 USD with Claude Sonnet 5.5 | separate |
 | Stage 5, a schedule fitted to the learner | none | acceptance of the stage |
 | Stage 6, the server for chat applications | none | acceptance of the stage on 15.11.2026 |
-| Stage 6, a session test with a model through the connector | an estimate before the run | separate |
-| Stage 6, the deployment on the VPS | no model costs | separate |
+| Stage 6, a session test with a model through the connector | 1.54 USD with Claude Sonnet 5.5 (estimate 1–3 USD) | approved on 15.11.2026 |
+| Stage 6, the deployment on the VPS | no model costs | approved on 15.11.2026 |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub

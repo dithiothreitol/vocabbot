@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from vocabbot import assets, store
-from vocabbot.answers import rules, split_article
+from vocabbot.answers import accepted_forms, rules, split_article
 
 LEVELS = store.LEVELS
 LEVEL_ORDER = {level: index for index, level in enumerate((*LEVELS, "own"))}
@@ -266,6 +266,33 @@ def question(entry: dict[str, Any], direction: str) -> dict[str, Any]:
     if example.get("text"):
         out["sentence"] = example["text"]
     return out
+
+
+def hide_other_answers(catalog: Catalog, items: list[dict[str, Any]]) -> None:
+    """A question whose sentence holds the answer of another card asked with it loses the sentence.
+
+    Only cards that ask for the word (`#p`) have an answer to keep back; the
+    sentence goes together with its translation.
+    """
+    answers_by_card: dict[str, list[str]] = {}
+    for item in items:
+        entry = catalog.card(item["card"])
+        if entry is not None and str(item["card"]).endswith("#p"):
+            forms = [*accepted_forms(entry), str(entry.get("lemma") or "")]
+            answers_by_card[item["card"]] = [f for f in forms if len(f) >= 2]
+    for item in items:
+        sentence = item["question"].get("sentence")
+        if not sentence:
+            continue
+        for card, forms in answers_by_card.items():
+            if card == item["card"]:
+                continue
+            if any(
+                re.search(rf"(?<!\w){re.escape(f)}(?!\w)", sentence, re.IGNORECASE) for f in forms
+            ):
+                item["question"].pop("sentence", None)
+                item["question"].pop("sentence_pl", None)
+                break
 
 
 def presentation(entry: dict[str, Any]) -> dict[str, Any]:

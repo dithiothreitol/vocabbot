@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import pytest
-from conftest import correct
+from conftest import correct, entry_of
 
 from vocabbot import quiz
-from vocabbot.courses import Catalog
+from vocabbot.courses import Catalog, hide_other_answers
 from vocabbot.errors import VocabError
 
 QUESTION_KEYS = {"ask", "meaning", "pos", "with_article", "hint", "sentence", "sentence_pl"}
@@ -74,3 +74,30 @@ def test_a_sentence_never_holds_another_answer(catalog: Catalog) -> None:
         for card, forms in answers.items():
             if card != item["card"]:
                 assert not any(f" {form} " in f" {sentence} " for form in forms), (item, card)
+
+
+def test_a_batch_keeps_the_answers_of_other_cards_out_of_its_sentences(catalog: Catalog) -> None:
+    asked, other, shown = (entry_of(catalog, "de", n) for n in (1, 2, 3))
+    items = [
+        {
+            "card": f"{asked['id']}#p",
+            "question": {
+                "ask": "word",
+                "sentence": f"Hier: {other['display']}.",
+                "sentence_pl": "x",
+            },
+        },
+        {
+            "card": f"{other['id']}#p",
+            "question": {
+                "ask": "word",
+                "sentence": f"___ und {shown['display']}.",
+                "sentence_pl": "y",
+            },
+        },
+        {"card": f"{shown['id']}#r", "question": {"ask": "meaning", "word": shown["display"]}},
+    ]
+    hide_other_answers(catalog, items)
+    assert "sentence" not in items[0]["question"] and "sentence_pl" not in items[0]["question"]
+    # a recognition card shows its word anyway, so a sentence with that word stays
+    assert items[1]["question"]["sentence"] == f"___ und {shown['display']}."

@@ -8,11 +8,17 @@ start from. Nothing is written anywhere.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from vocabbot import answers, assets, store
-from vocabbot.courses import Catalog, card_id, presentation, question, split_card
+from vocabbot.courses import (
+    Catalog,
+    card_id,
+    hide_other_answers,
+    presentation,
+    question,
+    split_card,
+)
 from vocabbot.errors import VocabError
 
 KNOWN_SHARE = 0.8  # a level counts as known from this share of right answers
@@ -45,35 +51,12 @@ def questions(catalog: Catalog, lang: str, levels: list[str], count: int) -> dic
                     "question": question(entry, "p"),
                 }
             )
-    _hide_other_answers(catalog, items)
+    hide_other_answers(catalog, items)
     return {
         "lang": lang,
         "levels": [lvl for lvl in levels if lvl in installed[lang]],
         "items": items,
     }
-
-
-def _hide_other_answers(catalog: Catalog, items: list[dict[str, Any]]) -> None:
-    """A sentence that holds the answer of another question of the test loses its sentence."""
-    answers_by_card = {}
-    for item in items:
-        entry = catalog.card(item["card"])
-        if entry is not None:
-            forms = [*answers.accepted_forms(entry), str(entry.get("lemma") or "")]
-            answers_by_card[item["card"]] = [f for f in forms if len(f) >= 2]
-    for item in items:
-        sentence = item["question"].get("sentence")
-        if not sentence:
-            continue
-        for card, forms in answers_by_card.items():
-            if card == item["card"]:
-                continue
-            if any(
-                re.search(rf"(?<!\w){re.escape(f)}(?!\w)", sentence, re.IGNORECASE) for f in forms
-            ):
-                item["question"].pop("sentence", None)
-                item["question"].pop("sentence_pl", None)
-                break
 
 
 def check(
