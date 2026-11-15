@@ -11,8 +11,8 @@ i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
 jest opublikowane na GitHubie i w PyPI (15.11.2026), a testy sesyjne
 z modelem przechodzą 7 z 7. Etap 5 (harmonogram dopasowany do uczącego się)
 zakończył się wydaniem `v1.0.0-rc.4` na GitHubie i w PyPI (15.11.2026).
-Etap 6 (serwer dla aplikacji czatu) zakończył się wersją 1.0.0-rc.5, którą
-serwer obsługuje pod `https://vocab.archxs.com`.
+Etap 6 (serwer dla aplikacji czatu) zakończył się wydaniem `v1.0.0-rc.5` na
+GitHubie i w PyPI (15.11.2026), a serwer działa pod `https://vocab.archxs.com`.
 Do wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
 `development-plan.md`.
 
@@ -1212,6 +1212,7 @@ telefonie przebiega według tych samych reguł co sesja w Claude Code.
 | wdrożenie | za Twoją zgodą z 15.11.2026 serwer działa pod `https://vocab.archxs.com` na Twoim VPS w Hetznerze jako kolejna strona wspólnego Caddy, z certyfikatem Let's Encrypt, limitem 384 MB (zajmuje 132 MB) i codzienną kopią zapasową o 4:00; pozostałe strony serwera działają bez przerwy; `scripts/deploy_vps.sh` powtarza wdrożenie |
 | test na produkcji | wszystkie 22 narzędzia przez klienta OAuth z SDK MCP na prawdziwych kursach; metadane, nagłówek `WWW-Authenticate` i odmowa obcego adresu zwrotnego zgodne z testami lokalnymi |
 | test z modelem | Claude Code z Claude Sonnet 5.5, połączony wyłącznie z serwerem, przeszedł 8 tur za 1,54 USD: konfigurację z podglądem i zapisem dopiero po „tak”, sesję z przedstawieniem nowych słów, pytania bez odpowiedzi, ocenę odpowiedzi przekazanych bez zmian (pusta za „?”), utrwalanie i podsumowanie; dziennik konta na serwerze zgadza się z rozmową |
+| wydanie | za Twoją zgodą z 15.11.2026: tag `v1.0.0-rc.5`, wydanie przedpremierowe na GitHubie z kompletem paczek, `vocabbot 1.0.0rc5` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem (z dodatkiem `server`), CI zielone, wtyczka w Twoim Codexie odświeżona do rc.5 |
 | poprawka silnika | test z modelem pokazał zdanie z odpowiedzią innej karty tej samej paczki („„___, danke.”” obok pytania o „danke”); paczka sesji ukrywa teraz takie zdania tak samo jak test poziomujący |
 
 Wnioski:

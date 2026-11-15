@@ -14,7 +14,8 @@ stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
 (15.11.2026), and the session tests with a model pass 7 of 7. Stage 5 (a
 schedule fitted to the learner) ended with the release `v1.0.0-rc.4` on GitHub
 and on PyPI (15.11.2026). Stage 6 (the server for chat applications) ended
-with version 1.0.0-rc.5, which the server runs at `https://vocab.archxs.com`. Version 1.0 still needs the pilot
+with the release `v1.0.0-rc.5` on GitHub and on PyPI (15.11.2026), and the
+server runs at `https://vocab.archxs.com`. Version 1.0 still needs the pilot
 described in `docs/pilot.md`.
 
 ---
@@ -1223,6 +1224,7 @@ Code.
 | deployment | with your consent of 15.11.2026 the server runs at `https://vocab.archxs.com` on your VPS at Hetzner as one more site of the shared Caddy, with a Let's Encrypt certificate, a limit of 384 MB (it uses 132 MB) and a daily backup at 4:00; the server's other sites run without a break; `scripts/deploy_vps.sh` repeats the deployment |
 | test in production | all 22 tools through the MCP SDK's OAuth client on the real courses; the metadata, the `WWW-Authenticate` header and the refusal of a foreign redirect match the local tests |
 | test with a model | Claude Code with Claude Sonnet 5.5, connected only to the server, went through 8 turns for 1.54 USD: the setup with a preview and the saving only after "tak", the session with the introduction of new words, questions without answers, the grading of answers passed unchanged (an empty one for "?"), the drill and the summary; the account's log on the server matches the conversation |
+| release | with your consent of 15.11.2026: the tag `v1.0.0-rc.5`, a GitHub pre-release with every package, `vocabbot 1.0.0rc5` on PyPI through trusted publishing with checksums equal to GitHub's (with the `server` extra), CI green, the plugin in your Codex refreshed to rc.5 |
 | engine fix | the test with a model showed a sentence with the answer of another card of the same batch ("„___, danke.”" next to the question about "danke"); the session batch now hides such sentences as the placement test does |
 
 Conclusions:
