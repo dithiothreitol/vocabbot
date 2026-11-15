@@ -59,11 +59,12 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 # the course pipeline imports its own modules by name; without this, a local
 # build/ folder would make ruff sort `build` differently than CI does
 known-first-party = ["vocabbot"]
-known-local-folder = ["build", "concepts", "examples", "pipeline", "review", "sources", "starter", "tatoeba", "wiktionary"]
+known-local-folder = ["build", "concepts", "examples", "pipeline", "review", "review_lang", "sources", "starter", "tatoeba", "wiktionary"]
 
 [tool.ruff.lint.per-file-ignores]
 # the review prompts are prose; their lines stay whole
 "tools/courses/review.py" = ["E501"]
+"tools/courses/review_lang.py" = ["E501"]
 "tools/courses/examples.py" = ["E501"]
 # assertions on several fields of one result read better together
 "tests/*" = ["PT018"]

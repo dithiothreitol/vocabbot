@@ -45,7 +45,12 @@ FORM_KEYS = (
     "comparative",
 )
 # "pl" is a noun used only in the plural, shown with the plural article (die Eltern)
-GENDERS = {"de": ("m", "f", "n", "pl"), "es": ("m", "f", "pl"), "fr": ("m", "f", "pl")}
+GENDERS = {
+    "de": ("m", "f", "n", "pl"),
+    "es": ("m", "f", "pl"),
+    "fr": ("m", "f", "pl"),
+    "it": ("m", "f", "pl"),
+}
 ENTRY_ID = re.compile(r"^(?P<lang>[a-z]{2})-(?P<concept>c\d{5}|u[0-9a-f]{6})$")
 CARD_ID = re.compile(r"^(?P<entry>[a-z]{2}-(?:c\d{5}|u[0-9a-f]{6}))#(?P<direction>[pr])$")
 IPA = re.compile(r"^(/[^/]+/|\[[^\]]+\])$")
@@ -401,7 +406,10 @@ def _noun_problems(entry: dict[str, Any], lang: str, display: str) -> list[str]:
     elif article == lang_rules.elided:
         if core[:1].lower() not in "aeiouyhâàäéèêëîïôöûüœ":
             problems.append("the elided article stands only before a vowel or h")
-    elif article != lang_rules.articles.get(str(gender)):
+    elif (
+        article != lang_rules.articles.get(str(gender))
+        and lang_rules.article_variants.get(article.casefold()) != gender
+    ):
         stressed_a = core.lower().startswith(("a", "á", "ha", "há"))
         if not (lang_rules.feminine_el and gender == "f" and article == "el" and stressed_a):
             problems.append(f"the article {article!r} does not match gender {gender!r}")

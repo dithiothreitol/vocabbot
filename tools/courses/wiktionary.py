@@ -17,8 +17,8 @@ from typing import Any
 
 from sources import WIKTIONARY, WORK
 
-TARGETS = ("de", "es", "fr", "pl")  # Polish entries serve to check the Polish meanings
-TRANSLATION_LANGS = ("de", "es", "fr", "pl")
+TARGETS = ("de", "es", "fr", "it", "pl")  # Polish entries serve to check the Polish meanings
+TRANSLATION_LANGS = ("de", "es", "fr", "it", "pl")
 POS = {
     "noun",
     "verb",
@@ -38,6 +38,7 @@ LANG_NAMES = {
     b'"lang": "German"': "de",
     b'"lang": "Spanish"': "es",
     b'"lang": "French"': "fr",
+    b'"lang": "Italian"': "it",
     b'"lang": "Polish"': "pl",
 }
 SKIP_TAGS = {

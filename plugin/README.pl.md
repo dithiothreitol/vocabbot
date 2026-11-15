@@ -3,7 +3,7 @@
 [English](README.md) · **Polski**
 
 VocabBot uczy słownictwa w jednym, dwóch lub trzech językach równocześnie:
-angielskim, niemieckim, hiszpańskim i francuskim, od poziomu A1 do B2, dla
+angielskim, niemieckim, hiszpańskim, francuskim i włoskim, od poziomu A1 do B2, dla
 osób, których językiem bazowym jest polski. Nowe słowa pojawiają się według
 częstości, każdą wpisaną odpowiedź ocenia silnik, a każda karta wraca w dniu
 wyznaczonym przez algorytm FSRS-6, gdy uczący się pamięta jeszcze około

@@ -47,10 +47,10 @@ take off [phrase] = startować (o samolocie)
 ```
 
 - Left of `=`: the word as the learner should type it. Nouns of German,
-  Spanish and French take their article (`der`, `die`, `das`; `el`, `la`;
-  `le`, `la`), which also sets the gender.
+  Spanish, French and Italian take their article (`der`, `die`, `das`; `el`,
+  `la`; `le`, `la`; `il`, `lo`, `la`), which also sets the gender.
 - `(m)`, `(f)` or `(n)` gives the gender where the article does not show it
-  (French `l'`, Spanish `el agua`).
+  (French and Italian `l'`, Spanish `el agua`).
 - `[noun]`, `[verb]`, `[adj]`, `[adv]`, `[phrase]` and the other parts of
   speech of the course set the part of speech; without it, a word with an
   article is a noun and any other word gets "słowo".

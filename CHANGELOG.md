@@ -5,6 +5,19 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
 ## Unreleased
 
+### Added
+
+- Italian: a course from A1 to B2 (5576 entries, courses 2026.11.5) built
+  the same way as the other four, from CEFR-J, Wiktionary, wordfreq and
+  Tatoeba. Claude Sonnet 5.5 chose the Italian equivalent of each of 6705
+  concepts, keeping the sense and the Polish meaning of the course, and
+  judged the example sentences (`tools/courses/review_lang.py`,
+  `review-it.jsonl`). The engine grades Italian answers: `lo` beside `il`,
+  the elided `l'` and `un'`, the plural `i`, `gli`, `le`, and reflexive verbs
+  in `-si` (lavarsi, lavare).
+- New or other example sentences for 7 entries of the German, Spanish and
+  French courses, through Italian translations in Tatoeba.
+
 ### Changed
 
 - The server's pages (the sign-in, the start page, the privacy note) follow

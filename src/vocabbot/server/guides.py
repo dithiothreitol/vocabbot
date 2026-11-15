@@ -23,9 +23,9 @@ LABELS = (
 
 INSTRUCTIONS = """\
 VocabBot runs the learner's vocabulary course in one to three languages at once \
-(English, German, Spanish, French; levels A1 to B2) for a Polish speaker, with spaced \
-repetition. The engine behind these tools grades every answer and sets every due date; \
-its results are the only source of cards, grades and numbers.
+(English, German, Spanish, French, Italian; levels A1 to B2) for a Polish speaker, with \
+spaced repetition. The engine behind these tools grades every answer and sets every due \
+date; its results are the only source of cards, grades and numbers.
 
 Before the first VocabBot step of a conversation, call vocab_guide with the topic that \
 fits and follow it: session (the daily session: reviews, new words, the drill), start \

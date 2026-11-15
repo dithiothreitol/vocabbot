@@ -59,10 +59,21 @@ class Rules:
     reflexive_prefixes: tuple[str, ...] = ()
     reflexive_suffix: str | None = None
     indefinite: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # other forms of a definite singular article and their gender: Italian lo (lo studente)
+    article_variants: dict[str, str] = field(default_factory=dict)
+    # elided articles besides the definite one: Italian un' (un'amica)
+    other_elided: tuple[str, ...] = ()
+    # what replaces the reflexive suffix in the plain verb: Italian lavarsi, lavare
+    reflexive_base: str = ""
+
+    @property
+    def elided_forms(self) -> tuple[str, ...]:
+        return ((self.elided,) if self.elided else ()) + self.other_elided
 
     @property
     def article_words(self) -> frozenset[str]:
         words = set(self.articles.values()) | set(self.plural_articles) | set(self.other_articles)
+        words |= set(self.article_variants)
         for prefixes in self.optional_prefixes.values():
             words |= set(prefixes)
         return frozenset(words)
@@ -73,12 +84,14 @@ class Rules:
         for gender, word in self.articles.items():
             if word == folded:
                 return gender
-        return None
+        return self.article_variants.get(folded)
 
     def genders_of(self, article: str) -> frozenset[str]:
         """What an article can go with: 'der' {m}, 'die' {f, pl}, 'ein' {m, n}; {} if unknown."""
         folded = article.casefold()
         found = {gender for gender, word in self.articles.items() if word == folded}
+        if folded in self.article_variants:
+            found.add(self.article_variants[folded])
         if folded in self.plural_articles:
             found.add("pl")
         found.update(self.indefinite.get(folded, ()))
@@ -109,6 +122,9 @@ def rules(code: str) -> Rules:
         reflexive_prefixes=tuple(data.get("reflexive", {}).get("prefixes", ())),
         reflexive_suffix=data.get("reflexive", {}).get("suffix"),
         indefinite={k: tuple(v) for k, v in data.get("indefinite_articles", {}).items()},
+        article_variants=dict(data.get("article_variants", {})),
+        other_elided=tuple(data.get("other_elided_articles", ())),
+        reflexive_base=str(data.get("reflexive", {}).get("base", "")),
     )
 
 
@@ -124,7 +140,7 @@ def without_reflexive(expected: str, entry: dict[str, Any], lang: Rules) -> str 
             return rest or None
     suffix = lang.reflexive_suffix
     if suffix and low.endswith(suffix) and len(low) > len(suffix) + 2 and " " not in low:
-        return expected[: -len(suffix)]
+        return expected[: -len(suffix)] + lang.reflexive_base
     return None
 
 
@@ -183,9 +199,10 @@ def edit_distance(a: str, b: str) -> int:
 
 def split_article(text: str, lang: Rules) -> tuple[str | None, str]:
     """('der', 'Hund') for 'der Hund'; (None, text) when no article leads."""
-    if lang.elided and text.casefold().startswith(lang.elided) and len(text) > len(lang.elided):
-        cut = len(lang.elided)
-        return text[:cut], text[cut:]
+    folded = text.casefold()
+    for elided in lang.elided_forms:
+        if folded.startswith(elided) and len(text) > len(elided):
+            return text[: len(elided)], text[len(elided) :]
     head, sep, rest = text.partition(" ")
     if sep and rest and head.casefold() in lang.article_words:
         return head, rest

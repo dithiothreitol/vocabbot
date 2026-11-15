@@ -1,0 +1,58 @@
+{
+  "code": "it",
+  "name": {
+    "pl": "włoski",
+    "en": "Italian"
+  },
+  "tag": "IT",
+  "color": "blue",
+  "articles": {
+    "m": "il",
+    "f": "la"
+  },
+  "article_variants": {
+    "lo": "m"
+  },
+  "plural_articles": [
+    "i",
+    "gli",
+    "le"
+  ],
+  "other_articles": [
+    "un",
+    "uno",
+    "una",
+    "del",
+    "dello",
+    "della",
+    "dei",
+    "degli",
+    "delle"
+  ],
+  "indefinite_articles": {
+    "un": [
+      "m"
+    ],
+    "uno": [
+      "m"
+    ],
+    "una": [
+      "f"
+    ],
+    "un'": [
+      "f"
+    ]
+  },
+  "elided_article": "l'",
+  "other_elided_articles": [
+    "un'"
+  ],
+  "nouns_capitalized": false,
+  "feminine_el": false,
+  "substitutions": [],
+  "optional_prefixes": {},
+  "reflexive": {
+    "suffix": "si",
+    "base": "e"
+  }
+}

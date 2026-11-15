@@ -14,7 +14,7 @@ Call `vocab_plan`.
 1. **Courses.** `vocab_courses` gives the languages and the number of words
    per level. Quote these numbers when the learner asks about a course.
 2. **Questions, in one message.** Which languages (one to three of
-   angielski, niemiecki, hiszpański, francuski); the level of each
+   angielski, niemiecki, hiszpański, francuski, włoski); the level of each
    (A1–A2 for beginners, B1–B2 for the intermediate, or "nie wiem", which
    calls for the test); new words a day for all languages together (the
    default is 15); days off, if any; whether one language should get more

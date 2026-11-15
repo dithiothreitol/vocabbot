@@ -37,7 +37,7 @@ Call `vocab_next` without `count`; it returns `batch` items. Keep their order.
 Each item has `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and
 `question`; a new word also has `word`.
 
-- **A question** shows the language tag (EN, DE, ES, FR), the Polish meaning,
+- **A question** shows the language tag (EN, DE, ES, FR, IT), the Polish meaning,
   the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
   if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
   cards (`question.ask: meaning`) follow the section below.

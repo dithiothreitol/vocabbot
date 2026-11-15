@@ -77,6 +77,17 @@ for pair in (
     DOWNLOADS[TATOEBA / f"{pair}_links.tsv.bz2"] = f"{TATOEBA_BASE}/{first}/{pair}_links.tsv.bz2"
 
 
+# Italian as a course language: its sentences and only the links that start from Italian, so
+# the translation paths of the other courses stay as their reviewed examples knew them
+DOWNLOADS[TATOEBA / "ita_sentences_detailed.tsv.bz2"] = (
+    f"{TATOEBA_BASE}/ita/ita_sentences_detailed.tsv.bz2"
+)
+for other in ("eng", "deu", "spa", "fra", *(p for p in EXTRA_PIVOTS.values() if p != "ita")):
+    DOWNLOADS[TATOEBA / f"ita-{other}_links.tsv.bz2"] = (
+        f"{TATOEBA_BASE}/ita/ita-{other}_links.tsv.bz2"
+    )
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as fh:

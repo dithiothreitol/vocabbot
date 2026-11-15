@@ -4,7 +4,7 @@ description: >
   The daily VocabBot vocabulary session in the chat: reviews due today, new
   words and the drill of words that went wrong, one card at a time as in
   SuperMemo (or a few at once, as the learner sets it), in one to three
-  languages (English, German, Spanish, French). The engine grades every
+  languages (English, German, Spanish, French, Italian). The engine grades every
   typed answer and sets every due date. Use when the learner says: let's
   learn, daily session, review my words, next words, vocabulary practice;
   po polsku: sesja, codzienna sesja, powtórki, uczymy się, nowe słówka,
@@ -61,7 +61,7 @@ Run `next --json`; it returns `batch` items. Keep their order. Each item has
 `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and `question`; a
 new word also has `word`. `reference/presentation.md` shows the layout.
 
-- **A question** shows the language tag (EN, DE, ES, FR), the Polish meaning,
+- **A question** shows the language tag (EN, DE, ES, FR, IT), the Polish meaning,
   the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
   if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
   cards (`question.ask: meaning`) follow `reference/recognition.md`.

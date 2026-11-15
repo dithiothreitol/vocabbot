@@ -3,7 +3,7 @@
 **English** · [Polski](README.pl.md)
 
 VocabBot teaches vocabulary in one, two or three languages at once: English,
-German, Spanish and French, from A1 to B2, for learners whose base language
+German, Spanish, French and Italian, from A1 to B2, for learners whose base language
 is Polish. It follows the way the SuperMemo vocabulary courses work: new
 words in order of frequency, three grades for every answer, reviews on the
 day an algorithm sets, and a drill of the words that went wrong. One engine
@@ -38,16 +38,18 @@ Claude and Codex that runs the same session in a chat.
 
 | Language | A1 | A2 | B1 | B2 |
 |---|---|---|---|---|
-| English | 955 | 1081 | 1743 | 1840 |
-| German | 949 | 1087 | 1679 | 1674 |
-| Spanish | 947 | 1073 | 1714 | 1728 |
-| French | 932 | 1082 | 1708 | 1727 |
+| English | 1079 | 1253 | 1919 | 2035 |
+| German | 1016 | 1162 | 1724 | 1747 |
+| Spanish | 1009 | 1126 | 1713 | 1733 |
+| French | 1004 | 1140 | 1704 | 1731 |
+| Italian | 1003 | 1134 | 1681 | 1758 |
 
 The courses are built from open data: the levels from the CEFR-J
 Vocabulary Profile, the translations, genders, forms and pronunciation from
 Wiktionary (through kaikki.org), the order from wordfreq and the example
 sentences with Polish translations from Tatoeba. Claude Sonnet 5.5 reviewed
-the meanings and equivalents of all 6600 concepts. In a sample of 1200
+the meanings and equivalents of all 6600 concepts, and the Italian
+equivalents of 6700 concepts when Italian joined the courses. In a sample of 1200
 entries, 1.2% had a wrong meaning, equivalent or gender. Learners add their
 own words from any text.
 

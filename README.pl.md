@@ -3,7 +3,7 @@
 [English](README.md) · **Polski**
 
 VocabBot uczy słownictwa w jednym, dwóch lub trzech językach równocześnie:
-angielskim, niemieckim, hiszpańskim i francuskim, od poziomu A1 do B2, dla
+angielskim, niemieckim, hiszpańskim, francuskim i włoskim, od poziomu A1 do B2, dla
 osób, których językiem bazowym jest polski. Nauka przebiega tak jak w kursach
 słownictwa SuperMemo: nowe słowa według częstości, trzy oceny każdej
 odpowiedzi, powtórki w dniu wyznaczonym przez algorytm oraz utrwalanie słów
@@ -41,15 +41,17 @@ samą sesję w czacie.
 
 | Język | A1 | A2 | B1 | B2 |
 |---|---|---|---|---|
-| angielski | 955 | 1081 | 1743 | 1840 |
-| niemiecki | 949 | 1087 | 1679 | 1674 |
-| hiszpański | 947 | 1073 | 1714 | 1728 |
-| francuski | 932 | 1082 | 1708 | 1727 |
+| angielski | 1079 | 1253 | 1919 | 2035 |
+| niemiecki | 1016 | 1162 | 1724 | 1747 |
+| hiszpański | 1009 | 1126 | 1713 | 1733 |
+| francuski | 1004 | 1140 | 1704 | 1731 |
+| włoski | 1003 | 1134 | 1681 | 1758 |
 
 Kursy powstały z otwartych danych: poziomy z listy CEFR-J, tłumaczenia,
 rodzaj, formy i wymowa z Wikisłownika (przez kaikki.org), kolejność z danych
 wordfreq, a zdania przykładowe z polskimi tłumaczeniami z Tatoeby. Claude
-Sonnet 5.5 przejrzał znaczenia i odpowiedniki wszystkich 6600 pojęć. W próbie
+Sonnet 5.5 przejrzał znaczenia i odpowiedniki wszystkich 6600 pojęć, a po
+dodaniu włoskiego także włoskie odpowiedniki 6700 pojęć. W próbie
 1200 haseł błędne znaczenie, odpowiednik lub rodzaj miało 1,2% haseł. Własne
 słowa z dowolnego tekstu uzupełniają kurs.
 

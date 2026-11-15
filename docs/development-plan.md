@@ -6,8 +6,9 @@ This is the English translation of `development-plan.pl.md`, which is the
 version kept up to date first.
 
 Status: 2026-11-15, after Stage 6 (version 1.0.0-rc.5, 1.0.0rc5 in the Python
-package). You accepted the plan on 14.11.2026 and added Stages 4, 5 and 6 on
-15.11.2026. The engine, the `vocabbot` program with its new terminal session,
+package). You accepted the plan on 14.11.2026 and added Stages 4, 5, 6 and 7 on
+15.11.2026. Stage 7 gave the Italian course and the session one card at a
+time. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1239,6 +1240,49 @@ Conclusions:
    the server; after that the server can take the first learners with
    invitations.
 
+### Stage 7. Italian and the session one card at a time
+
+You added Stage 7 on 15.11.2026 with two requests: Italian as the fifth
+course language, and a chat session that shows one card at a time, as
+SuperMemo does, with the number of cards in a message set in the plan. You
+approved the model review with a limit of 7 USD.
+
+Scope:
+
+1. The plan key `batch` (1 to 20, default 1): with 1, a message holds the
+   result of the last answer and the next card, and a new word comes alone
+   before its question; `answer --next` returns the next cards at once.
+2. Italian sources: the entries and translations of Wiktionary and the
+   Tatoeba sentences with the links that start from Italian, so the
+   translation paths of the other courses stay as they were.
+3. Answer rules: `lo` beside `il`, the elided `l'` and `un'`, the plural `i`,
+   `gli`, `le`, reflexive verbs in `-si`.
+4. Course rules: the article by the first sound, the plural, months without
+   an article, the spelling of forms without Wiktionary's stress marks.
+5. The review of an added language (`review_lang.py`): the model chooses the
+   Italian equivalent of the sense the course already has, seeing the Polish
+   meaning and the words of the German, Spanish and French courses.
+
+#### Result of Stage 7 (15.11.2026)
+
+| Criterion | Result |
+|---|---|
+| the session one card at a time | `next` without `--count` returns `batch` cards, `today` reports `batch`, `answer --next` and the server's `then_next` save one call per card; the skill, the server's guide and the plan key describe both modes; deployed on the server on 15.11.2026 |
+| the Italian course | 5576 entries (A1 1003, A2 1134, B1 1681, B2 1758), courses version 2026.11.5, the course check without remarks |
+| the meaning review | 6705 decisions for 2.28 USD (Claude Sonnet 5.5, Message Batches); 27 concepts without a single Italian word |
+| the example review | 3264 entries for 1.26 USD; 89% of the A1 entries have a sentence, 68% of A2, 50% of B1 and 29% of B2 |
+| quality sample | 40 random entries: meanings, equivalents, articles and genders right; the sample showed Wiktionary's stress mark in 887 participles (organizzàto), which the build now removes; two of the 40 lists of other answers are too broad (il calore beside il bagliore) |
+| the other courses | English unchanged; in German, Spanish and French 7 entries have a new or another example sentence through Italian translations in Tatoeba |
+| cost | 3.54 USD of the 7 USD limit |
+
+Conclusions:
+
+1. Another course language needs above all a review decision for every
+   concept; the rules of articles and spelling are short, and the review of
+   one language costs about 3.5 USD.
+2. The coverage of examples at B1–B2 is lower for Italian than for the other
+   languages, because Tatoeba has few direct Italian–Polish translations.
+
 ---
 
 ## 11. Completeness check
@@ -1292,6 +1336,7 @@ of words confused between languages, own words from any text.
 | Stage 6, the server for chat applications | none | acceptance of the stage on 15.11.2026 |
 | Stage 6, a session test with a model through the connector | 1.54 USD with Claude Sonnet 5.5 (estimate 1–3 USD) | approved on 15.11.2026 |
 | Stage 6, the deployment on the VPS | no model costs | approved on 15.11.2026 |
+| Stage 7, the review of the Italian meanings and examples | 3.54 USD with Claude Sonnet 5.5 (limit 7 USD) | approved on 15.11.2026 |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub

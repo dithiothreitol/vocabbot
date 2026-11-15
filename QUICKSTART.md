@@ -32,7 +32,7 @@ nothing.
 Say "skonfiguruj VocabBota" (or type `/vocabbot:vocab-start`). VocabBot asks
 for:
 
-- the languages, one to three of English, German, Spanish and French;
+- the languages, one to three of English, German, Spanish, French and Italian;
 - the level of each: A1–A2 for beginners, B1–B2 for the intermediate, or a
   short placement test when you are not sure;
 - the number of new words a day for all languages together (15 by default)
@@ -59,7 +59,7 @@ in one and end in the other.
 - New words are introduced first; say which ones you knew before ("znałem"),
   and they will not take your daily limit.
 - Questions show the Polish meaning and a sentence with a gap. Type the word
-  with its article for nouns of German, Spanish and French. "?" or an empty
+  with its article for nouns of German, Spanish, French and Italian. "?" or an empty
   answer means you do not know.
 - Every answer is graded at once: wiem, prawie (with what was off) or nie
   wiem. Words that went wrong come back at the end of the session.

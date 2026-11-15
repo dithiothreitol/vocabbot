@@ -29,6 +29,35 @@ def test_french_elision_and_aspirated_h() -> None:
     assert build.with_article("die", "Katze") == "die Katze"
 
 
+def test_italian_articles_follow_the_first_sound() -> None:
+    def shown(gender: str, word: str) -> str:
+        return build.with_article(build.article_for("it", gender, word, None), word)
+
+    assert shown("m", "cane") == "il cane"
+    assert [shown("m", w) for w in ("studente", "zio", "gnomo", "psicologo", "sport")] == [
+        "lo studente",
+        "lo zio",
+        "lo gnomo",
+        "lo psicologo",
+        "lo sport",
+    ]
+    assert [shown("m", "amico"), shown("m", "hotel"), shown("f", "idea")] == [
+        "l'amico",
+        "l'hotel",
+        "l'idea",
+    ]
+    assert shown("m", "iato") == "lo iato"
+    assert shown("f", "iena") == "la iena"
+    assert build.plural_display("it", "m", "cani") == "i cani"
+    assert build.plural_display("it", "m", "studenti") == "gli studenti"
+    assert build.plural_display("it", "m", "amici") == "gli amici"
+    assert build.plural_display("it", "f", "case") == "le case"
+    # Wiktionary marks the stress inside a form; the spelling keeps only a last accent
+    assert build.italian_spelling("organizzàto") == "organizzato"
+    assert build.italian_spelling("città") == "città"
+    assert build.italian_spelling("perché") == "perché"
+
+
 def test_gap_prefers_the_citation_form() -> None:
     word = build.Word("de", "Hund", "der Hund", "m")
     assert build.find_gap("Der Hund schläft.", word, "noun") == ("Der Hund", True)

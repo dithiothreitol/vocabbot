@@ -35,7 +35,7 @@ CANDIDATES = WORK / "example-candidates.jsonl"
 REQUESTS = WORK / "examples-requests.jsonl"
 BATCH = WORK / "examples-batch.json"
 DECISIONS = TOOLS / "examples.jsonl"
-LANGUAGES = {"en": "English", "de": "German", "es": "Spanish", "fr": "French"}
+LANGUAGES = {"en": "English", "de": "German", "es": "Spanish", "fr": "French", "it": "Italian"}
 POS_NAMES = {
     "noun": "noun",
     "verb": "verb",
@@ -52,7 +52,7 @@ POS_NAMES = {
 }
 ISSUES = ["none", "sense", "part_of_speech", "idiom", "translation", "content", "unnatural"]
 
-SYSTEM = """You check example sentences for a vocabulary course for adult Polish speakers who learn English, German, Spanish and French at CEFR levels A1 to B2. The course asks for a word by its Polish meaning and shows a sentence in which the word is replaced by a gap, together with the sentence's Polish translation; after the answer the learner sees the whole sentence.
+SYSTEM = """You check example sentences for a vocabulary course for adult Polish speakers who learn English, German, Spanish, French and Italian at CEFR levels A1 to B2. The course asks for a word by its Polish meaning and shows a sentence in which the word is replaced by a gap, together with the sentence's Polish translation; after the answer the learner sees the whole sentence.
 
 Each item is one course entry: the language, the word, its part of speech, its Polish meaning, the English headword and sense the entry stands for, and up to three candidate sentences, each with its gap (the part the learner types) and its Polish translation.
 

@@ -3,8 +3,8 @@
 [English](development-plan.md) · **Polski**
 
 Stan: 2026-11-15, po Etapie 6 (wersja 1.0.0-rc.5, w pakiecie Pythona
-1.0.0rc5). Plan zaakceptowałeś 14.11.2026, a Etapy 4, 5 i 6 dodałeś
-15.11.2026.
+1.0.0rc5). Plan zaakceptowałeś 14.11.2026, a Etapy 4, 5, 6 i 7 dodałeś
+15.11.2026. Etap 7 dał kurs włoski i sesję po jednej karcie.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1226,6 +1226,51 @@ Wnioski:
    serwera; potem serwer może przyjąć pierwszych uczących się z
    zaproszeniami.
 
+### Etap 7. Język włoski i sesja po jednej karcie
+
+Etap 7 dodałeś 15.11.2026 dwiema prośbami: język włoski jako piąty język
+kursów oraz sesję w czacie, która jak SuperMemo pokazuje jedną kartę naraz,
+z liczbą kart w wiadomości ustawianą w planie. Przegląd modelem zatwierdziłeś
+z limitem 7 USD.
+
+Zakres:
+
+1. Ustawienie planu `batch` (od 1 do 20, domyślnie 1): przy 1 wiadomość
+   zawiera wynik ostatniej odpowiedzi i następną kartę, a nowe słowo pojawia
+   się samo przed swoim pytaniem; `answer --next` zwraca od razu następne
+   karty.
+2. Włoskie źródła: hasła i tłumaczenia z Wikisłownika oraz zdania Tatoeby
+   z linkami, w których włoski jest pierwszy, tak aby ścieżki tłumaczeń
+   pozostałych kursów zostały bez zmian.
+3. Reguły odpowiedzi: `lo` obok `il`, elizja `l'` i `un'`, liczba mnoga `i`,
+   `gli`, `le`, czasowniki zwrotne na `-si`.
+4. Reguły kursu: rodzajnik według pierwszego dźwięku, liczba mnoga, miesiące
+   bez rodzajnika, pisownia form bez akcentu pomocniczego Wikisłownika.
+5. Przegląd dodanego języka (`review_lang.py`): model wybiera włoski
+   odpowiednik sensu, który kurs już ma, widząc polskie znaczenie i słowa
+   kursów niemieckiego, hiszpańskiego i francuskiego.
+
+#### Wynik Etapu 7 (15.11.2026)
+
+| Kryterium | Wynik |
+|---|---|
+| sesja po jednej karcie | `next` bez `--count` zwraca `batch` kart, `today` podaje `batch`, `answer --next` i `then_next` w serwerze oszczędzają jedno wywołanie na kartę; umiejętność, przewodnik serwera i klucz planu opisują oba tryby; wdrożone na serwerze 15.11.2026 |
+| kurs włoski | 5576 haseł (A1 1003, A2 1134, B1 1681, B2 1758), kursy w wersji 2026.11.5, kontrola kursów bez uwag |
+| przegląd znaczeń | 6705 decyzji za 2,28 USD (Claude Sonnet 5.5, Message Batches); 27 pojęć bez jednego włoskiego słowa |
+| przegląd przykładów | 3264 hasła za 1,26 USD; zdanie ma 89% haseł A1, 68% A2, 50% B1 i 29% B2 |
+| próba jakości | 40 losowych haseł: znaczenia, odpowiedniki, rodzajniki i rodzaj poprawne; próba wykazała akcent pomocniczy w 887 imiesłowach (organizzàto), który budowa teraz usuwa; dwie z 40 list dodatkowych odpowiedzi są zbyt szerokie (il calore przy il bagliore) |
+| pozostałe kursy | angielski bez zmian; w niemieckim, hiszpańskim i francuskim 7 haseł ma nowe lub inne zdanie przykładowe dzięki włoskim tłumaczeniom w Tatoebie |
+| koszt | 3,54 USD z limitu 7 USD |
+
+Wnioski:
+
+1. Kolejny język kursów wymaga przede wszystkim decyzji przeglądu dla
+   każdego pojęcia; reguły rodzajników i pisowni są krótkie, a przegląd
+   jednego języka kosztuje około 3,5 USD.
+2. Pokrycie przykładami na B1–B2 jest dla włoskiego niższe niż dla
+   pozostałych języków, bo Tatoeba ma niewiele bezpośrednich tłumaczeń
+   włosko-polskich.
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -1279,6 +1324,7 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 6, serwer dla aplikacji czatu | brak | akceptacja etapu 15.11.2026 |
 | Etap 6, test sesji z modelem przez łącznik | 1,54 USD przy Claude Sonnet 5.5 (szacunek 1–3 USD) | zatwierdzony 15.11.2026 |
 | Etap 6, wdrożenie na VPS | brak kosztów modeli | zatwierdzone 15.11.2026 |
+| Etap 7, przegląd włoskich znaczeń i przykładów | 3,54 USD przy Claude Sonnet 5.5 (limit 7 USD) | zatwierdzony 15.11.2026 |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie

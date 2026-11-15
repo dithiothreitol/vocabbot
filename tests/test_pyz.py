@@ -58,7 +58,7 @@ def test_packaged_courses_inside_the_archive(pyz: Path) -> None:
     env = {k: v for k, v in os.environ.items() if k != "VOCABBOT_COURSES"}
     result = run(pyz, "course", "check", env=env)
     assert result["ok"]
-    assert set(result["counts"]) == {"de", "en", "es", "fr"}
+    assert set(result["counts"]) == {"de", "en", "es", "fr", "it"}
 
 
 def test_a_full_day_from_the_archive(pyz: Path, tmp_path: Path) -> None:

@@ -33,7 +33,7 @@ Konfigurację uruchamia prośba „skonfiguruj VocabBota” albo polecenie
 `/vocabbot:vocab-start`. VocabBot pyta o:
 
 - języki, od jednego do trzech spośród angielskiego, niemieckiego,
-  hiszpańskiego i francuskiego;
+  hiszpańskiego, francuskiego i włoskiego;
 - poziom każdego języka: A1–A2 dla początkujących, B1–B2 dla
   średniozaawansowanych albo krótki test poziomujący w razie wątpliwości;
 - liczbę nowych słów dziennie dla wszystkich języków razem (domyślnie 15)
@@ -61,7 +61,7 @@ w drugim.
 - Nowe słowa pojawiają się najpierw w całości. Słowa znane przed kursem
   dostają ocenę „znałem” i nie zużywają dziennego limitu.
 - Pytanie pokazuje polskie znaczenie i zdanie z luką. Rzeczowniki
-  niemieckie, hiszpańskie i francuskie wymagają rodzajnika. Znak „?” albo
+  niemieckie, hiszpańskie, francuskie i włoskie wymagają rodzajnika. Znak „?” albo
   pusta odpowiedź oznacza „nie wiem”.
 - Silnik ocenia każdą odpowiedź od razu: wiem, prawie (z opisem potknięcia)
   albo nie wiem. Słowa z błędną odpowiedzią wracają pod koniec sesji.

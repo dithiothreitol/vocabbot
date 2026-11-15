@@ -27,15 +27,21 @@ from sources import COURSES, TOOLS, WORK
 from tatoeba import Corpus, course_links, polish_links, read_sentences, tokens
 from wiktionary import load
 
-LANGS = ("en", "de", "es", "fr")
-TARGETS = ("de", "es", "fr")
+LANGS = ("en", "de", "es", "fr", "it")
+TARGETS = ("de", "es", "fr", "it")
+# the languages the review chose in one pass; a language added later has its own file
+FIRST_TARGETS = ("de", "es", "fr")
+ADDED_REVIEWS = {"it": TOOLS / "review-it.jsonl"}
 COURSE_POS = {"intj": "interj"}
 ARTICLES = {
     "de": {"m": "der", "f": "die", "n": "das"},
     "es": {"m": "el", "f": "la"},
     "fr": {"m": "le", "f": "la"},
+    "it": {"m": "il", "f": "la"},
 }
 PLURAL_ARTICLES = {"de": "die", "es": {"m": "los", "f": "las"}, "fr": "les"}
+IT_VOWEL = tuple("aeiouhàèéìíòóùú")
+IT_PLURAL = ("i", "gli", "le")
 ARTICLE_WORDS = {
     "de": {
         "der",
@@ -53,6 +59,25 @@ ARTICLE_WORDS = {
     },
     "es": {"el", "la", "los", "las", "un", "una", "unos", "unas", "del", "al"},
     "fr": {"le", "la", "les", "un", "une", "des", "du", "l'"},
+    "it": {
+        "il",
+        "lo",
+        "la",
+        "l'",
+        "i",
+        "gli",
+        "le",
+        "un",
+        "uno",
+        "una",
+        "un'",
+        "del",
+        "dello",
+        "della",
+        "dei",
+        "degli",
+        "delle",
+    },
     "en": set(),
 }
 VOWEL_START = tuple("aeiouyàâäéèêëîïôöûüœæ")
@@ -132,14 +157,14 @@ H_ASPIRE = frozenset(
 OVERRIDES = TOOLS / "overrides.json"
 EDITOR = TOOLS / "editor.jsonl"
 EXAMPLES = TOOLS / "examples.jsonl"
-VERSION = "2026.11.4"  # raise it with every change of the sources or of the rules
+VERSION = "2026.11.5"  # raise it with every change of the sources or of the rules
 MAX_ACCEPT = 3
 # parts of speech that count as function words when a level is put in order
 FUNCTION_POS = frozenset({"prep", "pron", "conj", "det", "particle"})
 FUNCTION_WINDOW, FUNCTION_LIMIT = 10, 3  # at most 3 function words in any 10 entries
 EXAMPLE_CANDIDATES = 3  # sentences the example review judges for one entry
 # Plural articles, for nouns used only in the plural (die Eltern, les gens, los padres)
-PLURAL_ONLY_ARTICLES = {"de": ("die",), "es": ("los", "las"), "fr": ("les",)}
+PLURAL_ONLY_ARTICLES = {"de": ("die",), "es": ("los", "las"), "fr": ("les",), "it": IT_PLURAL}
 # A sentence with one of these words never becomes an example, whatever the
 # example review says; the review judges everything else, including violence.
 VULGAR_WORDS = {
@@ -151,6 +176,8 @@ VULGAR_WORDS = {
     r"follar\w*|culos?|sexo|sexual\w*|sexy|maric[oó]n\w*|pendej\w*|vergas?|chingad\w*",
     "fr": r"merde\w*|putain\w*|putes?|salope\w*|connard\w*|connasse\w*|encul\w*|bites?|"
     r"couilles?|nique\w*|foutre|sexe|sexuel\w*|sexy|cul",
+    "it": r"cazz\w*|merd\w*|stronz\w*|puttan\w*|troi[ae]|vaffanculo|fanculo|coglion\w*|"
+    r"fottut\w*|fott\w*|culo|figa|fica|sesso|sessual\w*|sexy|porc[oa]\s+dio",
     "pl": r"kurw\w*|chuj\w*|huj\w*|pierdol\w*|pierdziel\w*|jeb\w*|zajeb\w*|pizd\w*|dziwk\w*|"
     r"skurwysyn\w*|cip\w*|seks\w*|fiut\w*|kutas\w*|dupa|dupy|dupie|dupę|dupą|dupek|dupka",
 }
@@ -288,7 +315,7 @@ def group_score(
     """
     best = []
     back = []
-    for lang in ("pl", *TARGETS):
+    for lang in ("pl", *FIRST_TARGETS):
         words = [w for w in (clean(i["word"]) for i in group.get(lang, [])) if w]
         if not words:
             continue
@@ -312,7 +339,7 @@ def choose_group(
     full = [
         (i, g)
         for i, g in enumerate(groups)
-        if g.get("pl") and sum(1 for t in TARGETS if g.get(t)) >= 2
+        if g.get("pl") and sum(1 for t in FIRST_TARGETS if g.get(t)) >= 2
     ]
     if full:
         return max(full, key=lambda pair: (group_score(pair[1], pair[0], ctx), -pair[0]))[1]
@@ -348,7 +375,29 @@ def genders_of(item: dict[str, Any], lexicon: Lexicon | None, word: str) -> list
     return list(dict.fromkeys(found))
 
 
+def italian_lo(word: str) -> bool:
+    """A masculine Italian noun that takes lo (gli): s and a consonant, z, gn, ps, pn, x, y,
+    and i before a vowel (lo studente, lo zio, lo gnomo, lo psicologo, lo iato)."""
+    lower = word.lower()
+    if lower[:1] == "s" and lower[1:2] and lower[1] not in "aeiouàèéìíòóùú":
+        return True
+    if lower[:1] == "i" and lower[1:2] and lower[1] in "aeiouàèéìíòóùú":
+        return True
+    return lower.startswith(("z", "gn", "ps", "pn", "x", "y"))
+
+
+def italian_article(gender: str, word: str) -> str:
+    lower = word.lower()
+    if gender == "m" and italian_lo(word):
+        return "lo"
+    if lower.startswith(IT_VOWEL) and not (lower[:1] == "i" and lower[1:2] in tuple("aeiou")):
+        return "l'"
+    return ARTICLES["it"][gender]
+
+
 def article_for(lang: str, gender: str, word: str, record: dict[str, Any] | None) -> str:
+    if lang == "it":
+        return italian_article(gender, word)
     if lang == "fr":
         aspirated = word.lower() in H_ASPIRE or (record or {}).get("h_aspire")
         if word.lower().startswith(VOWEL_START) or (word.lower().startswith("h") and not aspirated):
@@ -366,6 +415,13 @@ def with_article(article: str, word: str) -> str:
 
 
 def plural_display(lang: str, gender: str, plural: str) -> str:
+    if lang == "it":
+        lower = plural.lower()
+        if gender == "f":
+            return f"le {plural}"
+        return (
+            f"gli {plural}" if italian_lo(plural) or lower.startswith(IT_VOWEL) else f"i {plural}"
+        )
     article = PLURAL_ARTICLES[lang]
     if isinstance(article, dict):
         article = article.get(gender, "los")
@@ -438,7 +494,7 @@ def target_forms(lang: str, pos: str, gender: str | None, record: dict[str, Any]
         plural = record["plural"][0]
         if plural != "-":
             forms["plural"] = plural_display(lang, gender, plural)
-    if pos == "adj" and lang in ("es", "fr") and record.get("feminine"):
+    if pos == "adj" and lang in ("es", "fr", "it") and record.get("feminine"):
         forms["feminine"] = record["feminine"][0]
     if pos == "adj" and lang == "de" and record.get("comparative"):
         forms["comparative"] = record["comparative"][0]
@@ -458,10 +514,34 @@ def target_forms(lang: str, pos: str, gender: str | None, record: dict[str, Any]
                 forms["participle"] = f"{aux} {record['participle'][0]}"
         elif record.get("participle"):
             forms["participle"] = record["participle"][0]
+    if lang == "it":
+        forms = {key: italian_spelling(value) for key, value in forms.items()}
     return forms
 
 
+ITALIAN_STRESS = str.maketrans("àèéìíòóùú", "aeeiioouu")
+
+
+def italian_spelling(word: str) -> str:
+    """Wiktionary marks the stress of Italian forms (organizzàto); the spelling keeps an
+    accent only on a last vowel (città, perché)."""
+    return re.sub(r"[àèéìíòóùú](?=\w)", lambda m: m.group(0).translate(ITALIAN_STRESS), word)
+
+
 REVIEW = TOOLS / "review.jsonl"
+
+
+def load_added_reviews() -> dict[str, dict[str, Any]]:
+    """Equivalents in the languages added after the first review, by concept: {"it": {...}}."""
+    out: dict[str, dict[str, Any]] = defaultdict(dict)
+    for lang, path in ADDED_REVIEWS.items():
+        if not path.is_file():
+            continue
+        for line in path.read_text("utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                out[row["id"]][lang] = row[lang]
+    return dict(out)
 
 
 def load_review() -> dict[str, dict[str, Any]]:
@@ -506,10 +586,11 @@ def decision_of(
 
 
 def split_display(text: str, lang: str) -> tuple[str | None, str]:
-    if lang == "fr" and text.casefold().startswith("l'"):
+    if lang in ("fr", "it") and text.casefold().startswith("l'"):
         return "l'", text[2:].strip()
     head, sep, rest = text.partition(" ")
-    if sep and head.casefold() in {"der", "die", "das", "el", "la", "le"}:
+    heads = {"il", "lo", "la"} if lang == "it" else {"der", "die", "das", "el", "la", "le"}
+    if sep and head.casefold() in heads:
         return head.casefold(), rest.strip()
     return None, text
 
@@ -585,20 +666,26 @@ def reviewed_word(lang: str, pos: str, decision: dict[str, Any], lexicon: Lexico
         gender = decision.get("gender")
         if gender not in ARTICLES[lang]:
             return None
+        article, core = split_display(text, lang)
+        if article is not None and core:
+            text = core  # "l'internet" from the review: the word goes without its article
         word = Word(lang, text, text, gender, bare=True)
         record = lexicon.find(text, "noun")
     elif plural is not None:
         word = plural
         record = lexicon.find(word.lemma, "noun")
     elif pos == "noun":
-        if text.split()[0].casefold() in PLURAL_ARTICLES_ANY or decision.get("gender") == "none":
+        plural_heads = PLURAL_ARTICLES_ANY | (set(IT_PLURAL) if lang == "it" else set())
+        if text.split()[0].casefold() in plural_heads or decision.get("gender") == "none":
             return None  # a noun the course would have to show in the plural
         article, core = split_display(text, lang)
-        if core.split()[0].casefold() in PLURAL_ARTICLES_ANY:
+        if not core or core.split()[0].casefold() in plural_heads:
             return None
         gender = decision.get("gender")
         if gender not in ARTICLES[lang]:
             gender = next((g for g, a in ARTICLES[lang].items() if a == article), None)
+            if gender is None and lang == "it" and article == "lo":
+                gender = "m"
         if gender is None or not core or (lang == "de" and not core[:1].isupper()):
             return None
         record = lexicon.find(core, "noun")
@@ -690,6 +777,7 @@ def drafts(concepts: list[Concept]) -> tuple[list[Draft], Counter[str]]:
         any_pos[record["word"]].append(record)
     lexicons = load_lexicons()
     reviews = load_review()
+    added = load_added_reviews()
     editor = load_editor()
     unknown = sorted(set(editor) - {c.id for c in concepts})
     if unknown:
@@ -703,6 +791,16 @@ def drafts(concepts: list[Concept]) -> tuple[list[Draft], Counter[str]]:
         if decision is None:
             missing["no decision of the review or the editors"] += 1
             continue
+        for lang, choice in added.get(concept.id, {}).items():
+            if lang not in (edit or {}):
+                # Italian months go without an article, as the Spanish and French ones do
+                spanish = decision.get("es") or {}
+                if spanish.get("bare"):
+                    gender = choice.get("gender")
+                    if gender not in ("m", "f"):
+                        gender = spanish.get("gender")  # a month: masculine in both languages
+                    choice = {**choice, "bare": True, "gender": gender}
+                decision = {**decision, lang: choice}
         if not decision.get("keep", True):
             missing["left out by the review or the editors"] += 1
             continue
@@ -964,7 +1062,7 @@ def synonyms(a: str, b: str, lang: str, families: dict[str, dict[str, str]]) -> 
     first, second = families.get(a, {}), families.get(b, {})
     return any(
         other not in (lang, "en") and first.get(other) and first.get(other) == second.get(other)
-        for other in LANGS
+        for other in ("en", *FIRST_TARGETS)
     )
 
 

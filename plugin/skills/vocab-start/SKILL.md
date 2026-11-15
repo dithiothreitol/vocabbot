@@ -2,7 +2,7 @@
 name: vocab-start
 description: >
   Set up VocabBot, vocabulary learning in one to three languages at once
-  (English, German, Spanish, French; levels A1 to B2) for a Polish speaker:
+  (English, German, Spanish, French, Italian; levels A1 to B2) for a Polish speaker:
   choose languages, levels, weights and new words a day, run a short
   placement test, create the learner's folder, change the plan later, show
   the courses and the forecast, check the folder, install the vocabbot
@@ -10,7 +10,7 @@ description: >
   learn German, placement test, change my plan, fewer new words, add Spanish,
   pause French, how long will it take; po polsku: skonfiguruj VocabBota, chcę
   się uczyć niemieckiego, test poziomujący, zmień plan, mniej nowych słów,
-  dodaj hiszpański, wstrzymaj francuski, ile to potrwa.
+  dodaj hiszpański, chcę się uczyć włoskiego, wstrzymaj francuski, ile to potrwa.
 argument-hint: "[languages and levels]"
 ---
 
@@ -38,7 +38,7 @@ Run `plan show --json`.
 1. **Courses.** `course list --json` gives the languages and the number of
    words per level. Quote these numbers when the learner asks about a course.
 2. **Questions, in one message.** Which languages (one to three of
-   angielski, niemiecki, hiszpański, francuski); the level of each
+   angielski, niemiecki, hiszpański, francuski, włoski); the level of each
    (A1–A2 for beginners, B1–B2 for the intermediate, or "nie wiem", which
    calls for the test); new words a day for all languages together (the
    default is 15); days off, if any; whether one language should get more

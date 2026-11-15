@@ -3,7 +3,7 @@
 **English** · [Polski](README.pl.md)
 
 VocabBot teaches vocabulary in one, two or three languages at once: English,
-German, Spanish and French, from A1 to B2, for learners whose base language
+German, Spanish, French and Italian, from A1 to B2, for learners whose base language
 is Polish. New words come in order of frequency, every typed answer is graded
 by the engine, and every card comes back on the day the FSRS-6 scheduler sets
 for it, when about nine in ten words are still remembered.

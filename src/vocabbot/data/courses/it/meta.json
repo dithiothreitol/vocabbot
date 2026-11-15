@@ -1,0 +1,47 @@
+{
+  "lang": "it",
+  "base": "pl",
+  "title": "VocabBot A1–B2",
+  "version": "2026.11.5",
+  "levels": {
+    "a1": 1003,
+    "a2": 1134,
+    "b1": 1681,
+    "b2": 1758
+  },
+  "license": "CC BY-SA 4.0",
+  "sources": [
+    {
+      "id": "cefrj",
+      "name": "The CEFR-J Wordlist Version 1.5, compiled by Yukio Tono, Tokyo University of Foreign Studies (levels of the concepts)",
+      "url": "https://github.com/openlanguageprofiles/olp-en-cefrj"
+    },
+    {
+      "id": "enwiktionary",
+      "name": "English Wiktionary, extracted by wiktextract (kaikki.org), dump of 2026-10-01",
+      "license": "CC BY-SA 4.0 and GFDL",
+      "url": "https://kaikki.org/dictionary/"
+    },
+    {
+      "id": "wordfreq",
+      "name": "wordfreq 3.1.1 (order of the words)",
+      "license": "CC BY-SA 4.0",
+      "url": "https://github.com/rspeer/wordfreq"
+    },
+    {
+      "id": "tatoeba",
+      "name": "Tatoeba example sentences; authors in sentences.tsv",
+      "license": "CC BY 2.0 FR",
+      "url": "https://tatoeba.org"
+    },
+    {
+      "id": "review",
+      "name": "Review by Claude Sonnet 5.5: senses and equivalents (tools/courses/review.jsonl) and example sentences (tools/courses/examples.jsonl)"
+    },
+    {
+      "id": "editor",
+      "name": "VocabBot editors: basic words, meanings and the starting list (tools/courses/editor.jsonl)",
+      "license": "CC BY-SA 4.0"
+    }
+  ]
+}

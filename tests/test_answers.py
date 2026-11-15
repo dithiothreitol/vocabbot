@@ -200,3 +200,45 @@ def test_genders_an_article_can_show() -> None:
     assert german.shows_gender("der", "m") and german.shows_gender("die", "pl")
     assert not answers.rules("fr").shows_gender("l'", "f")
     assert not answers.rules("es").shows_gender("el", "f")  # el agua
+
+
+ITALIAN = {
+    "studente": {
+        "lang": "it",
+        "display": "lo studente",
+        "lemma": "studente",
+        "pos": "noun",
+        "gender": "m",
+    },
+    "amica": {"lang": "it", "display": "l'amica", "lemma": "amica", "pos": "noun", "gender": "f"},
+    "cane": {"lang": "it", "display": "il cane", "lemma": "cane", "pos": "noun", "gender": "m"},
+    "lavarsi": {"lang": "it", "display": "lavarsi", "lemma": "lavarsi", "pos": "verb"},
+}
+
+
+@pytest.mark.parametrize(
+    ("word", "given", "grade", "errors"),
+    [
+        ("studente", "lo studente", "know", ()),
+        ("studente", "il studente", "almost", ("article",)),
+        ("studente", "la studente", "dont_know", ("gender",)),
+        ("studente", "studente", "dont_know", ("no_article",)),
+        ("amica", "l'amica", "know", ()),
+        ("amica", "un'amica", "almost", ("article",)),
+        ("cane", "il cane", "know", ()),
+        ("cane", "la cane", "dont_know", ("gender",)),
+        ("lavarsi", "lavare", "almost", ("reflexive",)),
+    ],
+)
+def test_italian_articles_and_reflexive_verbs(
+    word: str, given: str, grade: str, errors: tuple[str, ...]
+) -> None:
+    verdict = answers.grade(given, ITALIAN[word])
+    assert (verdict.grade, verdict.errors) == (grade, errors)
+
+
+def test_italian_lo_shows_the_gender() -> None:
+    rules = answers.rules("it")
+    assert rules.gender_of("lo") == "m" and rules.shows_gender("lo", "m")
+    assert rules.genders_of("gli") == frozenset({"pl"})
+    assert not rules.shows_gender("l'", "f")
