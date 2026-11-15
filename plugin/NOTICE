@@ -46,3 +46,8 @@ builds them from:
 
 The starter course in tests/fixtures/courses was written for VocabBot and is
 licensed under CC BY-SA 4.0.
+
+The server's pages use the Geist typeface (src/vocabbot/server/static/geist.woff2),
+Copyright (c) 2023 Vercel, in collaboration with basement.studio, licensed under
+the SIL Open Font License, Version 1.1 (src/vocabbot/server/static/geist-OFL.txt,
+https://openfontlicense.org).

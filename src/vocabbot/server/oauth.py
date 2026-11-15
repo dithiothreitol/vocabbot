@@ -229,10 +229,15 @@ class SignIn:
         return client.client_name or host or client_id, host
 
     def _form(
-        self, request_id: str, client_id: str, error: str | None = None, login: str = ""
+        self,
+        request_id: str,
+        client_id: str,
+        error: str | None = None,
+        login: str = "",
+        tab: str = "login",
     ) -> HTMLResponse:
         app, host = self._client(client_id)
-        page = pages.sign_in(request_id, app, host, self.settings.open_signup, error, login)
+        page = pages.sign_in(request_id, app, host, self.settings.open_signup, error, login, tab)
         status = 429 if error == "throttled" else 400 if error else 200
         return HTMLResponse(page, status_code=status, headers=pages.HEADERS)
 
@@ -252,12 +257,13 @@ class SignIn:
         login = str(form.get("login") or "")[:100]
         password = str(form.get("password") or "")
         address = request.client.host if request.client else "unknown"
+        tab = "signup" if form.get("action") == "signup" else "login"
         if self.throttle.blocked(address, login):
-            return self._form(request_id, client_id, "throttled", login)
+            return self._form(request_id, client_id, "throttled", login, tab)
         account: Account | None
-        if form.get("action") == "signup":
+        if tab == "signup":
             if password != str(form.get("password2") or ""):
-                return self._form(request_id, client_id, "password_mismatch")
+                return self._form(request_id, client_id, "password_mismatch", login, tab)
             invite = str(form.get("invite") or "")
             try:
                 account = await anyio.to_thread.run_sync(
@@ -266,7 +272,7 @@ class SignIn:
             except SignupError as exc:
                 if exc.code == "bad_invite":
                     self.throttle.fail(address, login)
-                return self._form(request_id, client_id, exc.code)
+                return self._form(request_id, client_id, exc.code, login, tab)
         else:
             account = await anyio.to_thread.run_sync(self.registry.verify, login, password)
             if account is None:

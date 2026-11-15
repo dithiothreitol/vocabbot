@@ -52,8 +52,8 @@ REDIRECT = "http://localhost:3030/callback"
 def test_signup_takes_one_use_of_an_invitation(tmp_path: Path) -> None:
     registry = Registry(tmp_path / "accounts.db")
     code = registry.create_invite(uses=1, days=1, note="Ola")
-    assert re.fullmatch(r"[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}", code)
-    account = registry.signup("Ola.K", PASSWORD, code.upper().replace("-", " "), False)
+    assert re.fullmatch(r"[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}", code)
+    account = registry.signup("Ola.K", PASSWORD, code.lower().replace("-", " "), False)
     assert account.login == "ola.k"
     with pytest.raises(SignupError) as used:
         registry.signup("ola2", PASSWORD, code, False)
@@ -503,6 +503,9 @@ def test_the_endpoints_describe_the_server_and_refuse_strangers(live: Settings) 
         assert web.get("/health").json()["ok"] is True
         assert live.resource in web.get("/").text
         assert "Prywatność" in web.get("/privacy").text
+        typeface = web.get("/static/geist.woff2")
+        assert typeface.content[:4] == b"wOF2"
+        assert typeface.headers["content-type"] == "font/woff2"
 
 
 def test_a_wrong_password_keeps_the_sign_in_open(live: Settings) -> None:
@@ -531,6 +534,25 @@ def test_a_wrong_password_keeps_the_sign_in_open(live: Settings) -> None:
             data={"request": request_id, "action": "login", "login": "ola", "password": "x" * 12},
         )
         assert wrong.status_code == 400 and "Nieprawidłowy login lub hasło" in wrong.text
+        assert 'id="tab-login" checked' in wrong.text
+        page = web.get("/login", params={"request": request_id})
+        assert "Kod otrzymujesz od osoby, która prowadzi serwer" in page.text
+        assert "font-src 'self'" in page.headers["content-security-policy"]
+        no_invite = web.post(
+            "/login",
+            data={
+                "request": request_id,
+                "action": "signup",
+                "login": "kasia",
+                "password": PASSWORD,
+                "password2": PASSWORD,
+                "invite": "AAAA-BBBB-CCCC",
+            },
+        )
+        assert (
+            no_invite.status_code == 400 and "Kod zaproszenia jest nieprawidłowy" in no_invite.text
+        )
+        assert 'id="tab-signup" checked' in no_invite.text and 'value="kasia"' in no_invite.text
         right = web.post(
             "/login",
             data={"request": request_id, "action": "login", "login": "ola", "password": PASSWORD},

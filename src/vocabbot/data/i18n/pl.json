@@ -329,16 +329,13 @@
   "server": {
     "title": "VocabBot",
     "connect": "Połącz VocabBota z aplikacją {app}",
-    "connect_hint": "Aplikacja {app} ({host}) otrzyma dostęp do Twojej nauki: planu, powtórek i postępów. Połączenie odłączysz w ustawieniach tej aplikacji.",
-    "login_title": "Mam konto",
-    "signup_title": "Zakładam konto",
+    "connect_hint": "Aplikacja {app} otrzyma dostęp do Twojej nauki: planu, powtórek i postępów.",
     "login": "Login",
     "password": "Hasło",
     "password_again": "Hasło jeszcze raz",
     "invite": "Kod zaproszenia",
     "login_button": "Zaloguj i połącz",
     "signup_button": "Załóż konto i połącz",
-    "signup_rules": "Login ma od 3 do 40 znaków: małe litery, cyfry, kropkę, myślnik lub podkreślenie. Hasło ma co najmniej 12 znaków.",
     "expired_title": "Link wygasł",
     "expired": "Ten link do logowania wygasł albo został już użyty. Połącz VocabBota ponownie w aplikacji.",
     "home": "VocabBot uczy słownictwa w jednym, dwóch lub trzech językach naraz (angielski, niemiecki, hiszpański, francuski; poziomy od A1 do B2) metodą powtórek w odstępach. Ten serwer udostępnia VocabBota aplikacjom czatu, które obsługują serwery MCP.",
@@ -359,6 +356,16 @@
       "bad_invite": "Kod zaproszenia jest nieprawidłowy, wykorzystany albo wygasł.",
       "wrong_credentials": "Nieprawidłowy login lub hasło.",
       "throttled": "Zbyt wiele nieudanych prób. Spróbuj ponownie za kwadrans."
-    }
+    },
+    "return_to": "Po zalogowaniu wrócisz na",
+    "tab_login": "Logowanie",
+    "tab_signup": "Nowe konto",
+    "login_hint": "Od 3 do 40 znaków: małe litery, cyfry, kropka, myślnik lub podkreślenie.",
+    "password_hint": "Co najmniej 12 znaków.",
+    "invite_hint": "Konta na tym serwerze powstają z zaproszenia. Kod otrzymujesz od osoby, która prowadzi serwer; ma postać ABCD-EFGH-JKMN, otwiera jedno konto i działa przez czas podany przy zaproszeniu.",
+    "disconnect": "Połączenie odłączysz w ustawieniach aplikacji {app}.",
+    "home_claude": "Ustawienia, Łączniki, Dodaj własny łącznik i ten adres.",
+    "home_chatgpt": "Ustawienia, Aplikacje i łączniki, Zaawansowane, Tryb dewelopera i ten adres.",
+    "privacy_lead": "Co serwer VocabBota przechowuje i do czego tego używa."
   }
 }

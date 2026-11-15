@@ -281,7 +281,8 @@ class Registry:
                 "INSERT INTO invites (hash, created, expires, uses, note) VALUES (?, ?, ?, ?, ?)",
                 (digest(raw), now, now + days * 86400, uses, note),
             )
-        return "-".join(raw[i : i + 4] for i in range(0, 12, 4))
+        # shown in capitals, which read and copy better; any case is accepted
+        return "-".join(raw[i : i + 4] for i in range(0, 12, 4)).upper()
 
     def invites(self) -> list[Invite]:
         with self._db() as db:

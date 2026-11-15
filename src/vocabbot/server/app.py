@@ -441,6 +441,16 @@ def build(settings: Settings) -> Starlette:
     server.custom_route("/", methods=["GET"])(home)
     server.custom_route("/privacy", methods=["GET"])(privacy)
     server.custom_route("/health", methods=["GET"])(health)
+    typeface = pages.font()
+
+    async def font(request: Request) -> Response:
+        return Response(
+            typeface,
+            media_type="font/woff2",
+            headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        )
+
+    server.custom_route(pages.FONT, methods=["GET"])(font)
     app = server.streamable_http_app(
         stateless_http=True,
         json_response=True,

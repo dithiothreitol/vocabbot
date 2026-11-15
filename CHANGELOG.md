@@ -3,6 +3,18 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Changed
+
+- The server's pages (the sign-in, the start page, the privacy note) follow
+  shadcn/ui with the Geist typeface (SIL Open Font License), in light and
+  dark mode and without scripts; the sign-in has tabs for signing in and for
+  a new account, hints under the fields and a note on what the invitation
+  code is.
+- Invitation codes are shown in capitals (`ABCD-EFGH-JKMN`); any case,
+  spaces and hyphens are still accepted.
+
 ## 1.0.0-rc.5 - 2026-11-15
 
 ### Added
