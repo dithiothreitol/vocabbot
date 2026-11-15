@@ -1,14 +1,21 @@
 """FSRS-6 spaced-repetition scheduler, standard library only.
 
 A port of the scheduler in py-fsrs 6.3.3 (MIT, see NOTICE) for whole-day
-intervals, without learning steps and without fuzz. The memory of a card is
-its stability (days until recall falls to 90%) and its difficulty (1 to 10).
-tests/test_fsrs.py compares this module with py-fsrs.
+intervals, without learning steps. The memory of a card is its stability (days
+until recall falls to 90%) and its difficulty (1 to 10). tests/test_fsrs.py
+compares this module with py-fsrs.
+
+The fuzz uses the ranges of py-fsrs, but the day inside a range comes from a
+hash of the card and the day of its answer instead of a random number, so the
+same log gives the same due dates on every computer.
 """
 
 from __future__ import annotations
 
+import hashlib
 import math
+from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 
 DEFAULT_PARAMETERS: tuple[float, ...] = (
@@ -39,8 +46,20 @@ DIFFICULTY_MIN = 1.0
 DIFFICULTY_MAX = 10.0
 MAXIMUM_INTERVAL = 36500
 
+# (from, to, share): an interval of `days` may move by 1 day plus the share of
+# the days it has in each range, as in py-fsrs; intervals under 2.5 days stay
+FUZZ_RANGES = ((2.5, 7.0, 0.15), (7.0, 20.0, 0.1), (20.0, math.inf, 0.05))
+
 AGAIN, HARD, GOOD, EASY = 1, 2, 3, 4
 RATINGS = (AGAIN, HARD, GOOD, EASY)
+
+# The initial stabilities (the first four parameters) are fitted to the
+# learner's second answers once there are enough of them, as in the
+# pretraining step of FSRS; the other parameters keep their defaults.
+FIT_MIN_ANSWERS = 40  # second answers in all before any fit
+FIT_MIN_PER_RATING = 15  # second answers after one first rating
+FIT_RANGE = (0.1, 100.0)  # days of initial stability the search may choose
+FIT_PULL = 1 / 16  # loss per day of distance from the default stability
 
 
 @dataclass(frozen=True)
@@ -79,6 +98,25 @@ class Scheduler:
         """Whole days until recall falls to the desired retention."""
         days = float((stability / self.factor) * ((self.retention ** (1 / self.decay)) - 1))
         return min(max(round(days), 1), self.maximum_interval)
+
+    def fuzz_range(self, interval: int) -> tuple[int, int]:
+        """The shortest and the longest interval a review may get around `interval`."""
+        if interval < 2.5:
+            return interval, interval
+        delta = 1.0
+        for start, end, share in FUZZ_RANGES:
+            delta += share * max(min(interval, end) - start, 0.0)
+        low = max(2, round(interval - delta))
+        high = min(round(interval + delta), self.maximum_interval)
+        return min(low, high), high
+
+    def due_interval(self, stability: float, key: str) -> int:
+        """The interval with its spread: the same key always gives the same number of days."""
+        low, high = self.fuzz_range(self.interval(stability))
+        if low == high:
+            return low
+        digest = hashlib.sha256(key.encode("utf-8")).digest()
+        return low + int.from_bytes(digest[:8], "big") % (high - low + 1)
 
     def first(self, rating: int) -> Memory:
         """Memory after the first answer to a new card."""
@@ -154,3 +192,65 @@ class Scheduler:
 
 def _clamp(difficulty: float) -> float:
     return min(max(difficulty, DIFFICULTY_MIN), DIFFICULTY_MAX)
+
+
+def fit_initial(
+    points: dict[int, list[tuple[int, bool]]],
+    parameters: tuple[float, ...] = DEFAULT_PARAMETERS,
+) -> tuple[float, ...]:
+    """Parameters whose initial stabilities fit the learner's second answers.
+
+    `points[rating]` lists, for the cards first answered with that rating,
+    the days until the second answer and whether it was recalled. A rating
+    with too few answers keeps its default, and a better first rating never
+    gets a shorter stability than a worse one.
+    """
+    if sum(len(data) for data in points.values()) < FIT_MIN_ANSWERS:
+        return parameters
+    decay = -parameters[20]
+    factor = 0.9 ** (1 / decay) - 1
+    w = list(parameters)
+    for rating in RATINGS:
+        data = points.get(rating, [])
+        if len(data) < FIT_MIN_PER_RATING:
+            continue
+        groups: dict[int, list[bool]] = defaultdict(list)
+        for days, recalled in data:
+            groups[max(1, days)].append(recalled)
+        default = parameters[rating - 1]
+
+        def loss(
+            stability: float, groups: dict[int, list[bool]] = groups, default: float = default
+        ) -> float:
+            total = abs(stability - default) * FIT_PULL
+            for days, outcomes in groups.items():
+                predicted = (1 + factor * days / stability) ** decay
+                predicted = min(max(predicted, 1e-6), 1 - 1e-6)
+                share = sum(outcomes) / len(outcomes)
+                total -= math.sqrt(len(outcomes)) * (
+                    share * math.log(predicted) + (1 - share) * math.log(1 - predicted)
+                )
+            return total
+
+        w[rating - 1] = _minimum(loss, *FIT_RANGE)
+    for index in range(1, 4):
+        w[index] = max(w[index], w[index - 1])
+    return tuple(w)
+
+
+def _minimum(function: Callable[[float], float], low: float, high: float) -> float:
+    """Golden-section search for the minimum, on a logarithmic scale of days."""
+    ratio = (math.sqrt(5) - 1) / 2
+    a, b = math.log(low), math.log(high)
+    c, d = b - ratio * (b - a), a + ratio * (b - a)
+    fc, fd = function(math.exp(c)), function(math.exp(d))
+    for _ in range(80):
+        if fc < fd:
+            b, d, fd = d, c, fc
+            c = b - ratio * (b - a)
+            fc = function(math.exp(c))
+        else:
+            a, c, fc = c, d, fd
+            d = a + ratio * (b - a)
+            fd = function(math.exp(d))
+    return round(math.exp((a + b) / 2), 4)

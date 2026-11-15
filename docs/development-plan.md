@@ -5,14 +5,16 @@
 This is the English translation of `development-plan.pl.md`, which is the
 version kept up to date first.
 
-Status: 2026-11-15, after Stage 3 (version 1.0.0-rc.2, 1.0.0rc2 in the Python
-package). You accepted the plan on 14.11.2026. The engine, the `vocabbot`
-program, the A1–B2 courses for four languages (21 919 entries) and the plugin
-with four skills for Claude and Codex work; section 10 describes the results
-of the stages. The release candidate `v1.0.0-rc.2` is published on GitHub
-and on PyPI (15.11.2026), with the confirmation hook and the fix of the
-examples of function words. Version 1.0 still needs the session tests with a
-model (not approved) and the pilot described in `docs/pilot.md`.
+Status: 2026-11-15, after Stage 4 (version 1.0.0-rc.3, 1.0.0rc3 in the Python
+package). You accepted the plan on 14.11.2026 and added Stages 4 and 5 on
+15.11.2026. The engine, the `vocabbot` program with its new terminal session,
+the A1–B2 courses for four languages (23 095 entries) and the plugin with four
+skills for Claude and Codex work; section 10 describes the results of the
+stages. GitHub and PyPI hold the release `v1.0.0-rc.2`, and version rc.3
+waits in the local repository for your consent to the push and the release.
+Version 1.0 still needs the session tests with a model on rc.3 (after your
+consent) and the pilot described in `docs/pilot.md`; Stage 5 (a schedule
+fitted to the learner) uses the pilot's log.
 
 ---
 
@@ -95,7 +97,7 @@ decision D12).
 | Law as data with a named source | adapted | a course as data: every entry with a source, every file with a licence, the `course check` |
 | Language separate from country | taken over | the base language separate from the languages being learned; messages in `data/i18n` |
 | Every skill self-sufficient | adapted | every skill carries one `vocabbot.pyz` with the whole engine and the courses |
-| Scripts on the standard library only | taken over for the engine | the Rich library only styles the installed CLI |
+| Scripts on the standard library only | taken over for the engine | since Stage 4 the terminal session uses the standard library only as well (`term.py`) |
 | Outside text off the command line | taken over | answers and own words reach the engine on standard input |
 | Four levels of verification | taken over | structure, arithmetic, behaviour, use |
 | Two manifests and two marketplace catalogs | taken over | Claude and Codex from one plugin folder |
@@ -122,7 +124,8 @@ the same code runs in the program installed on a computer and in a host's
 sandbox that allows no installation.
 
 **D2. Two ways into one engine.** The `vocabbot` program installed with
-`uv tool install vocabbot` uses the Rich library. The file `vocabbot.pyz` (a
+`uv tool install vocabbot` has had no dependency since Stage 4, and its
+terminal session looks the same as in `vocabbot.pyz`. The file `vocabbot.pyz` (a
 `zipapp` archive with the engine and the courses) runs with
 `python vocabbot.pyz` without any installation and goes into every skill.
 Both ways have the same commands and the same `--json` option, which returns
@@ -223,7 +226,7 @@ starts with `uv lock --upgrade` and a new check of this table.
 | mypy | 2.4.1 | 2026-10-28 | type checking |
 | pytest | 9.2.0 | 2026-10-27 | tests |
 | fsrs (py-fsrs) | 6.3.3 | 2026-11-13 | the reference scheduler in tests |
-| rich | 15.0.0 | 2026-04-12 | the look of the terminal session |
+| rich | 15.0.0 | 2026-04-12 | the look of the terminal session until Stage 3; `term.py` replaces it from Stage 4 |
 | wordfreq | 3.1.1 | 2023-11-21 | word frequency in the course pipeline (the library's last release) |
 | actions/checkout | v7.0.1 | 2026-07-20 | CI |
 | astral-sh/setup-uv | v10.3.3 | 2026-10-28 | CI |
@@ -249,7 +252,7 @@ Libraries considered and not chosen:
 | Library | Version | Reason |
 |---|---|---|
 | Typer | 0.29.1 | the command module must work in a `.pyz` file without dependencies, so `argparse` from the standard library handles the commands |
-| Textual | 8.2.8 | a card session runs in sequence, which Rich handles entirely; a full-screen interface adds no function here |
+| Textual | 8.2.8 | a card session runs in sequence, which `term.py` handles entirely; a full-screen interface adds no function here |
 | prompt_toolkit | 3.0.53 | reading a single key is covered by `msvcrt` and `termios` from the standard library |
 | ty | 0.0.104 | the tool is below version 1.0, so the stable mypy checks the types |
 
@@ -279,7 +282,8 @@ vocabbot/
     courses.py     the course catalog and the entry checks
     gate.py        preview and commit of changes of the plan and the courses
     cli.py         the commands and the JSON output
-    drill.py       the interactive session (Rich or plain text)
+    drill.py       the interactive session
+    term.py        colour, symbols and widths in the terminal
     data/courses/<language>/<level>.jsonl  meta.json
     data/lang/<language>.json              rules for grading answers
     data/i18n/pl.json                      messages
@@ -496,7 +500,8 @@ confirmation of every change, and language and reminders.
 
 ## 10. Stages
 
-The plan has three stages, each one working session done in one go. The
+The plan has five stages, each one working session done in one go. You
+added Stage 4 on 15.11.2026 after the audit of version 1.0.0-rc.2. The
 protocol of closing a stage: the tests pass, the plan has its updated status
 and conclusions, the project memory has a new entry, the changes have a local
 commit. A push, a tag, a release and a publication need your separate,
@@ -924,6 +929,203 @@ it.
 
 ---
 
+### Stage 4. Course content, mechanics and the terminal session
+
+The audit of 15.11.2026, made before the session tests, compared the engine,
+the courses and the terminal program with the SuperMemo courses. The engine
+follows the SuperMemo way of learning: the sections of reviews, new words and
+the drill, three grades, a drill that leaves the schedule as it was, and a
+target recall of 90%. The courses lack part of the basic vocabulary, about 6%
+of the examples use the word in another sense or as another part of speech,
+and the terminal session prints plain text. You approved Stage 4 on
+15.11.2026 together with four decisions: the order of the work (content,
+mechanics, terminal, session tests), basic words added without model costs,
+a model review of the examples, and the grade "nie wiem" for a wrong article.
+
+| Area | Finding of the audit |
+|---|---|
+| basic words | the courses lack, among others, English yes, no, with, house, hello, thanks and the names of the months, German ja, nein, kein, du, danke, Eltern, Leute, kennen, heißen, Spanish sí, gracias, estar, haber, tú, conocer and French oui, non, merci, tu, chez, il y a, gens, combien |
+| causes in the pipeline | 1018 concepts without a Polish translation in the table of the same part of speech, 133 concepts without an English entry of that part of speech (Wiktionary files the months as proper names), CEFR-J determiners outside the map of parts of speech, about 1000 merges per language, 64 English entries dropped as homonyms (with and house among them), nouns used only in the plural left out |
+| the start of A1 | function words make up 87–97% of the first 30 entries, and some of them have an ambiguous or narrowed meaning (German "mit" as "razem") |
+| examples | 11 of 180 sentences in a random sample use the word in another sense or as another part of speech; a few dozen Tatoeba sentences are vulgar |
+| schedule | due dates have no spread, so the words learned on one day come back together; "prawie" for a wrong article lengthens the interval; the FSRS parameters are the defaults for every learner |
+| terminal | plain text, colour only with the Rich package, two confirmations for every card, the forecast as a list of 30 lines |
+
+Scope:
+
+1. The course pipeline recovers concepts: CEFR-J determiners get their part
+   of speech, a concept without a translation table uses the table of
+   another part of speech of the same headword (an interjection, a proper
+   name), and a noun used only in the plural enters the course with its
+   plural article (die Eltern, les gens). A recovered concept enters the
+   course only with a decision of the model review or of the editors.
+2. The editors' file `tools/courses/editor.jsonl` holds the decisions for
+   recovered A1–A2 concepts, concepts that belong to one language (estar,
+   haber, kein, chez, kennen, conocer, connaître and the like), the
+   separation of common synonyms and homonyms by a note in the Polish
+   meaning (house and home, with and of) and corrected meanings of function
+   words. The editing uses no paid model.
+3. Level A1 starts with the editors' starting list: greetings, "yes" and
+   "no", personal pronouns and basic verbs and nouns. The further entries of
+   every level follow frequency, and every ten entries hold at most three
+   function words.
+4. Claude Sonnet 5.5, through the Message Batches API, judges up to three
+   candidate sentences for each entry (sense, part of speech, a faithful
+   Polish translation, suitable content) and chooses the first good one or
+   none. The decisions live in `tools/courses/examples.jsonl`, so later
+   builds need no API, and a filter of vulgar words in the pipeline guards
+   the entries without a decision. The cost limit is 8 USD.
+5. The engine spreads due dates from 3 days up, following the FSRS ranges.
+   The spread follows from the card id and the day of the answer, so both
+   computers see the same due dates. In German, Spanish and French an
+   article of another gender, or no article for a noun whose article shows
+   its gender, gives the grade "nie wiem". The answer rules and the course
+   check handle nouns in the plural.
+6. The engine fits the initial intervals, the first four FSRS-6
+   parameters, to the learner's log once the log has enough second answers.
+   `status` compares the measured recall with the target.
+7. A new module `term.py` on the standard library detects what the terminal
+   can do (`NO_COLOR`, `FORCE_COLOR`, `TERM=dumb`, VT mode on Windows),
+   replaces Unicode characters with ASCII where the terminal cannot show
+   them, and wraps text by the width of its characters. The Rich package is
+   no longer needed.
+8. `vocabbot drill` gets a new session layout, and `vocabbot` without a
+   command shows a start screen with the plan of the day. The session shows
+   a compact card, saves a correct answer without an extra key, shows a
+   character-level difference, folds a card into one line after the answer
+   and takes the commands `/cofnij`, `/znam`, `/koniec` and `/pomoc`. A
+   progress line shows the place in the session, and the summary gives the
+   result, the words to work on, tomorrow's load and the activity of the
+   last weeks.
+9. `today`, `status` and `forecast` get progress bars of the levels, a load
+   chart and a compact layout of the numbers.
+10. Version 1.0.0-rc.3: manifests, `pyproject.toml`, CHANGELOG, the
+    documents in both languages and the plan.
+
+Acceptance criteria:
+
+- `vocabbot course check` passes without errors, and every word on the
+  audit's check list is in the course or has the reason of its absence in
+  the plan.
+- Every entry with an example has a decision of the example review, or
+  comes from the build after the review and passed the filter of vulgar
+  words.
+- The first 30 A1 entries of every language hold at most 9 function words.
+- Tests cover the spread of due dates, the grading of articles, nouns in the
+  plural, the fit of the parameters and the terminal module without colour
+  and with ASCII characters.
+- The checks of Stages 1–3 pass, and two builds of the courses give
+  identical files.
+
+Steps after your consent, each separately: the session tests on version
+rc.3, the push, the tag and the release of rc.3.
+
+#### Result of Stage 4 (15.11.2026, version 1.0.0-rc.3)
+
+Stage 4 completed the course content, the mechanics and the terminal
+session. The courses 2026.11.4 hold 23 095 entries instead of 21 919, every
+word on the audit's check list is in the courses, and every example sentence
+passed a model review.
+
+| Criterion | Result |
+|---|---|
+| `vocabbot course check` | 0 errors and 0 warnings in 16 course files |
+| entries | English 6286, German 5649, Spanish 5581, French 5579 |
+| the audit's check list | every word is in the courses, among them yes, no, with, house, hello, thank you, the names of the months, ja, nein, kein, du, danke, die Eltern, die Leute, kennen, heißen, sí, gracias, estar, hay, tú, conocer, oui, non, merci, tu, chez, il y a, les gens, combien; the English articles the, a and an are no cards, because Polish has no equivalent |
+| editors' decisions | 229 rows in `tools/courses/editor.jsonl`: 10 new concepts (among them ty, Pan, nazywać się, estar, es gibt, znać, ile, chez, rodzice, chętnie), 43 places of the A1 starting list, decisions for 24 of the 46 CEFR-J determiners (23 in the courses), 12 names of the months, about 90 recovered A1–A2 concepts, 42 concepts with a meaning told apart by a note, 5 concepts left out |
+| the start of A1 | the first 30 entries hold 6–7 function words (limit 9); the level opens with "cześć", "dzień dobry", "tak", "nie", "dziękuję", "proszę" |
+| example review | Claude Sonnet 5.5 judged 42 156 candidate sentences for 16 406 entries in 411 requests: 14 911 sentences stay, 1495 entries have no good sentence; the first candidate failed in 3406 cases (mostly the translation, the sense and the part of speech); the cost was 6.36 USD plus 0.03 USD for a test request |
+| examples with a Polish translation, A1–A2 (threshold 80%) | English 90.0%, German 84.4%, Spanish 82.8%, French 81.9% |
+| examples with a Polish translation, B1–B2 (threshold 60%) | English 66.2%; German 48.5%, Spanish 44.3% and French 47.1% below the threshold, because the review rejected sentences with another sense |
+| engine | due dates spread by the FSRS ranges with the card and the day as the key; "nie wiem" for an article of another gender and for a missing article that shows the gender; nouns used only in the plural and months without an article; initial stabilities fitted from 40 second answers; `status` shows the intervals after a first answer and the recall against the target |
+| terminal | `term.py` on the standard library, the new session `vocabbot drill`, the start screen `vocabbot`, a new look of `today`, `status` and `forecast`; the package no longer depends on Rich |
+| reproducibility | two builds of the courses give identical files |
+| tests | 188 on Python 3.15; 171 on Python 3.10 (1 skipped without the `data` group) |
+| plugin checks | `validate.py` 0 errors and 0 warnings, `session_test.py --check` 7 of 7, `claude plugin validate --profile directory --strict` without remarks |
+
+A trial of the terminal session found a defect that the starting list made
+common: marking a word as known recomputed the whole list of the day, and the
+gap between languages for one concept then blocked a card already shown in
+the other language. The words of the plan are now chosen first and stay the
+same during the day, and words added later join after them; a test checks
+that a card once shown stays on the list.
+
+Conclusions:
+
+1. Courses built only from the CEFR-J list and the rules of the pipeline
+   lose basic words where parts of speech meet (the months as proper names,
+   determiners outside the map, English verbs spelt like nouns). An editors'
+   file with human decisions fills these gaps cheaply and repeatably.
+2. The model review of the examples rejected one in five first candidates.
+   The rules that find a word in a sentence do not see its sense, so every
+   new sentence needs such a review.
+3. The coverage of B1–B2 examples for German, Spanish and French depends on
+   the number of Tatoeba sentences with a Polish translation. Raising it
+   needs sentences from another source or translations prepared by a model,
+   priced separately.
+
+---
+
+### Stage 5. A schedule fitted to the learner
+
+You added Stage 5 on 15.11.2026, during Stage 4. It covers three topics: a
+full fit of the FSRS parameters to the learner, a day plan aware of the
+learner's presence, and a tool that replays the log and compares every
+variant with FSRS-6. The tool comes first, because it decides whether the
+other two variants improve the predictions and the load compared with FSRS-6.
+Stage 4 brings the first step of the fit: initial stabilities computed from
+the learner's second answers.
+
+| Topic | State on 15.11.2026 | Source |
+|---|---|---|
+| FSRS optimizer | py-fsrs fits parameters in the extra `fsrs[optimizer]` with heavy dependencies; FSRS-Optimizer uses PyTorch; fsrs-rs 1.2.1 keeps the default parameters below 64 training items | open-spaced-repetition repositories |
+| Measures of comparison | the benchmark of spaced-repetition algorithms compares log loss, RMSE(bins) and AUC on answers predicted before their outcome | srs-benchmark, Expertium's description |
+| A plan by presence | Anki has had "Easy Days" since 24.11 (fewer reviews on chosen weekdays, set by hand) and load balancing within the fuzz | FSRS Helper and Anki documentation |
+
+Scope:
+
+1. `vocabbot replay` replays the log in order of time and, for every review,
+   records the recall each variant predicts before the answer is known. The
+   report gives log loss, RMSE(bins) and AUC for every variant and the
+   difference from FSRS-6 with the default parameters, overall and for each
+   language. A fit uses the earlier part of the log and the evaluation the
+   later part, so no variant sees the answers it predicts.
+2. The same command simulates the load: reviews a day, minutes and the
+   predicted recall of every scheduling variant for the coming weeks. The
+   simulation uses the rules of `forecast`.
+3. A full fit of the 21 FSRS-6 parameters on the standard library (gradient
+   descent regularised towards the defaults), for each language separately
+   once the language's log has enough reviews. The engine takes fitted
+   parameters only when `replay` shows a lower log loss than FSRS-6 with the
+   defaults on the later part of the log.
+4. A day plan aware of presence. From the ordinary statistics of the log,
+   without a network, the engine computes the chance of a session on each
+   weekday and the usual number of minutes. Within the fuzz it chooses for a
+   review the day with the better chance of presence and the lighter load,
+   the number of new words keeps the forecast minutes within the learner's
+   usual time, and before an expected break the session offers reviews ahead
+   of their day. The result stays a function of the log and the plan, so both
+   computers compute the same plan.
+5. `status` and the coach show which parameters apply, how many answers they
+   come from and how they score in `replay`.
+
+Acceptance criteria:
+
+- `replay` on the synthetic logs of the tests recovers the parameters of
+  the generator, and for FSRS-6 with the defaults gives results that match
+  the `fsrs` module.
+- Fitted parameters apply only with a better score in `replay`; otherwise
+  the engine stays with FSRS-6.
+- In the simulation, the plan by presence lowers the backlog after days
+  without learning without the predicted recall falling below the target.
+- The day's queue stays identical on two computers with the same log.
+
+Data: the fit and the plan by presence need a few weeks of the log, so the
+`replay` tool is ready before the end of the pilot, and the fit and the plan
+use the pilot's log. The stage needs no model costs.
+
+---
+
 ## 11. Completeness check
 
 ### 11.1 Features of the SuperMemo courses
@@ -934,7 +1136,7 @@ it.
 | A word page: meaning, example, pronunciation | yes | the Polish meaning, a sentence with a gap, IPA |
 | Three grades | yes | `know`, `almost`, `dont_know` |
 | Learning, reviews, drill | yes | one queue of the day in this order |
-| A review at a recall of about 90% | yes | FSRS-6, the recall in the plan |
+| A review at a recall of about 90% | yes | FSRS-6, the recall in the plan, the spread of due dates, initial intervals fitted to the log; the full fit in Stage 5 |
 | Skipping known words | yes | the grade "known" and the placement test |
 | Cards a day, the length of the course | yes | `plan`, `forecast` |
 | A calendar with days off | yes | `days_off` |
@@ -968,6 +1170,10 @@ of words confused between languages, own words from any text.
 | Stage 2, the pipeline and the sample review | none | acceptance of the plan |
 | Stage 2, the batch run through the API | an estimate before the run | separate, only at the decision point |
 | Stage 3, session tests with `claude -p` | an estimated 3–6 USD with Claude Sonnet 5.5 (7 sessions, 13 turns) | separate |
+| Stage 4, editing of the basic words | none | approved on 15.11.2026 |
+| Stage 4, review of the examples through the Message Batches API | up to 8 USD with Claude Sonnet 5.5 | approved on 15.11.2026 |
+| Stage 4, session tests on version rc.3 | an estimated 3–6 USD with Claude Sonnet 5.5 | separate |
+| Stage 5, a schedule fitted to the learner | none | acceptance of the stage |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub
@@ -991,8 +1197,6 @@ account on 14.11.2026.
 
 ## 14. Extensions after version 1.0
 
-- Fitting the FSRS parameters to the learner's own log, separately for every
-  language.
 - Pronunciation through the speech synthesis of the operating system and
   recordings from Wiktionary.
 - A session on a phone: a server on your own VPS or a page in the home
@@ -1016,6 +1220,9 @@ account on 14.11.2026.
 - kaikki.org, Wiktionary data: https://kaikki.org/dictionary/rawdata.html
 - CEFR-J Vocabulary Profile: https://github.com/openlanguageprofiles/olp-en-cefrj
 - Tatoeba, downloads: https://tatoeba.org/downloads
+- fsrs-rs: https://docs.rs/fsrs/
+- Benchmark of spaced-repetition algorithms: https://github.com/open-spaced-repetition/srs-benchmark and https://expertium.github.io/Benchmark.html
+- FSRS Helper (Easy Days, load balancing): https://github.com/open-spaced-repetition/fsrs4anki-helper
 - Waisman Center, interleaving languages: https://www.waisman.wisc.edu/?p=36980
 - MPI Nijmegen, "New in, old out": https://forms.mpi.nl/node/55663
 - Bartolotti and Marian, learning a third language: https://bilingualism.northwestern.edu/wp-content/uploads/2018/05/BartolottiMarian2018.pdf

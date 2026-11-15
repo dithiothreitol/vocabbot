@@ -2,12 +2,12 @@
   "lang": "de",
   "base": "pl",
   "title": "VocabBot A1–B2",
-  "version": "2026.11.3",
+  "version": "2026.11.4",
   "levels": {
-    "a1": 949,
-    "a2": 1087,
-    "b1": 1679,
-    "b2": 1674
+    "a1": 1016,
+    "a2": 1162,
+    "b1": 1724,
+    "b2": 1747
   },
   "license": "CC BY-SA 4.0",
   "sources": [
@@ -33,6 +33,15 @@
       "name": "Tatoeba example sentences; authors in sentences.tsv",
       "license": "CC BY 2.0 FR",
       "url": "https://tatoeba.org"
+    },
+    {
+      "id": "review",
+      "name": "Review by Claude Sonnet 5.5: senses and equivalents (tools/courses/review.jsonl) and example sentences (tools/courses/examples.jsonl)"
+    },
+    {
+      "id": "editor",
+      "name": "VocabBot editors: basic words, meanings and the starting list (tools/courses/editor.jsonl)",
+      "license": "CC BY-SA 4.0"
     }
   ]
 }

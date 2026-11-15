@@ -5,11 +5,11 @@
 Pilotaż jest ostatnim warunkiem wersji 1.0 (rozdział 1 planu, warunek 7):
 dwa tygodnie codziennej nauki w dwóch lub trzech językach, w czacie
 i w terminalu, kończą się bez otwartego błędu blokującego. Pilotaż odbywa
-się na wersji 1.0.0-rc.2.
+się na wersji 1.0.0-rc.3.
 
 ## Przed pierwszą sesją
 
-- **VocabBot 1.0.0-rc.2** zainstalowany jako wtyczka w Claude Code (oraz
+- **VocabBot 1.0.0-rc.3** zainstalowany jako wtyczka w Claude Code (oraz
   w Codex CLI, jeśli pilotaż obejmuje Codexa) i jako program `vocabbot`
   (`uv tool install vocabbot`, z PyPI). Wersję pokazuje `vocabbot --version`.
 - **Folder nauki poza repozytorium**, najlepiej w folderze synchronizowanym,
@@ -24,7 +24,7 @@ się na wersji 1.0.0-rc.2.
 |---|---|---|---|
 | 1 | Konfiguracja z testem | „skonfiguruj VocabBota”, test dla jednego języka | test pokazuje pytania bez odpowiedzi; plan powstaje po jednym potwierdzeniu; prognoza pochodzi z silnika |
 | 2 | Sesja w czacie | „sesja” przez trzy dni | partie po około 10 kart; żadna odpowiedź przed oceną; utrwalanie na końcu |
-| 3 | Sesja w terminalu | `vocabbot drill` przez trzy dni | wpisywanie ä, ß, ñ, é, ç; klawisze ocen; przerwanie klawiszem q |
+| 3 | Sesja w terminalu | `vocabbot drill` przez trzy dni | wpisywanie ä, ß, ñ, é, ç; zapis poprawnej odpowiedzi od razu; zaznaczona różnica po pomyłce; klawisze ocen; `/cofnij`, `/znam`, `/koniec`; kolory i symbole w Twoim terminalu |
 | 4 | Zmiana drogi w trakcie dnia | początek w czacie, dokończenie w terminalu | ta sama kolejność, bez powtórzonych kart |
 | 5 | Słowo znane przed kursem | „to słowo znałem” | ocena „znałem” tylko przy pierwszym pokazaniu; limit nowych słów bez zmian |
 | 6 | Zmiana oceny | „to była literówka, zalicz” | zmiana tylko tej karty; wiersz oznaczony w dzienniku |

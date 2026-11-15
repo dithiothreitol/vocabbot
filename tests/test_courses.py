@@ -73,3 +73,16 @@ def test_duplicate_meaning_needs_hints(catalog: Catalog) -> None:
     catalog._add(extra, own=False)
     result = courses.check(catalog)
     assert any("share the meaning" in e for e in result["errors"])
+
+
+def test_plural_and_bare_nouns(catalog: Catalog) -> None:
+    good = entry_of(catalog, "de", 2)
+    plural = {**copy.deepcopy(good), "display": "die Eltern", "lemma": "Eltern", "gender": "pl"}
+    plural.pop("example", None)
+    assert courses.entry_problems(plural) == []
+    assert courses.entry_problems({**plural, "display": "der Eltern"})
+    month = {**plural, "lang": "es", "id": "es-" + plural["concept"], "display": "enero"}
+    month.update({"lemma": "enero", "gender": "m", "bare": True})
+    assert courses.entry_problems(month) == []
+    assert not courses.needs_article(month)
+    assert courses.entry_problems({**month, "display": "el enero"})

@@ -44,7 +44,8 @@ FORM_KEYS = (
     "present_3sg",
     "comparative",
 )
-GENDERS = {"de": ("m", "f", "n"), "es": ("m", "f"), "fr": ("m", "f")}
+# "pl" is a noun used only in the plural, shown with the plural article (die Eltern)
+GENDERS = {"de": ("m", "f", "n", "pl"), "es": ("m", "f", "pl"), "fr": ("m", "f", "pl")}
 ENTRY_ID = re.compile(r"^(?P<lang>[a-z]{2})-(?P<concept>c\d{5}|u[0-9a-f]{6})$")
 CARD_ID = re.compile(r"^(?P<entry>[a-z]{2}-(?:c\d{5}|u[0-9a-f]{6}))#(?P<direction>[pr])$")
 IPA = re.compile(r"^(/[^/]+/|\[[^\]]+\])$")
@@ -220,7 +221,9 @@ def gap_sentence(entry: dict[str, Any]) -> str | None:
 
 
 def needs_article(entry: dict[str, Any]) -> bool:
-    return entry.get("pos") == "noun" and bool(rules(str(entry["lang"])).articles)
+    if entry.get("pos") != "noun" or entry.get("bare"):
+        return False  # "enero", "janvier": a month goes without an article
+    return bool(rules(str(entry["lang"])).articles)
 
 
 def question(entry: dict[str, Any], direction: str) -> dict[str, Any]:
@@ -337,11 +340,18 @@ def _noun_problems(entry: dict[str, Any], lang: str, display: str) -> list[str]:
     gender = entry.get("gender")
     if gender not in GENDERS[lang]:
         return [f"gender must be one of {', '.join(GENDERS[lang])}"]
+    if entry.get("bare"):
+        if split_article(display, lang_rules)[0] is not None or gender == "pl":
+            return ["a noun marked bare is shown without an article"]
+        return []
     article, core = split_article(display, lang_rules)
     if article is None:
         return ["a noun is shown with its definite article"]
     problems: list[str] = []
-    if article == lang_rules.elided:
+    if gender == "pl":
+        if article.casefold() not in lang_rules.plural_articles:
+            problems.append(f"a plural noun takes {' or '.join(lang_rules.plural_articles)}")
+    elif article == lang_rules.elided:
         if core[:1].lower() not in "aeiouyhâàäéèêëîïôöûüœ":
             problems.append("the elided article stands only before a vowel or h")
     elif article != lang_rules.articles.get(str(gender)):

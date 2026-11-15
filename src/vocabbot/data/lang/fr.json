@@ -19,6 +19,14 @@
     "des",
     "du"
   ],
+  "indefinite_articles": {
+    "un": [
+      "m"
+    ],
+    "une": [
+      "f"
+    ]
+  },
   "elided_article": "l'",
   "nouns_capitalized": false,
   "feminine_el": false,

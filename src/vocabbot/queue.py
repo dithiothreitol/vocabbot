@@ -24,7 +24,7 @@ from fractions import Fraction
 from typing import Any
 
 from vocabbot import store
-from vocabbot.book import Book, Today, activity, extend, replay
+from vocabbot.book import Book, Today, activity, extend, fitted_replay
 from vocabbot.courses import Catalog, card_id, split_card
 from vocabbot.fsrs import Scheduler
 
@@ -147,23 +147,26 @@ def select_new(
     day: date,
     total: int,
     suspended: set[str],
+    base: int | None = None,
 ) -> tuple[list[str], dict[str, int]]:
     """Today's new cards, chosen from the state before the day.
 
-    Answers given during the day do not change the choice, so the list stays
-    the same until the learner asks for more words or marks a word as known
-    (a known word does not use the limit, so one more word joins the list).
+    Answers given during the day do not change the choice. The words of the
+    plan (`base`, the daily limit) are chosen first and never change during the
+    day; words the learner adds (more words for today, and one more for each
+    word marked as known, which does not use the limit) join after them, so a
+    card already shown never leaves the list.
     """
     active = [item for item in plan["languages"] if not item.get("paused")]
     weights = {item["code"]: int(item.get("weight", 1)) for item in active}
     known = sum(1 for card in today.learned if today.first_grade.get(card) == "known")
-    quota = (
-        split_quota(total + known, weights, day.toordinal())
-        if total > 0
-        else dict.fromkeys(weights, 0)
-    )
+    zero = dict.fromkeys(weights, 0)
+    full = total + known if total > 0 else 0
+    quota = split_quota(full, weights, day.toordinal()) if full > 0 else zero
+    planned_base = min(total if base is None else base, total)
+    first = split_quota(planned_base, weights, day.toordinal()) if planned_base > 0 else zero
+    second = {code: max(0, quota[code] - first[code]) for code in weights}
     directions = [DIRECTION_CODES[d] for d in plan["directions"]]
-    remaining = dict(quota)
     introduced: dict[str, list[tuple[str, str, date]]] = defaultdict(list)
     for card, state in before.cards.items():
         entry = catalog.card(card)
@@ -204,18 +207,24 @@ def select_new(
         return False
 
     order = rotate(list(weights), day.toordinal())
-    for code in order:
-        while remaining[code] > 0 and take(code):
-            remaining[code] -= 1
-    leftover = sum(remaining[code] for code in exhausted)
-    while leftover > 0:
-        progressed = False
+
+    def fill(remaining: dict[str, int]) -> None:
+        """Take each language's share; a language without words left passes it on."""
         for code in order:
-            if leftover > 0 and code not in exhausted and take(code):
-                leftover -= 1
-                progressed = True
-        if not progressed:
-            break
+            while remaining[code] > 0 and take(code):
+                remaining[code] -= 1
+        leftover = sum(remaining[code] for code in exhausted)
+        while leftover > 0:
+            progressed = False
+            for code in order:
+                if leftover > 0 and code not in exhausted and take(code):
+                    leftover -= 1
+                    progressed = True
+            if not progressed:
+                break
+
+    fill(first)
+    fill(second)
     planned = [card for code in order for card in picks[code]]
     chosen = set(planned)
     # words learned today outside today's choice (the plan changed during the day)
@@ -240,7 +249,7 @@ def books(learner: store.Learner, day: date) -> tuple[Book, Book]:
     if cached is not None and cached[0] == key:
         before: Book = cached[1]
     else:
-        before = replay(earlier)
+        before = fitted_replay(earlier)
         learner.cache["before"] = (key, before)
     return before, extend(before, later)
 
@@ -249,7 +258,7 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     plan = learner.plan()
     before, book = books(learner, day)
     today = activity(book, day)
-    scheduler = Scheduler(retention=float(plan["retention"]))
+    scheduler = Scheduler(retention=float(plan["retention"]), parameters=before.parameters)
     codes = [item["code"] for item in plan["languages"]]
     directions = {DIRECTION_CODES[d] for d in plan["directions"]}
     suspended = learner.suspended()
@@ -282,8 +291,9 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         reviews = due_cards
     overflow = 0 if off else len(due_cards) - len(reviews)
 
-    total = (0 if off else int(plan["new_per_day"])) + extra
-    new, quota = select_new(plan, catalog, before, today, day, total, suspended)
+    base = 0 if off else int(plan["new_per_day"])
+    total = base + extra
+    new, quota = select_new(plan, catalog, before, today, day, total, suspended, base=base)
 
     done = set(today.seen)
     drill = sorted(

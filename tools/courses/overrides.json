@@ -1,0 +1,10 @@
+{
+  "_note": "Corrections of single entries after the merge step: key <lang>-<concept>, fields of the entry (null removes a field). One form that serves several concepts keeps the meanings of all of them.",
+  "de-c06067": {"gloss": {"pl": "ona, oni"}},
+  "de-c07788": {"gloss": {"pl": "jej, ich"}},
+  "en-c03742": {"gloss": {"pl": "wiedzieć, znać"}},
+  "en-c07740": {"gloss": {"pl": "ty, wy"}},
+  "es-c07766": {"gloss": {"pl": "jego, jej, ich"}},
+  "fr-c07740": {"gloss": {"pl": "wy, Pan, Pani"}},
+  "fr-c07766": {"gloss": {"pl": "jego, jej"}}
+}

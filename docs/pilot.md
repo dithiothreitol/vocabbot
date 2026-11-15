@@ -5,11 +5,11 @@
 The pilot is the last condition of version 1.0 (section 1 of the plan,
 condition 7): two weeks of daily learning in two or three languages, in the
 chat and in the terminal, end without an open blocking defect. The pilot runs
-on version 1.0.0-rc.2.
+on version 1.0.0-rc.3.
 
 ## Before the first session
 
-- **VocabBot 1.0.0-rc.2** installed as a plugin in Claude Code (and in Codex
+- **VocabBot 1.0.0-rc.3** installed as a plugin in Claude Code (and in Codex
   CLI, if the pilot covers Codex) and as the `vocabbot` program
   (`uv tool install vocabbot`, from PyPI). `vocabbot --version` shows it.
 - **A learning folder outside the repository**, best in a synced folder such
@@ -23,7 +23,7 @@ on version 1.0.0-rc.2.
 |---|---|---|---|
 | 1 | Setup with a test | "skonfiguruj VocabBota", a test for one language | the test shows questions without answers; one yes creates the plan; the forecast comes from the engine |
 | 2 | Session in the chat | "sesja" on three days | batches of about 10 cards; no answer before its grade; the drill at the end |
-| 3 | Session in the terminal | `vocabbot drill` on three days | typing ä, ß, ñ, é, ç; the grade keys; stopping with q |
+| 3 | Session in the terminal | `vocabbot drill` on three days | typing ä, ß, ñ, é, ç; a right answer saved at once; the marked difference after a mistake; the grade keys; `/cofnij`, `/znam`, `/koniec`; colours and symbols in your terminal |
 | 4 | Switching during a day | start in the chat, finish in the terminal | the same order, no card twice |
 | 5 | A word known before the course | "to słowo znałem" | "znałem" only at the first showing; the daily limit unchanged |
 | 6 | A changed grade | "to była literówka, zalicz" | only that card changes; the row is marked in the log |

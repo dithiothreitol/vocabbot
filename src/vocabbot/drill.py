@@ -1,29 +1,47 @@
 """The day's session in a terminal.
 
 Every answer is written to the log the moment it is graded, so the learner may
-stop at any card (`:q`, Ctrl+C or the end of input) and lose nothing. With Rich
-installed each card carries its language in colour; without it (vocabbot.pyz)
-the session runs in plain text.
+stop at any card (/koniec, Ctrl+C or the end of input) and lose nothing. The
+session draws with term.py: colours and symbols where the terminal shows them,
+plain text elsewhere. In an interactive terminal a finished card folds into
+one line, so the screen keeps a short history of the session.
 """
 
 from __future__ import annotations
 
-import os
 import sys
 import time
 from collections import Counter
 from collections.abc import Callable
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
-from vocabbot import assets, session, store
+from vocabbot import assets, session, store, term
 from vocabbot.courses import Catalog, presentation, question
 from vocabbot.errors import VocabError
 from vocabbot.queue import Item, compute
 
 QUIT = ":q"
+COMMANDS = {
+    ":q": "quit",
+    "/q": "quit",
+    "/koniec": "quit",
+    "/cofnij": "undo",
+    "/znam": "known",
+    "/pomoc": "help",
+    "/?": "help",
+}
 BATCH = 5
 KEY_GRADES = {"1": "know", "2": "almost", "3": "dont_know"}
+GRADE_COLOURS = {
+    "know": "green",
+    "known": "green",
+    "almost": "yellow",
+    "dont_know": "red",
+    "new": "cyan",
+}
+NO_DIFF = {"wrong", "blank", "wrong_language"}
+ACTIVITY_DAYS = 28
 
 
 class Quit(Exception):
@@ -44,7 +62,7 @@ def read_key(prompt: str) -> str:
 
         key = msvcrt.getwch()
         if key in ("\x00", "\xe0"):
-            msvcrt.getwch()
+            msvcrt.getwch()  # an arrow or a function key
             key = ""
     else:
         import termios
@@ -62,107 +80,128 @@ def read_key(prompt: str) -> str:
         raise KeyboardInterrupt
     if key in ("\x04", "\x1a"):
         raise EOFError
+    if key == "\x1b":
+        return "esc"
     return "" if key in ("\r", "\n") else key.lower()
 
 
+def read_line(prompt: str) -> str:
+    """A typed answer; with input from a pipe the answer is echoed, as a terminal would."""
+    answer = input(prompt)
+    if not sys.stdin.isatty():
+        print(answer)
+    return answer
+
+
+def _raw(text: str) -> None:
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+
 class Screen:
-    """Plain text; RichScreen adds colours."""
+    """Where the session writes and reads; tests give their own functions."""
 
     def __init__(
         self,
         write: Callable[[str], None] = print,
-        read_line: Callable[[str], str] = input,
+        read_line: Callable[[str], str] = read_line,
         read_one: Callable[[str], str] = read_key,
+        caps: term.Caps | None = None,
+        raw: Callable[[str], None] = _raw,
     ) -> None:
         self.write = write
         self.read_line = read_line
         self.read_one = read_one
+        self.caps = caps or term.Caps()
+        self.style = term.Style(self.caps)
+        self.raw = raw
+        self.block: list[str] = []
 
-    def show(self, text: str, style: str = "") -> None:
-        self.write(text)
-
-    def tag(self, lang: str) -> str:
-        try:
-            return str(assets.language(lang)["tag"])
-        except KeyError:
-            return lang.upper()
-
-    def header(self, lang: str, label: str) -> None:
-        self.show("")
-        self.show(f"[{self.tag(lang)}] {label}", style=f"bold {self.color(lang)}")
-
-    def color(self, lang: str) -> str:
-        try:
-            return str(assets.language(lang)["color"])
-        except KeyError:
-            return "white"
+    def show(self, text: str = "", *styles: str) -> None:
+        line = self.style(text, *styles)
+        self.write(line)
+        self.block.append(line)
 
     def ask(self, prompt: str) -> str:
-        return self.read_line(prompt)
+        answer = self.read_line(prompt)
+        self.block.append(prompt + answer)
+        return answer
 
     def key(self, prompt: str) -> str:
-        return self.read_one(prompt)
+        pressed = self.read_one(prompt)
+        self.block.append(prompt)
+        return pressed
 
+    def begin(self) -> None:
+        """A new card starts; what is on screen stays."""
+        self.block = []
 
-class RichScreen(Screen):
-    def __init__(self) -> None:
-        from rich.console import Console
+    def fold(self, line: str | None, *, plain_too: bool = False) -> None:
+        """Replace the card on screen by one line where the terminal can redraw.
 
-        self.console = Console(highlight=False)
-        super().__init__(read_line=self._input)
-
-    def _input(self, prompt: str) -> str:
-        return self.console.input(prompt, markup=False)
-
-    def show(self, text: str, style: str = "") -> None:
-        self.console.print(text, style=style or None, markup=False)
+        A terminal that cannot redraw keeps the card; the line follows only
+        when `plain_too` asks for it (the result of an answer saved at once).
+        """
+        if self.caps.redraw and self.block:
+            self.raw(term.erase(term.rows_of(self.block, self.caps.width)))
+            if line is not None:
+                self.write(line)
+        elif line is not None and plain_too:
+            self.write(line)
+        self.block = []
 
 
 def make_screen(plain: bool) -> Screen:
-    if plain or os.environ.get("NO_COLOR") or not sys.stdout.isatty():
-        return Screen()
+    return Screen(caps=term.detect(plain=plain))
+
+
+# ---------------------------------------------------------------- pieces of a card
+
+
+def lang_tag(lang: str) -> str:
     try:
-        return RichScreen()
-    except ImportError:
-        return Screen()
+        return str(assets.language(lang)["tag"])
+    except KeyError:
+        return lang.upper()
 
 
-def _word_lines(word: dict[str, Any]) -> list[str]:
+def lang_colour(lang: str) -> str:
+    try:
+        return str(assets.language(lang)["color"])
+    except KeyError:
+        return "white"
+
+
+def word_details(word: dict[str, Any]) -> str:
+    """Part of speech, gender, forms and pronunciation in one line."""
     details = [assets.text(f"pos.{word['pos']}")] if word.get("pos") else []
     if word.get("gender"):
         details.append(assets.text(f"genders.{word['gender']}"))
     for key, value in (word.get("forms") or {}).items():
         details.append(f"{assets.text(f'forms.{key}')} {value}")
-    first = word["word"] + (f"  ({', '.join(details)})" if details else "")
     if word.get("ipa"):
-        first += f"  {word['ipa']}"
-    lines = [first, f"= {word['meaning']}"]
-    if word.get("also"):
-        lines.append("  + " + ", ".join(word["also"]))
-    if word.get("example"):
-        lines.append(f"  {word['example']}")
-        if word.get("example_pl"):
-            lines.append(f"  {word['example_pl']}")
-    return lines
+        details.append(str(word["ipa"]))
+    return ", ".join(details)
 
 
-def _question_lines(q: dict[str, Any]) -> list[str]:
-    if q["ask"] == "word":
-        extras = [assets.text(f"pos.{q['pos']}")] if q.get("pos") else []
-        if q.get("with_article"):
-            extras.append(assets.text("drill.with_article"))
-        lines = [str(q["meaning"]) + (f"  ({', '.join(extras)})" if extras else "")]
-        if q.get("hint"):
-            lines.append(f"  {q['hint']}")
-        if q.get("sentence"):
-            lines.append(f"  {q['sentence']}")
-            if q.get("sentence_pl"):
-                lines.append(f"  {q['sentence_pl']}")
-        return lines
-    lines = [str(q["word"])]
-    if q.get("sentence"):
-        lines.append(f"  {q['sentence']}")
-    return lines
+def when_back(result: dict[str, Any]) -> str:
+    """When the card comes back, as the learner says it."""
+    if result.get("drill"):
+        return assets.text("drill.back_today")
+    days = result.get("interval_days")
+    if days == 1:
+        return assets.text("drill.back_tomorrow")
+    if days:
+        return assets.text("drill.back_days", days=days)
+    if result.get("next_due"):
+        return assets.text("drill.back_on", day=result["next_due"])
+    return ""
+
+
+def polish_date(day: date) -> str:
+    weekday = assets.text(f"weekdays.{store.WEEKDAYS[day.weekday()]}")
+    month = assets.text(f"months_genitive.{day.month}")
+    return f"{weekday}, {day.day} {month}"
 
 
 class Drill:
@@ -179,29 +218,34 @@ class Drill:
         self.catalog = catalog
         self.day = day
         self.screen = screen
+        self.style = screen.style
         self.clock = clock
         self.ahead = ahead
         self.counts: Counter[str] = Counter()
         self.failed: set[str] = set()
+        self.done = 0
+        self.total = 0
+        self.last: dict[str, Any] | None = None  # the last saved answer, for /cofnij
+        self.to_work_on: list[str] = []
+        self.started = time.monotonic()
 
     def compute(self) -> Any:
         return compute(self.learner, self.catalog, self.day, ahead=self.ahead)
 
+    # ------------------------------------------------------------ the session
+
     def run(self) -> dict[str, Any]:
         dp = self.compute()
         summary = session.summary(self.learner, self.catalog, dp)
-        self.screen.show(assets.text("drill.title", day=self.day.isoformat()), style="bold")
-        self.screen.show(
-            assets.text("drill.summary", minutes=summary["minutes"], **summary["left"])
-        )
-        self.screen.show(assets.text("drill.help"), style="dim")
+        self.header(summary)
+        finished = False
         try:
             while True:
                 dp = self.compute()
                 pending = [item for item in dp.sequence if item.card not in self.failed]
+                self.total = self.done + len(pending)
                 if not pending:
-                    self.screen.show("")
-                    self.screen.show(assets.text("drill.finished"), style="bold green")
+                    finished = True
                     break
                 if pending[0].phase == "new":
                     batch = [item for item in pending if item.phase == "new"][:BATCH]
@@ -210,109 +254,243 @@ class Drill:
                 else:
                     self.ask(pending[0], left=len(pending))
         except (Quit, EOFError, KeyboardInterrupt):
-            self.screen.show("")
-            self.screen.show(assets.text("drill.saved_progress"), style="dim")
+            pass
+        self.closing(finished)
         answered = sum(self.counts.values())
-        self.screen.show(
-            assets.text(
-                "drill.answered",
-                count=answered,
-                know=self.counts["know"],
-                almost=self.counts["almost"],
-                dont_know=self.counts["dont_know"],
-            )
-        )
         return {"answered": answered, **dict(self.counts)}
+
+    def header(self, summary: dict[str, Any]) -> None:
+        style = self.style
+        left = summary["left"]
+        self.screen.write(style(f"VocabBot{style.sep}{polish_date(self.day)}", "bold"))
+        if any(left.values()):
+            self.screen.write(
+                style(assets.text("drill.summary", minutes=summary["minutes"], **left), "dim")
+            )
+        self.screen.write(style(assets.text("drill.help"), "dim"))
+
+    def card_head(self, item: Item, label: str) -> str:
+        style = self.style
+        colour = lang_colour(item.lang)
+        left = (
+            f"{style(style.glyph('bullet'), colour)} {style(lang_tag(item.lang), 'bold', colour)}"
+        )
+        left += f"  {style(label, 'dim')}"
+        done = min(self.done, self.total)
+        right = f"{style.bar(done, self.total, 10)} {style(f'{done}/{self.total}', 'dim')}"
+        return term.spread(left, right, style.width())
+
+    def sentence_lines(self, text: str | None, polish: str | None) -> None:
+        width = self.style.width() - 2
+        if text:
+            for line in term.wrap(text, width, "  "):
+                self.screen.show(line)
+        if polish:
+            for line in term.wrap(polish, width, "  "):
+                self.screen.show(line, "dim")
+
+    # ------------------------------------------------------------ new words
 
     def introduce(self, batch: list[Item], left: int) -> list[Item]:
         to_test = []
+        style = self.style
         for index, item in enumerate(batch, 1):
+            self.screen.begin()
+            word = presentation(item.entry)
             label = f"{assets.text('drill.new_word')} {index}/{len(batch)}"
-            self.screen.header(item.lang, label)
-            for line in _word_lines(presentation(item.entry)):
-                self.screen.show(line)
-            key = self.screen.key(assets.text("drill.intro_keys") + " ")
-            if key == "q":
+            self.screen.show(self.card_head(item, label))
+            self.screen.show(f"  {style(word['word'], 'bold')}{style.sep}{word['meaning']}")
+            details = word_details(word)
+            if details:
+                self.screen.show(f"  {details}", "dim")
+            if word.get("also"):
+                self.screen.show(f"  {assets.text('drill.also')} {', '.join(word['also'])}", "dim")
+            self.sentence_lines(word.get("example"), word.get("example_pl"))
+            key = self.screen.key(style(assets.text("drill.intro_keys"), "dim") + " ")
+            if key in ("q", "esc"):
                 raise Quit
             if key == "z":
-                try:
-                    session.self_grade(
-                        self.learner,
-                        self.catalog,
-                        self.day,
-                        self.clock(),
-                        item.card,
-                        "known",
-                        source="cli",
-                    )
-                    self.counts["known"] += 1
-                except VocabError as exc:
-                    self.screen.show(str(exc), style="red")
-                    self.failed.add(item.card)
+                self.save_known(item, word)
                 continue
+            self.screen.fold(self.line_for(item, "new", f"{word['word']} = {word['meaning']}"))
             to_test.append(item)
         if to_test:
-            self.screen.show("")
-            self.screen.show(assets.text("drill.test_title"), style="bold")
+            self.screen.write(style(assets.text("drill.test_title"), "bold"))
         return to_test
 
-    def ask(self, item: Item, left: int | None = None) -> None:
-        phase = assets.text(f"phases.{item.phase}")
-        label = f"{phase} · {left}" if left else phase
-        self.screen.header(item.lang, label)
-        for line in _question_lines(question(item.entry, item.direction)):
-            self.screen.show(line)
-        start = time.monotonic()
-        ahead = item.phase == "ahead"
-        if item.direction == "p":
-            given = self.screen.ask("> ")
-            if given.strip() == QUIT:
-                raise Quit
-            ms = int((time.monotonic() - start) * 1000)
-            dp = self.compute()
-            try:
-                entry, kind, state = session.classify(
-                    dp, self.catalog, self.learner, item.card, ahead=ahead
-                )
-            except VocabError as exc:
-                self.screen.show(str(exc), style="red")
-                self.failed.add(item.card)
-                return
-            verdict = session.evaluate(dp, self.catalog, entry, given)
-            self.show_verdict(verdict, entry)
-            key = self.screen.key(
-                assets.text("drill.grade_keys", grade=assets.text(f"grades.{verdict.grade}")) + " "
+    def save_known(self, item: Item, word: dict[str, Any]) -> None:
+        try:
+            session.self_grade(
+                self.learner, self.catalog, self.day, self.clock(), item.card, "known", source="cli"
             )
-            grade = KEY_GRADES.get(key, verdict.grade)
-            result = session.record(
-                self.learner,
-                dp,
-                item.card,
-                entry,
-                kind,
-                state,
-                grade,
-                self.clock(),
-                verdict=verdict,
-                given=given,
-                ms=ms,
-                source="cli",
-                ahead=ahead,
-            )
-            self.counts[grade] += 1
-            if result.get("next_due"):
-                self.screen.show(assets.text("cli.next_due", due=result["next_due"]), style="dim")
-            if key == "q":
-                raise Quit
+        except VocabError as exc:
+            self.screen.show(f"  {exc}", "red")
+            self.failed.add(item.card)
             return
-        self.screen.key(assets.text("drill.show_meaning") + " ")
-        for line in _word_lines(presentation(item.entry)):
-            self.screen.show(line)
+        self.counts["known"] += 1
+        self.done += 1
+        self.last = None
+        summary = f"{word['word']} = {word['meaning']}"
+        self.screen.fold(
+            self.line_for(item, "known", summary, assets.text("drill.known_saved")), plain_too=True
+        )
+
+    # ------------------------------------------------------------ questions
+
+    def ask(self, item: Item, left: int | None = None) -> None:
+        style = self.style
+        self.screen.begin()
+        phase = assets.text(f"phases.{item.phase}")
+        q = question(item.entry, item.direction)
+        self.screen.show(self.card_head(item, phase))
+        if item.direction != "p":
+            self.recognition(item, q)
+            return
+        extras = [assets.text(f"pos.{q['pos']}")] if q.get("pos") else []
+        if q.get("with_article"):
+            extras.append(assets.text("drill.with_article"))
+        line = f"  {style(str(q['meaning']), 'bold')}"
+        if extras:
+            line += style(style.sep + ", ".join(extras), "dim")
+        self.screen.show(line)
+        if q.get("hint"):
+            self.screen.show(f"  {q['hint']}", "dim")
+        self.sentence_lines(q.get("sentence"), q.get("sentence_pl"))
+        start = time.monotonic()
+        while True:
+            given = self.screen.ask(style(style.glyph("prompt"), "cyan", "bold") + " ")
+            command = COMMANDS.get(given.strip().lower())
+            if command is None:
+                break
+            if command == "quit":
+                raise Quit
+            if command == "help":
+                self.help()
+            elif command == "undo":
+                self.undo()
+            elif command == "known":
+                if item.phase == "new":
+                    self.save_known(item, presentation(item.entry))
+                    return
+                self.screen.show(f"  {assets.text('drill.known_only_new')}", "yellow")
+        ms = int((time.monotonic() - start) * 1000)
+        dp = self.compute()
+        ahead = item.phase == "ahead"
+        try:
+            entry, kind, state = session.classify(
+                dp, self.catalog, self.learner, item.card, ahead=ahead
+            )
+        except VocabError as exc:
+            self.screen.show(f"  {exc}", "red")
+            self.failed.add(item.card)
+            return
+        verdict = session.evaluate(dp, self.catalog, entry, given)
+        word = presentation(entry)
+        if verdict.grade == "know":
+            result = self.save(dp, item, entry, kind, state, "know", verdict, given, ms, ahead)
+            summary = f"{q['meaning']} {style.glyph('arrow')} {word['word']}"
+            self.screen.fold(
+                self.line_for(item, "know", summary, when_back(result)), plain_too=True
+            )
+            return
+        self.show_verdict(verdict, word, given)
+        grade_name = assets.text(f"grades.{verdict.grade}")
+        key = self.screen.key(style(assets.text("drill.grade_keys", grade=grade_name), "dim") + " ")
+        grade = KEY_GRADES.get(key, verdict.grade)
+        result = self.save(dp, item, entry, kind, state, grade, verdict, given, ms, ahead)
+        summary = f"{q['meaning']} {style.glyph('arrow')} {word['word']}"
+        if verdict.errors and grade != "know":
+            errors = ", ".join(assets.text(f"error_classes.{e}") for e in verdict.errors)
+            summary += f"  ({errors})"
+            self.to_work_on.append(f"{word['word']} ({errors})")
+        self.screen.fold(self.line_for(item, grade, summary, when_back(result)))
+        if key in ("q", "esc"):
+            raise Quit
+
+    def save(
+        self,
+        dp: Any,
+        item: Item,
+        entry: dict[str, Any],
+        kind: str,
+        state: Any,
+        grade: str,
+        verdict: Any,
+        given: str,
+        ms: int,
+        ahead: bool,
+    ) -> dict[str, Any]:
+        result = session.record(
+            self.learner,
+            dp,
+            item.card,
+            entry,
+            kind,
+            state,
+            grade,
+            self.clock(),
+            verdict=verdict,
+            given=given,
+            ms=ms,
+            source="cli",
+            ahead=ahead,
+        )
+        self.counts[grade] += 1
+        self.done += 1
+        self.last = {"card": item.card, "grade": grade, "word": result["word"]["word"]}
+        return result
+
+    def show_verdict(self, verdict: Any, word: dict[str, Any], given: str) -> None:
+        style = self.style
+        grade = verdict.grade
+        colour = GRADE_COLOURS[grade]
+        head = f"{style.glyph(grade)} {assets.text(f'grades.{grade}')}"
+        if verdict.errors:
+            errors = ", ".join(assets.text(f"error_classes.{e}") for e in verdict.errors)
+            head += f"{style.sep}{errors}"
+        self.screen.show(f"  {style(style.glyph('result'), 'dim')} {style(head, colour, 'bold')}")
+        if verdict.other_lang:
+            other = assets.language_name(verdict.other_lang)
+            self.screen.show(f"    {assets.text('cli.other_lang', lang=other)}", "red")
+        target = verdict.matched or word["word"]
+        if given.strip() and not set(verdict.errors) & NO_DIFF:
+            wrong, right, caret = term.difference(given.strip(), str(target), style)
+            arrow = style.glyph("arrow")
+            self.screen.show(f"    {wrong} {arrow} {right}")
+            if caret:
+                self.screen.show(
+                    f"    {' ' * (term.width_of(given.strip()) + len(arrow) + 2)}{caret}"
+                )
+            if target != word["word"]:
+                self.screen.show(f"    {style(word['word'], 'bold')}")
+        else:
+            self.screen.show(f"    {style(word['word'], 'bold')}")
+        details = word_details(word)
+        if details:
+            self.screen.show(f"    {details}", "dim")
+        if word.get("example"):
+            width = style.width() - 4
+            for line in term.wrap(str(word["example"]), width, "    "):
+                self.screen.show(line)
+
+    def recognition(self, item: Item, q: dict[str, Any]) -> None:
+        style = self.style
+        self.screen.show(f"  {style(str(q['word']), 'bold')}")
+        self.sentence_lines(q.get("sentence"), None)
+        key = self.screen.key(style(assets.text("drill.show_meaning"), "dim") + " ")
+        if key in ("q", "esc"):
+            raise Quit
+        word = presentation(item.entry)
+        self.screen.show(f"  {style.glyph('result')} {style(word['meaning'], 'bold')}")
+        details = word_details(word)
+        if details:
+            self.screen.show(f"    {details}", "dim")
         key = ""
         while key not in KEY_GRADES:
-            key = self.screen.key(assets.text("drill.recognize_keys") + " ")
-            if key == "q":
+            key = self.screen.key(style(assets.text("drill.recognize_keys"), "dim") + " ")
+            if key in ("q", "esc"):
                 raise Quit
+        grade = KEY_GRADES[key]
         try:
             result = session.self_grade(
                 self.learner,
@@ -320,35 +498,128 @@ class Drill:
                 self.day,
                 self.clock(),
                 item.card,
-                KEY_GRADES[key],
-                ahead=ahead,
+                grade,
+                ahead=item.phase == "ahead",
                 source="cli",
             )
         except VocabError as exc:
-            self.screen.show(str(exc), style="red")
+            self.screen.show(f"  {exc}", "red")
             self.failed.add(item.card)
             return
-        self.counts[KEY_GRADES[key]] += 1
-        if result.get("next_due"):
-            self.screen.show(assets.text("cli.next_due", due=result["next_due"]), style="dim")
+        self.counts[grade] += 1
+        self.done += 1
+        self.last = {"card": item.card, "grade": grade, "word": word["word"]}
+        summary = f"{word['word']} {style.glyph('arrow')} {word['meaning']}"
+        self.screen.fold(self.line_for(item, grade, summary, when_back(result)))
 
-    def show_verdict(self, verdict: Any, entry: dict[str, Any]) -> None:
-        word = presentation(entry)
-        lines = _word_lines(word)
-        if verdict.grade == "know":
-            self.screen.show("✓ " + lines[0], style="bold green")
-        elif verdict.grade == "almost":
-            errors = ", ".join(assets.text(f"error_classes.{e}") for e in verdict.errors)
-            self.screen.show(f"≈ {lines[0]}  ({errors})", style="bold yellow")
-        else:
-            self.screen.show("✗ " + lines[0], style="bold red")
-            if verdict.other_lang:
-                self.screen.show(
-                    assets.text("cli.other_lang", lang=assets.language_name(verdict.other_lang)),
-                    style="red",
-                )
-        for line in lines[1:]:
-            self.screen.show(line)
+    # ------------------------------------------------------------ commands
+
+    def help(self) -> None:
+        for key in ("help_answer", "help_known", "help_undo", "help_quit"):
+            self.screen.show(f"  {assets.text(f'drill.{key}')}", "dim")
+
+    def undo(self) -> None:
+        """/cofnij: another grade for the last answer, on the learner's request."""
+        style = self.style
+        if self.last is None:
+            self.screen.show(f"  {assets.text('drill.nothing_to_undo')}", "yellow")
+            return
+        was = assets.text(f"grades.{self.last['grade']}")
+        prompt = assets.text("drill.undo_keys", word=self.last["word"], grade=was)
+        key = self.screen.key(style(prompt, "dim") + " ")
+        grade = KEY_GRADES.get(key)
+        if grade is None or grade == self.last["grade"]:
+            return
+        try:
+            session.regrade(
+                self.learner,
+                self.catalog,
+                self.day,
+                self.clock(),
+                self.last["card"],
+                grade,
+                source="cli",
+            )
+        except VocabError as exc:
+            self.screen.show(f"  {exc}", "red")
+            return
+        self.counts[self.last["grade"]] -= 1
+        self.counts[grade] += 1
+        if grade == "know":
+            prefix = f"{self.last['word']} ("
+            self.to_work_on = [w for w in self.to_work_on if not w.startswith(prefix)]
+        self.screen.show(
+            "  "
+            + assets.text(
+                "drill.undone", word=self.last["word"], grade=assets.text(f"grades.{grade}")
+            ),
+            "green",
+        )
+        self.last["grade"] = grade
+
+    # ------------------------------------------------------------ lines and the end
+
+    def line_for(self, item: Item, grade: str, summary: str, right: str = "") -> str:
+        style = self.style
+        glyph = style(style.glyph(grade), GRADE_COLOURS.get(grade, "white"), "bold")
+        tag = style(lang_tag(item.lang), lang_colour(item.lang))
+        left = f"{glyph} {tag}  {summary}"
+        return term.spread(left, style(right, "dim"), style.width()) if right else left
+
+    def closing(self, finished: bool) -> None:
+        style = self.style
+        answered = sum(self.counts.values())
+        minutes = max(1, round((time.monotonic() - self.started) / 60)) if answered else 0
+        self.screen.write(style.rule())
+        title = assets.text("drill.finished" if finished else "drill.saved_progress")
+        line = title
+        if answered:
+            line += style.sep + assets.text("drill.answered_short", count=answered, minutes=minutes)
+        self.screen.write(style(line, "bold"))
+        if answered:
+            parts = []
+            for grade in ("know", "almost", "dont_know", "known"):
+                if self.counts[grade]:
+                    glyph = style(style.glyph(grade), GRADE_COLOURS[grade], "bold")
+                    parts.append(f"{glyph} {self.counts[grade]} {assets.text(f'grades.{grade}')}")
+            self.screen.write("  " + "   ".join(parts))
+        if self.to_work_on:
+            text = assets.text("drill.work_on", words=", ".join(self.to_work_on[:6]))
+            for wrapped in term.wrap(text, style.width() - 2, "  "):
+                self.screen.write(wrapped)
+        tomorrow = session.summary(
+            self.learner, self.catalog, compute(self.learner, self.catalog, self.day + timedelta(1))
+        )
+        left = tomorrow["left"]
+        if any(left.values()):
+            self.screen.write(
+                "  " + assets.text("drill.tomorrow", minutes=tomorrow["minutes"], **left)
+            )
+        activity = self.activity()
+        if any(activity):
+            streak = self.streak()
+            self.screen.write(
+                "  "
+                + assets.text("drill.activity", days=ACTIVITY_DAYS)
+                + "  "
+                + style.spark(activity)
+                + style(style.sep + assets.text("drill.streak", days=streak), "dim")
+            )
+
+    def activity(self) -> list[int]:
+        rows = compute(self.learner, self.catalog, self.day).book.rows
+        per_day = Counter(row.day for row in rows)
+        first = self.day - timedelta(days=ACTIVITY_DAYS - 1)
+        return [per_day.get(first + timedelta(days=n), 0) for n in range(ACTIVITY_DAYS)]
+
+    def streak(self) -> int:
+        days = {row.day for row in compute(self.learner, self.catalog, self.day).book.rows}
+        cursor = self.day if self.day in days else self.day - timedelta(days=1)
+        count = 0
+        while cursor in days:
+            count += 1
+            cursor -= timedelta(days=1)
+        return count
 
 
 def run(

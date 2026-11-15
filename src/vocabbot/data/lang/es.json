@@ -21,6 +21,14 @@
     "unas",
     "lo"
   ],
+  "indefinite_articles": {
+    "un": [
+      "m"
+    ],
+    "una": [
+      "f"
+    ]
+  },
   "elided_article": null,
   "nouns_capitalized": false,
   "feminine_el": true,

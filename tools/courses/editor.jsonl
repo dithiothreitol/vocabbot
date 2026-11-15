@@ -1,0 +1,229 @@
+{"id": "c00163", "pl": "temu", "de": {"word": "", "gender": "none", "also": []}, "es": {"word": "", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}, "note": "German, Spanish and French build it with vor, hace, il y a"}
+{"id": "c00209", "keep": false, "note": "'mit', 'avec' as an adverb confused the start of A1"}
+{"id": "c00250", "pl": "rozbawiony", "de": {"word": "amüsiert", "gender": "none", "also": []}, "es": {"word": "divertido", "gender": "none", "also": []}, "fr": {"word": "amusé", "gender": "none", "also": []}}
+{"id": "c00302", "pl": "zaniepokojony, niespokojny", "de": {"word": "ängstlich", "gender": "none", "also": ["besorgt"]}, "es": {"word": "ansioso", "gender": "none", "also": []}, "fr": {"word": "anxieux", "gender": "none", "also": []}}
+{"id": "c00305", "pl": "ktokolwiek", "de": {"word": "irgendjemand", "gender": "none", "also": []}, "es": {"word": "alguien", "gender": "none", "also": []}, "fr": {"word": "n'importe qui", "gender": "none", "also": []}}
+{"id": "c00344", "sense": "the month", "pl": "kwiecień", "de": {"word": "der April", "gender": "m", "also": []}, "es": {"word": "abril", "gender": "m", "also": [], "bare": true}, "fr": {"word": "avril", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c00457", "sense": "the month", "pl": "sierpień", "de": {"word": "der August", "gender": "m", "also": []}, "es": {"word": "agosto", "gender": "m", "also": [], "bare": true}, "fr": {"word": "août", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c00579", "level": "a1", "start": 12}
+{"id": "c00607", "pl": "przedtem, wcześniej", "de": {"word": "vorher", "gender": "none", "also": ["früher"]}, "es": {"word": "antes", "gender": "none", "also": []}, "fr": {"word": "avant", "gender": "none", "also": []}}
+{"id": "c00652", "pl": "lepiej", "de": {"word": "besser", "gender": "none", "also": []}, "es": {"word": "mejor", "gender": "none", "also": []}, "fr": {"word": "mieux", "gender": "none", "also": []}}
+{"id": "c00660", "level": "a1", "start": 26}
+{"id": "c00713", "pl": "jasnowłosy, blond", "de": {"word": "blond", "gender": "none", "also": []}, "es": {"word": "rubio", "gender": "none", "also": []}, "fr": {"word": "blond", "gender": "none", "also": []}}
+{"id": "c00736", "pl": "gotowany", "de": {"word": "gekocht", "gender": "none", "also": []}, "es": {"word": "hervido", "gender": "none", "also": ["cocido"]}, "fr": {"word": "bouilli", "gender": "none", "also": []}}
+{"id": "c00762", "pl": "księgarnia", "en": {"word": "bookstore", "also": ["bookshop"]}, "de": {"word": "die Buchhandlung", "gender": "f", "also": []}, "es": {"word": "la librería", "gender": "f", "also": []}, "fr": {"word": "la librairie", "gender": "f", "also": []}}
+{"id": "c00925", "level": "a1", "pos": "intj", "start": 7, "pl": "do widzenia", "en": {"word": "goodbye", "also": ["bye"]}, "de": {"word": "auf Wiedersehen", "gender": "none", "also": ["tschüss"]}, "es": {"word": "adiós", "gender": "none", "also": ["hasta luego"]}, "fr": {"word": "au revoir", "gender": "none", "also": []}}
+{"id": "c00975", "pl": "podpis (pod zdjęciem)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c00980", "pl": "parking", "en": {"word": "car park", "also": ["parking lot"]}, "de": {"word": "der Parkplatz", "gender": "m", "also": []}, "es": {"word": "el aparcamiento", "gender": "m", "also": ["el estacionamiento"]}, "fr": {"word": "le parking", "gender": "m", "also": []}}
+{"id": "c00982", "pl": "węgiel (pierwiastek)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c01053", "pl": "centymetr", "en": {"word": "centimeter", "also": ["centimetre"]}, "de": {"word": "der Zentimeter", "gender": "m", "also": []}, "es": {"word": "el centímetro", "gender": "m", "also": []}, "fr": {"word": "le centimètre", "gender": "m", "also": []}}
+{"id": "c01092", "pl": "wykres", "de": {"word": "das Diagramm", "gender": "n", "also": []}, "es": {"word": "el gráfico", "gender": "m", "also": []}, "fr": {"word": "le graphique", "gender": "m", "also": []}}
+{"id": "c01131", "level": "a1", "start": 10}
+{"id": "c01200", "pl": "wspinaczka", "de": {"word": "das Klettern", "gender": "n", "also": []}, "es": {"word": "la escalada", "gender": "f", "also": []}, "fr": {"word": "l'escalade", "gender": "f", "also": []}}
+{"id": "c01268", "level": "a1", "start": 35}
+{"id": "c01579", "pl": "przechodzić (przez), przekraczać", "de": {"word": "überqueren", "gender": "none", "also": []}, "es": {"word": "cruzar", "gender": "none", "also": []}, "fr": {"word": "traverser", "gender": "none", "also": []}}
+{"id": "c01680", "level": "a1", "start": 30}
+{"id": "c01706", "sense": "the month", "pl": "grudzień", "de": {"word": "der Dezember", "gender": "m", "also": []}, "es": {"word": "diciembre", "gender": "m", "also": [], "bare": true}, "fr": {"word": "décembre", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c01879", "pl": "dinozaur", "de": {"word": "der Dinosaurier", "gender": "m", "also": []}, "es": {"word": "el dinosaurio", "gender": "m", "also": []}, "fr": {"word": "le dinosaure", "gender": "m", "also": []}}
+{"id": "c02033", "pos": "noun", "pl": "centrum miasta", "en": {"word": "downtown", "also": ["city centre", "city center"]}, "de": {"word": "die Innenstadt", "gender": "f", "also": []}, "es": {"word": "el centro", "gender": "m", "also": []}, "fr": {"word": "le centre-ville", "gender": "m", "also": []}}
+{"id": "c02060", "level": "a1", "start": 24}
+{"id": "c02114", "pl": "Ziemia (planeta)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c02118", "pl": "łatwo", "de": {"word": "leicht", "gender": "none", "also": []}, "es": {"word": "fácilmente", "gender": "none", "also": []}, "fr": {"word": "facilement", "gender": "none", "also": []}}
+{"id": "c02126", "level": "a1", "start": 23}
+{"id": "c02185", "pl": "winda", "de": {"word": "der Aufzug", "gender": "m", "also": []}, "es": {"word": "el ascensor", "gender": "m", "also": []}, "fr": {"word": "l'ascenseur", "gender": "m", "also": []}}
+{"id": "c02192", "es": {"word": "", "gender": "none", "also": []}, "note": "Spanish 'más' belongs to more"}
+{"id": "c02193", "pl": "gdzie indziej", "de": {"word": "woanders", "gender": "none", "also": []}, "es": {"word": "en otro lugar", "gender": "none", "also": []}, "fr": {"word": "ailleurs", "gender": "none", "also": []}}
+{"id": "c02340", "pl": "zły (moralnie), niegodziwy", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c02350", "pl": "egzamin", "de": {"word": "die Prüfung", "gender": "f", "also": []}, "es": {"word": "el examen", "gender": "m", "also": []}, "fr": {"word": "l'examen", "gender": "m", "also": []}}
+{"id": "c02370", "pl": "podekscytowany", "de": {"word": "aufgeregt", "gender": "none", "also": []}, "es": {"word": "emocionado", "gender": "none", "also": []}, "fr": {"word": "enthousiaste", "gender": "none", "also": ["excité"]}}
+{"id": "c02373", "pl": "ekscytujący, emocjonujący", "de": {"word": "spannend", "gender": "none", "also": ["aufregend"]}, "es": {"word": "emocionante", "gender": "none", "also": []}, "fr": {"word": "passionnant", "gender": "none", "also": []}}
+{"id": "c02492", "level": "a1", "start": 37}
+{"id": "c02522", "pl": "gruby (o człowieku)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c02526", "level": "a1", "start": 43}
+{"id": "c02532", "pl": "ulubiony", "en": {"word": "favorite", "also": ["favourite"]}, "de": {"word": "", "gender": "none", "also": []}, "es": {"word": "favorito", "gender": "none", "also": []}, "fr": {"word": "préféré", "gender": "none", "also": []}, "note": "German builds it with Lieblings-"}
+{"id": "c02544", "sense": "the month", "pl": "luty", "de": {"word": "der Februar", "gender": "m", "also": []}, "es": {"word": "febrero", "gender": "m", "also": [], "bare": true}, "fr": {"word": "février", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c02626", "pl": "imię", "de": {"word": "der Vorname", "gender": "m", "also": []}, "es": {"word": "el nombre", "gender": "m", "also": []}, "fr": {"word": "le prénom", "gender": "m", "also": []}}
+{"id": "c02635", "pl": "sprawny, w formie", "de": {"word": "fit", "gender": "none", "also": []}, "es": {"word": "en forma", "gender": "none", "also": []}, "fr": {"word": "en forme", "gender": "none", "also": []}}
+{"id": "c02739", "pl": "wzór (matematyczny), formuła", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c02780", "level": "a1", "start": 25}
+{"id": "c02787", "pl": "przestraszony", "de": {"word": "verängstigt", "gender": "none", "also": ["erschrocken"]}, "es": {"word": "asustado", "gender": "none", "also": []}, "fr": {"word": "effrayé", "gender": "none", "also": []}}
+{"id": "c02863", "pl": "bieg (w samochodzie)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c02881", "pl": "gatunek (literacki, filmowy)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c02915", "pl": "okulary", "de": {"word": "die Brille", "gender": "f", "also": []}, "es": {"word": "las gafas", "gender": "pl", "also": []}, "fr": {"word": "les lunettes", "gender": "pl", "also": []}}
+{"id": "c02933", "level": "a1", "start": 36}
+{"id": "c02941", "pl": "złoto", "de": {"word": "das Gold", "gender": "n", "also": []}, "es": {"word": "el oro", "gender": "m", "also": []}, "fr": {"word": "l'or", "gender": "m", "also": []}}
+{"id": "c02945", "level": "a1", "start": 18}
+{"id": "c02947", "pl": "dzień dobry (po południu)", "de": {"word": "guten Tag", "gender": "none", "also": []}, "es": {"word": "buenas tardes", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}, "note": "French says bonjour, the entry of good morning"}
+{"id": "c02948", "level": "a1", "start": 2, "de": {"word": "guten Morgen", "gender": "none", "also": ["guten Tag"]}}
+{"id": "c02949", "pl": "dobranoc", "de": {"word": "gute Nacht", "gender": "none", "also": []}, "es": {"word": "buenas noches", "gender": "none", "also": []}, "fr": {"word": "bonne nuit", "gender": "none", "also": []}}
+{"id": "c03020", "pl": "grillowany, z grilla", "de": {"word": "gegrillt", "gender": "none", "also": []}, "es": {"word": "a la parrilla", "gender": "none", "also": []}, "fr": {"word": "grillé", "gender": "none", "also": []}}
+{"id": "c03028", "pl": "ziemia (grunt)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c03049", "pl": "przewodnik (książka)", "de": {"word": "der Reiseführer", "gender": "m", "also": []}, "es": {"word": "la guía", "gender": "f", "also": []}, "fr": {"word": "le guide", "gender": "m", "also": []}}
+{"id": "c03085", "pl": "podawać, wręczać", "de": {"word": "reichen", "gender": "none", "also": ["geben"]}, "es": {"word": "pasar", "gender": "none", "also": ["dar"]}, "fr": {"word": "passer", "gender": "none", "also": ["tendre"]}}
+{"id": "c03137", "level": "a1", "start": 16}
+{"id": "c03143", "level": "a1", "start": 21}
+{"id": "c03150", "pl": "dyrektor szkoły", "en": {"word": "headteacher", "also": ["principal", "head teacher"]}, "de": {"word": "der Schulleiter", "gender": "m", "also": []}, "es": {"word": "el director", "gender": "m", "also": []}, "fr": {"word": "le directeur", "gender": "m", "also": []}}
+{"id": "c03179", "level": "a1", "pos": "intj", "start": 1, "pl": "cześć (na powitanie)", "en": {"word": "hello", "also": ["hi"]}, "de": {"word": "hallo", "gender": "none", "also": []}, "es": {"word": "hola", "gender": "none", "also": []}, "fr": {"word": "salut", "gender": "none", "also": ["bonjour"]}}
+{"id": "c03187", "de": {"word": "", "gender": "none", "also": []}, "es": {"word": "", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}, "note": "object pronouns 'sie', 'la' are taught with she and they or as clitics in grammar"}
+{"id": "c03192", "pl": "bohater", "de": {"word": "der Held", "gender": "m", "also": []}, "es": {"word": "el héroe", "gender": "m", "also": []}, "fr": {"word": "le héros", "gender": "m", "also": []}}
+{"id": "c03212", "pl": "wędrówki piesze", "de": {"word": "das Wandern", "gender": "n", "also": []}, "es": {"word": "el senderismo", "gender": "m", "also": []}, "fr": {"word": "la randonnée", "gender": "f", "also": []}}
+{"id": "c03215", "es": {"word": "", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}}
+{"id": "c03240", "pl": "dom (miejsce, gdzie się mieszka)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c03264", "pl": "róg (zwierzęcia), klakson", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c03280", "level": "a1", "start": 17, "pl": "dom (budynek)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c03287", "level": "a1", "start": 38}
+{"id": "c03288", "pl": "jednak, jednakże", "de": {"word": "jedoch", "gender": "none", "also": ["aber"]}, "es": {"word": "sin embargo", "gender": "none", "also": []}, "fr": {"word": "cependant", "gender": "none", "also": ["pourtant"]}}
+{"id": "c03327", "level": "a1", "start": 11}
+{"id": "c03336", "pl": "dowód osobisty", "de": {"word": "der Personalausweis", "gender": "m", "also": ["der Ausweis"]}, "es": {"word": "el carné de identidad", "gender": "m", "also": ["el DNI"]}, "fr": {"word": "la carte d'identité", "gender": "f", "also": []}}
+{"id": "c03399", "pl": "robić wrażenie, imponować", "de": {"word": "beeindrucken", "gender": "none", "also": []}, "es": {"word": "impresionar", "gender": "none", "also": []}, "fr": {"word": "impressionner", "gender": "none", "also": []}}
+{"id": "c03432", "pl": "zwiększać, rosnąć", "de": {"word": "erhöhen", "gender": "none", "also": ["steigen"]}, "es": {"word": "aumentar", "gender": "none", "also": []}, "fr": {"word": "augmenter", "gender": "none", "also": []}}
+{"id": "c03575", "pl": "internet", "en": {"word": "Internet", "also": ["internet"]}, "de": {"word": "das Internet", "gender": "n", "also": []}, "es": {"word": "internet", "gender": "m", "also": [], "bare": true}, "fr": {"word": "Internet", "gender": "m", "also": [], "bare": true}}
+{"id": "c03579", "pl": "tłumacz (ustny)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c03640", "pl": "informatyka", "de": {"word": "die Informatik", "gender": "f", "also": []}, "es": {"word": "la informática", "gender": "f", "also": []}, "fr": {"word": "l'informatique", "gender": "f", "also": []}}
+{"id": "c03645", "keep": false, "note": "duplicates its (det)"}
+{"id": "c03653", "sense": "the month", "pl": "styczeń", "de": {"word": "der Januar", "gender": "m", "also": []}, "es": {"word": "enero", "gender": "m", "also": [], "bare": true}, "fr": {"word": "janvier", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c03659", "pl": "dżinsy", "de": {"word": "die Jeans", "gender": "pl", "also": []}, "es": {"word": "los vaqueros", "gender": "pl", "also": []}, "fr": {"word": "le jean", "gender": "m", "also": []}}
+{"id": "c03665", "pl": "biżuteria", "en": {"word": "jewelry", "also": ["jewellery"]}, "de": {"word": "der Schmuck", "gender": "m", "also": []}, "es": {"word": "las joyas", "gender": "pl", "also": []}, "fr": {"word": "les bijoux", "gender": "pl", "also": []}}
+{"id": "c03687", "sense": "the month", "pl": "lipiec", "de": {"word": "der Juli", "gender": "m", "also": []}, "es": {"word": "julio", "gender": "m", "also": [], "bare": true}, "fr": {"word": "juillet", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c03691", "sense": "the month", "pl": "czerwiec", "de": {"word": "der Juni", "gender": "m", "also": []}, "es": {"word": "junio", "gender": "m", "also": [], "bare": true}, "fr": {"word": "juin", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c03719", "pl": "kilogram, kilo", "de": {"word": "das Kilo", "gender": "n", "also": []}, "es": {"word": "el kilo", "gender": "m", "also": []}, "fr": {"word": "le kilo", "gender": "m", "also": []}}
+{"id": "c03721", "pl": "kilometr", "en": {"word": "kilometer", "also": ["kilometre"]}, "de": {"word": "der Kilometer", "gender": "m", "also": []}, "es": {"word": "el kilómetro", "gender": "m", "also": []}, "fr": {"word": "le kilomètre", "gender": "m", "also": []}}
+{"id": "c03779", "pl": "nazwisko", "en": {"word": "last name", "also": ["surname", "family name"]}, "de": {"word": "der Nachname", "gender": "m", "also": ["der Familienname"]}, "es": {"word": "el apellido", "gender": "m", "also": []}, "fr": {"word": "le nom de famille", "gender": "m", "also": ["le nom"]}}
+{"id": "c03825", "pl": "uczyć się (czegoś), nauczyć się", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c03826", "pl": "uczący się, uczeń", "de": {"word": "der Lernende", "gender": "m", "also": ["der Lerner"]}, "es": {"word": "el aprendiz", "gender": "m", "also": []}, "fr": {"word": "l'apprenant", "gender": "m", "also": []}}
+{"id": "c03832", "pl": "skóra (materiał)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c03930", "pl": "litr", "en": {"word": "liter", "also": ["litre"]}, "de": {"word": "der Liter", "gender": "m", "also": []}, "es": {"word": "el litro", "gender": "m", "also": []}, "fr": {"word": "le litre", "gender": "m", "also": []}}
+{"id": "c03936", "level": "a1", "start": 27}
+{"id": "c03940", "level": "a1", "start": 29}
+{"id": "c04037", "pl": "makijaż", "en": {"word": "make-up", "also": ["makeup"]}, "de": {"word": "das Make-up", "gender": "n", "also": []}, "es": {"word": "el maquillaje", "gender": "m", "also": []}, "fr": {"word": "le maquillage", "gender": "m", "also": []}}
+{"id": "c04042", "pl": "centrum handlowe", "de": {"word": "das Einkaufszentrum", "gender": "n", "also": []}, "es": {"word": "el centro comercial", "gender": "m", "also": []}, "fr": {"word": "le centre commercial", "gender": "m", "also": []}}
+{"id": "c04044", "level": "a1", "start": 8}
+{"id": "c04064", "sense": "the month", "pl": "marzec", "de": {"word": "der März", "gender": "m", "also": []}, "es": {"word": "marzo", "gender": "m", "also": [], "bare": true}, "fr": {"word": "mars", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c04107", "sense": "the month", "pl": "maj", "de": {"word": "der Mai", "gender": "m", "also": []}, "es": {"word": "mayo", "gender": "m", "also": [], "bare": true}, "fr": {"word": "mai", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c04185", "pl": "południe", "de": {"word": "der Mittag", "gender": "m", "also": []}, "es": {"word": "el mediodía", "gender": "m", "also": []}, "fr": {"word": "midi", "gender": "m", "also": [], "bare": true}}
+{"id": "c04245", "pl": "komórka (telefon)", "en": {"word": "mobile", "also": ["mobile phone", "cell phone"]}, "de": {"word": "das Handy", "gender": "n", "also": []}, "es": {"word": "el móvil", "gender": "m", "also": []}, "fr": {"word": "le portable", "gender": "m", "also": []}}
+{"id": "c04265", "pl": "mama", "en": {"word": "mom", "also": ["mum"]}, "de": {"word": "die Mama", "gender": "f", "also": []}, "es": {"word": "la mamá", "gender": "f", "also": []}, "fr": {"word": "la maman", "gender": "f", "also": []}}
+{"id": "c04291", "level": "a1"}
+{"id": "c04305", "level": "a1", "start": 42}
+{"id": "c04335", "pl": "pan (przed nazwiskiem)", "en": {"word": "Mr", "also": ["Mr."]}, "de": {"word": "der Herr", "gender": "m", "also": []}, "es": {"word": "el señor", "gender": "m", "also": []}, "fr": {"word": "monsieur", "gender": "m", "also": [], "bare": true}}
+{"id": "c04336", "pl": "pani (przed nazwiskiem)", "en": {"word": "Mrs", "also": ["Mrs."]}, "de": {"word": "die Frau", "gender": "f", "also": []}, "es": {"word": "la señora", "gender": "f", "also": []}, "fr": {"word": "madame", "gender": "f", "also": [], "bare": true}}
+{"id": "c04377", "level": "a1", "start": 13}
+{"id": "c04429", "pl": "sąsiad", "en": {"word": "neighbor", "also": ["neighbour"]}, "de": {"word": "der Nachbar", "gender": "m", "also": []}, "es": {"word": "el vecino", "gender": "m", "also": []}, "fr": {"word": "le voisin", "gender": "m", "also": []}}
+{"id": "c04474", "level": "a1", "pos": "particle", "start": 4, "pl": "nie (odpowiedź)", "de": {"word": "nein", "gender": "none", "also": []}, "es": {"word": "", "gender": "none", "also": []}, "fr": {"word": "non", "gender": "none", "also": []}, "note": "Spanish 'no' is already the entry for nie"}
+{"id": "c04479", "pl": "nikt", "de": {"word": "niemand", "gender": "none", "also": []}, "es": {"word": "nadie", "gender": "none", "also": []}, "fr": {"word": "personne", "gender": "none", "also": []}}
+{"id": "c04493", "fr": {"word": "midi", "gender": "m", "also": [], "bare": true}}
+{"id": "c04528", "sense": "the month", "pl": "listopad", "de": {"word": "der November", "gender": "m", "also": []}, "es": {"word": "noviembre", "gender": "m", "also": [], "bare": true}, "fr": {"word": "novembre", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c04569", "pl": "okazja (wydarzenie)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c04578", "sense": "the month", "pl": "październik", "de": {"word": "der Oktober", "gender": "m", "also": []}, "es": {"word": "octubre", "gender": "m", "also": [], "bare": true}, "fr": {"word": "octobre", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c04580", "keep": false, "note": "no Polish word; it pushed 'with' out of the English course"}
+{"id": "c04601", "pos": "intj", "pl": "OK, w porządku", "en": {"word": "OK", "also": ["okay"]}, "de": {"word": "okay", "gender": "none", "also": ["in Ordnung", "OK"]}, "es": {"word": "vale", "gender": "none", "also": ["de acuerdo", "OK"]}, "fr": {"word": "d'accord", "gender": "none", "also": ["OK"]}}
+{"id": "c04610", "pl": "igrzyska olimpijskie", "en": {"word": "Olympics", "also": ["Olympic Games"]}, "de": {"word": "die Olympischen Spiele", "gender": "pl", "also": []}, "es": {"word": "los Juegos Olímpicos", "gender": "pl", "also": []}, "fr": {"word": "les Jeux olympiques", "gender": "pl", "also": []}}
+{"id": "c04611", "pl": "omlet", "en": {"word": "omelet", "also": ["omelette"]}, "de": {"word": "das Omelett", "gender": "n", "also": []}, "es": {"word": "la tortilla", "gender": "f", "also": []}, "fr": {"word": "l'omelette", "gender": "f", "also": []}}
+{"id": "c04672", "pl": "oryginalny", "de": {"word": "original", "gender": "none", "also": []}, "es": {"word": "original", "gender": "none", "also": []}, "fr": {"word": "original", "gender": "none", "also": []}}
+{"id": "c04740", "pl": "za granicą, za granicę", "de": {"word": "im Ausland", "gender": "none", "also": ["ins Ausland"]}, "es": {"word": "en el extranjero", "gender": "none", "also": []}, "fr": {"word": "à l'étranger", "gender": "none", "also": []}}
+{"id": "c04765", "pl": "po południu (o godzinie)", "de": {"word": "nachmittags", "gender": "none", "also": []}, "es": {"word": "de la tarde", "gender": "none", "also": []}, "fr": {"word": "de l'après-midi", "gender": "none", "also": []}}
+{"id": "c04816", "de": {"word": "", "gender": "none", "also": []}, "note": "'der Elternteil' is rare; die Eltern is its own concept"}
+{"id": "c04914", "pl": "na (każdy), za (sztukę)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c04917", "pl": "odsetek", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c04953", "pl": "benzyna", "en": {"word": "petrol", "also": ["gas", "gasoline"]}, "de": {"word": "das Benzin", "gender": "n", "also": []}, "es": {"word": "la gasolina", "gender": "f", "also": []}, "fr": {"word": "l'essence", "gender": "f", "also": []}}
+{"id": "c04954", "pl": "stacja benzynowa", "en": {"word": "petrol station", "also": ["gas station"]}, "de": {"word": "die Tankstelle", "gender": "f", "also": []}, "es": {"word": "la gasolinera", "gender": "f", "also": []}, "fr": {"word": "la station-service", "gender": "f", "also": []}}
+{"id": "c04968", "pl": "zdjęcie", "de": {"word": "das Foto", "gender": "n", "also": []}, "es": {"word": "la foto", "gender": "f", "also": []}, "fr": {"word": "la photo", "gender": "f", "also": []}}
+{"id": "c05040", "level": "a1", "start": 6}
+{"id": "c05075", "pl": "policjant", "de": {"word": "der Polizist", "gender": "m", "also": []}, "es": {"word": "el policía", "gender": "m", "also": []}, "fr": {"word": "le policier", "gender": "m", "also": []}}
+{"id": "c05119", "pl": "możliwie, ewentualnie", "de": {"word": "möglicherweise", "gender": "none", "also": []}, "es": {"word": "posiblemente", "gender": "none", "also": []}, "fr": {"word": "possiblement", "gender": "none", "also": []}}
+{"id": "c05120", "pl": "poczta (listy, przesyłki)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05122", "pl": "poczta (urząd)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05148", "pl": "ćwiczyć", "en": {"word": "practice", "also": ["practise"]}, "de": {"word": "üben", "gender": "none", "also": []}, "es": {"word": "practicar", "gender": "none", "also": []}, "fr": {"word": "s'entraîner", "gender": "none", "also": ["pratiquer"]}}
+{"id": "c05355", "pl": "czysty (bez domieszek)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05359", "pl": "cel, zamiar", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05397", "pl": "rzucać (np. palenie), rezygnować", "de": {"word": "aufhören", "gender": "none", "also": ["kündigen"]}, "es": {"word": "dejar", "gender": "none", "also": []}, "fr": {"word": "arrêter", "gender": "none", "also": ["quitter"]}}
+{"id": "c05411", "pl": "rakieta (tenisowa)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05441", "pl": "rap", "de": {"word": "der Rap", "gender": "m", "also": []}, "es": {"word": "el rap", "gender": "m", "also": []}, "fr": {"word": "le rap", "gender": "m", "also": []}}
+{"id": "c05473", "pl": "prawdziwy, rzeczywisty", "de": {"word": "echt", "gender": "none", "also": ["wirklich"]}, "es": {"word": "real", "gender": "none", "also": ["verdadero"]}, "fr": {"word": "réel", "gender": "none", "also": ["véritable"]}, "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05568", "pl": "próba (teatralna)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05613", "pl": "pilot (do telewizora)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05696", "pl": "siatkówka (oka)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05755", "pl": "wzrost, podwyżka", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05776", "pl": "rakieta (kosmiczna)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c05794", "pl": "mniej więcej", "de": {"word": "ungefähr", "gender": "none", "also": []}, "es": {"word": "aproximadamente", "gender": "none", "also": []}, "fr": {"word": "environ", "gender": "none", "also": []}}
+{"id": "c05984", "pl": "wybór, selekcja", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06012", "sense": "the month", "pl": "wrzesień", "de": {"word": "der September", "gender": "m", "also": []}, "es": {"word": "septiembre", "gender": "m", "also": [], "bare": true}, "fr": {"word": "septembre", "gender": "m", "also": [], "bare": true}, "note": "Wiktionary files the months as proper names; Spanish and French months go without an article"}
+{"id": "c06067", "level": "a1", "start": 22}
+{"id": "c06130", "pl": "chory", "de": {"word": "krank", "gender": "none", "also": []}, "es": {"word": "enfermo", "gender": "none", "also": []}, "fr": {"word": "malade", "gender": "none", "also": []}}
+{"id": "c06205", "pl": "skóra (ciała)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06336", "level": "a1", "pos": "intj", "start": 20, "pl": "przepraszam, przykro mi", "en": {"word": "sorry", "also": ["excuse me"]}, "de": {"word": "Entschuldigung", "gender": "none", "also": ["es tut mir leid"]}, "es": {"word": "perdón", "gender": "none", "also": ["lo siento", "disculpe"]}, "fr": {"word": "pardon", "gender": "none", "also": ["désolé", "excusez-moi"]}}
+{"id": "c06371", "level": "a1", "start": 33}
+{"id": "c06420", "pl": "ośrodek sportowy", "en": {"word": "sports center", "also": ["sports centre"]}, "de": {"word": "das Sportzentrum", "gender": "n", "also": []}, "es": {"word": "el polideportivo", "gender": "m", "also": []}, "fr": {"word": "le centre sportif", "gender": "m", "also": []}}
+{"id": "c06449", "pl": "stopień (schodów), schodek", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06499", "pl": "surowy, srogi", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06513", "pl": "mieszać (łyżką)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06586", "pl": "studiować", "de": {"word": "studieren", "gender": "none", "also": ["lernen"]}, "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06619", "pl": "pomyślnie, z powodzeniem", "de": {"word": "erfolgreich", "gender": "none", "also": []}, "es": {"word": "con éxito", "gender": "none", "also": []}, "fr": {"word": "avec succès", "gender": "none", "also": []}}
+{"id": "c06637", "pl": "odpowiedni", "de": {"word": "geeignet", "gender": "none", "also": []}, "es": {"word": "adecuado", "gender": "none", "also": []}, "fr": {"word": "approprié", "gender": "none", "also": []}}
+{"id": "c06732", "pl": "kostium kąpielowy", "en": {"word": "swimming costume", "also": ["swimsuit"]}, "de": {"word": "der Badeanzug", "gender": "m", "also": []}, "es": {"word": "el bañador", "gender": "m", "also": ["el traje de baño"]}, "fr": {"word": "le maillot de bain", "gender": "m", "also": []}}
+{"id": "c06775", "pl": "wysoki (o człowieku)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06820", "es": {"word": "el televisor", "gender": "m", "also": []}}
+{"id": "c06821", "pl": "opowiadać, powiedzieć (komuś)", "de": {"word": "erzählen", "gender": "none", "also": ["sagen"]}, "es": {"word": "contar", "gender": "none", "also": ["decir"]}, "fr": {"word": "raconter", "gender": "none", "also": ["dire"]}, "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06868", "level": "a1", "pos": "intj", "start": 5, "pl": "dziękuję", "en": {"word": "thank you", "also": ["thanks"]}, "de": {"word": "danke", "gender": "none", "also": ["vielen Dank"]}, "es": {"word": "gracias", "gender": "none", "also": ["muchas gracias"]}, "fr": {"word": "merci", "gender": "none", "also": ["merci beaucoup"]}}
+{"id": "c06875", "de": {"word": "", "gender": "none", "also": []}, "es": {"word": "", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}}
+{"id": "c06889", "level": "a1", "start": 41}
+{"id": "c06890", "pl": "gruby (o przedmiocie)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06945", "pl": "sprzątać, porządkować", "de": {"word": "aufräumen", "gender": "none", "also": []}, "es": {"word": "ordenar", "gender": "none", "also": []}, "fr": {"word": "ranger", "gender": "none", "also": []}}
+{"id": "c06957", "pl": "do (czasu), aż do", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c06981", "level": "a1", "start": 32}
+{"id": "c07020", "pl": "wycieczka (objazdowa), zwiedzanie", "de": {"word": "die Rundfahrt", "gender": "f", "also": ["die Tour"]}, "es": {"word": "el recorrido", "gender": "m", "also": ["la gira"]}, "fr": {"word": "le circuit", "gender": "m", "also": []}}
+{"id": "c07086", "pl": "podróżnik, podróżny", "en": {"word": "traveler", "also": ["traveller"]}, "de": {"word": "der Reisende", "gender": "m", "also": []}, "es": {"word": "el viajero", "gender": "m", "also": []}, "fr": {"word": "le voyageur", "gender": "m", "also": []}}
+{"id": "c07123", "pl": "spodnie", "en": {"word": "trousers", "also": ["pants"]}, "de": {"word": "die Hose", "gender": "f", "also": []}, "es": {"word": "los pantalones", "gender": "pl", "also": ["el pantalón"]}, "fr": {"word": "le pantalon", "gender": "m", "also": []}}
+{"id": "c07125", "pl": "prawdziwy (zgodny z prawdą)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c07159", "pl": "telewizja", "en": {"word": "TV", "also": ["television"]}, "de": {"word": "das Fernsehen", "gender": "n", "also": []}, "es": {"word": "la televisión", "gender": "f", "also": ["la tele"]}, "fr": {"word": "la télévision", "gender": "f", "also": ["la télé"]}}
+{"id": "c07253", "pl": "nieszczęśliwy", "de": {"word": "unglücklich", "gender": "none", "also": []}, "es": {"word": "infeliz", "gender": "none", "also": []}, "fr": {"word": "malheureux", "gender": "none", "also": []}}
+{"id": "c07372", "pl": "ważny (np. bilet)", "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c07401", "keep": false, "note": "'the very same' duplicates same (adj)"}
+{"id": "c07443", "pl": "odwiedzający, zwiedzający", "es": {"word": "el visitante", "gender": "m", "also": []}, "note": "two concepts shared one Polish meaning; the note in brackets keeps both"}
+{"id": "c07472", "pl": "kelnerka", "de": {"word": "die Kellnerin", "gender": "f", "also": []}, "es": {"word": "la camarera", "gender": "f", "also": ["la mesera"]}, "fr": {"word": "la serveuse", "gender": "f", "also": []}}
+{"id": "c07513", "level": "a1", "start": 19}
+{"id": "c07522", "level": "a1", "start": 31}
+{"id": "c07563", "pl": "znany", "de": {"word": "bekannt", "gender": "none", "also": []}, "es": {"word": "conocido", "gender": "none", "also": []}, "fr": {"word": "connu", "gender": "none", "also": []}}
+{"id": "c07575", "level": "a1", "start": 34}
+{"id": "c07584", "level": "a1", "start": 28}
+{"id": "c07601", "level": "a1", "start": 40}
+{"id": "c07648", "pl": "z (kimś, czymś)"}
+{"id": "c07659", "level": "a1", "start": 9}
+{"id": "c07671", "level": "a1", "start": 39}
+{"id": "c07689", "pl": "zmartwiony, zaniepokojony", "de": {"word": "besorgt", "gender": "none", "also": []}, "es": {"word": "preocupado", "gender": "none", "also": []}, "fr": {"word": "inquiet", "gender": "none", "also": []}}
+{"id": "c07693", "pl": "gorszy", "de": {"word": "schlechter", "gender": "none", "also": []}, "es": {"word": "peor", "gender": "none", "also": []}, "fr": {"word": "pire", "gender": "none", "also": []}}
+{"id": "c07733", "level": "a1", "pos": "particle", "start": 3, "pl": "tak", "de": {"word": "ja", "gender": "none", "also": []}, "es": {"word": "sí", "gender": "none", "also": []}, "fr": {"word": "oui", "gender": "none", "also": []}}
+{"id": "c07753", "pl": "wszystkie, cały", "de": {"word": "alle", "gender": "none", "also": ["ganz"]}, "es": {"word": "todo", "gender": "none", "also": ["todos"]}, "fr": {"word": "tout", "gender": "none", "also": ["tous"]}}
+{"id": "c07755", "pl": "inny, jeszcze jeden", "de": {"word": "noch ein", "gender": "none", "also": ["ein anderer"]}, "es": {"word": "otro", "gender": "none", "also": []}, "fr": {"word": "un autre", "gender": "none", "also": []}}
+{"id": "c07757", "pl": "oba, obie", "de": {"word": "beide", "gender": "none", "also": []}, "es": {"word": "ambos", "gender": "none", "also": ["ambas"]}, "fr": {"word": "les deux", "gender": "none", "also": []}}
+{"id": "c07759", "pl": "każdy", "de": {"word": "jeder", "gender": "none", "also": []}, "es": {"word": "cada", "gender": "none", "also": []}, "fr": {"word": "chaque", "gender": "none", "also": []}}
+{"id": "c07762", "pl": "każdy", "de": {"word": "jeder", "gender": "none", "also": []}, "es": {"word": "cada", "gender": "none", "also": []}, "fr": {"word": "chaque", "gender": "none", "also": []}}
+{"id": "c07763", "pl": "niewiele, mało", "de": {"word": "wenige", "gender": "none", "also": []}, "es": {"word": "pocos", "gender": "none", "also": ["pocas"]}, "fr": {"word": "peu de", "gender": "none", "also": []}}
+{"id": "c07765", "pl": "jej", "de": {"word": "ihr", "gender": "none", "also": []}, "es": {"word": "su", "gender": "none", "also": []}, "fr": {"word": "son", "gender": "none", "also": ["sa", "ses"]}}
+{"id": "c07766", "pl": "jego", "de": {"word": "sein", "gender": "none", "also": []}, "es": {"word": "su", "gender": "none", "also": []}, "fr": {"word": "son", "gender": "none", "also": ["sa", "ses"]}}
+{"id": "c07767", "pl": "jego, jej (o rzeczy)", "de": {"word": "sein", "gender": "none", "also": []}, "es": {"word": "su", "gender": "none", "also": []}, "fr": {"word": "son", "gender": "none", "also": []}}
+{"id": "c07770", "pl": "mniej", "de": {"word": "weniger", "gender": "none", "also": []}, "es": {"word": "menos", "gender": "none", "also": []}, "fr": {"word": "moins", "gender": "none", "also": []}}
+{"id": "c07772", "pl": "wiele (rzeczy policzalnych)", "de": {"word": "viele", "gender": "none", "also": []}, "es": {"word": "muchos", "gender": "none", "also": ["muchas"]}, "fr": {"word": "beaucoup de", "gender": "none", "also": []}}
+{"id": "c07775", "pl": "dużo (czegoś niepoliczalnego)", "de": {"word": "", "gender": "none", "also": []}, "es": {"word": "", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}, "note": "German, Spanish and French use the words of 'much' the adverb"}
+{"id": "c07776", "pl": "mój", "de": {"word": "mein", "gender": "none", "also": ["meine"]}, "es": {"word": "mi", "gender": "none", "also": ["mis"]}, "fr": {"word": "mon", "gender": "none", "also": ["ma", "mes"]}}
+{"id": "c07779", "pl": "żaden", "de": {"word": "kein", "gender": "none", "also": []}, "es": {"word": "ninguno", "gender": "none", "also": ["ningún"]}, "fr": {"word": "aucun", "gender": "none", "also": []}}
+{"id": "c07781", "pl": "inny", "de": {"word": "andere", "gender": "none", "also": []}, "es": {"word": "otro", "gender": "none", "also": []}, "fr": {"word": "autre", "gender": "none", "also": []}}
+{"id": "c07782", "pl": "nasz", "de": {"word": "unser", "gender": "none", "also": []}, "es": {"word": "nuestro", "gender": "none", "also": ["nuestra"]}, "fr": {"word": "notre", "gender": "none", "also": ["nos"]}}
+{"id": "c07783", "pl": "kilka", "de": {"word": "mehrere", "gender": "none", "also": ["einige"]}, "es": {"word": "varios", "gender": "none", "also": ["varias"]}, "fr": {"word": "plusieurs", "gender": "none", "also": []}}
+{"id": "c07784", "keep": false, "note": "duplicates some (pron), which keeps kilka, trochę"}
+{"id": "c07785", "pl": "taki", "de": {"word": "solch", "gender": "none", "also": ["so ein"]}, "es": {"word": "tal", "gender": "none", "also": []}, "fr": {"word": "tel", "gender": "none", "also": []}}
+{"id": "c07788", "pl": "ich (należący do nich)", "de": {"word": "ihr", "gender": "none", "also": []}, "es": {"word": "su", "gender": "none", "also": ["sus"]}, "fr": {"word": "leur", "gender": "none", "also": ["leurs"]}}
+{"id": "c07789", "pl": "ci, te (tutaj)", "de": {"word": "diese", "gender": "none", "also": []}, "es": {"word": "estos", "gender": "none", "also": ["estas"]}, "fr": {"word": "ces", "gender": "none", "also": []}}
+{"id": "c07791", "pl": "tamci, tamte", "de": {"word": "jene", "gender": "none", "also": []}, "es": {"word": "esos", "gender": "none", "also": ["esas", "aquellos"]}, "fr": {"word": "ces", "gender": "none", "also": []}}
+{"id": "c07796", "pl": "czyj", "de": {"word": "wessen", "gender": "none", "also": []}, "es": {"word": "de quién", "gender": "none", "also": []}, "fr": {"word": "à qui", "gender": "none", "also": []}}
+{"id": "c07797", "pl": "twój, wasz", "de": {"word": "dein", "gender": "none", "also": ["euer", "Ihr"]}, "es": {"word": "tu", "gender": "none", "also": ["vuestro", "su"]}, "fr": {"word": "ton", "gender": "none", "also": ["votre"]}}
+{"id": "c09001", "new": {"headword": "you (singular)", "pos": "pron", "level": "a1"}, "level": "a1", "start": 14, "pl": "ty", "en": false, "de": {"word": "du", "gender": "none", "also": []}, "es": {"word": "tú", "gender": "none", "also": []}, "fr": {"word": "tu", "gender": "none", "also": []}, "note": "singular you: English 'you' covers ty and wy"}
+{"id": "c09002", "new": {"headword": "be called", "pos": "verb", "level": "a1"}, "level": "a1", "start": 15, "pl": "nazywać się", "en": false, "de": {"word": "heißen", "gender": "none", "also": []}, "es": {"word": "llamarse", "gender": "none", "also": []}, "fr": {"word": "s'appeler", "gender": "none", "also": []}}
+{"id": "c09003", "new": {"headword": "be (state, place)", "pos": "verb", "level": "a1"}, "pl": "być (stan, miejsce)", "en": false, "de": {"word": "", "gender": "none", "also": []}, "es": {"word": "estar", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}, "note": "Spanish has two verbs for 'be'"}
+{"id": "c09004", "new": {"headword": "there is", "pos": "phrase", "level": "a1"}, "pl": "jest, są (istnieje)", "en": {"word": "there is", "also": ["there are"]}, "de": {"word": "es gibt", "gender": "none", "also": []}, "es": {"word": "hay", "gender": "none", "also": []}, "fr": {"word": "il y a", "gender": "none", "also": []}}
+{"id": "c09005", "new": {"headword": "know (be familiar with)", "pos": "verb", "level": "a1"}, "pl": "znać", "en": false, "de": {"word": "kennen", "gender": "none", "also": []}, "es": {"word": "conocer", "gender": "none", "also": []}, "fr": {"word": "connaître", "gender": "none", "also": []}, "note": "know a person or a place; English 'know' covers wiedzieć and znać"}
+{"id": "c09006", "new": {"headword": "you (formal)", "pos": "pron", "level": "a1"}, "pl": "Pan, Pani (forma grzecznościowa)", "en": false, "de": {"word": "Sie", "gender": "none", "also": []}, "es": {"word": "usted", "gender": "none", "also": []}, "fr": {"word": "", "gender": "none", "also": []}, "note": "French 'vous' is already the entry for wy"}
+{"id": "c09007", "new": {"headword": "how much", "pos": "adv", "level": "a1"}, "pl": "ile", "en": {"word": "how much", "also": ["how many"]}, "de": {"word": "wie viel", "gender": "none", "also": ["wie viele"]}, "es": {"word": "cuánto", "gender": "none", "also": ["cuántos", "cuánta"]}, "fr": {"word": "combien", "gender": "none", "also": []}}
+{"id": "c09008", "new": {"headword": "at someone's place", "pos": "prep", "level": "a2"}, "pl": "u (kogoś)", "en": false, "de": {"word": "", "gender": "none", "also": []}, "es": {"word": "", "gender": "none", "also": []}, "fr": {"word": "chez", "gender": "none", "also": []}}
+{"id": "c09009", "new": {"headword": "parents", "pos": "noun", "level": "a1"}, "pl": "rodzice", "en": {"word": "parents"}, "de": {"word": "die Eltern", "gender": "pl", "also": []}, "es": {"word": "los padres", "gender": "pl", "also": []}, "fr": {"word": "les parents", "gender": "pl", "also": []}}
+{"id": "c09010", "new": {"headword": "gladly", "pos": "adv", "level": "a2"}, "pl": "chętnie", "en": false, "de": {"word": "gern", "gender": "none", "also": ["gerne"]}, "es": {"word": "con gusto", "gender": "none", "also": []}, "fr": {"word": "volontiers", "gender": "none", "also": []}}

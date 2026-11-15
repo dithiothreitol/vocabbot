@@ -1,10 +1,12 @@
 """Grading a typed answer against a course entry.
 
 The engine, not the model, decides how good an answer was. An exact answer is
-"know"; one small difference (a missing accent, one typo in a longer word, a
-missing or wrong article, the wrong letter case, another form of the same
-word) is "almost"; anything else is "dont_know". The error classes go to the
-review log, where status and the coach read them.
+"know"; one small difference (a missing accent, one typo in a longer word,
+another article of the right gender, the wrong letter case, another form of
+the same word) is "almost"; anything else is "dont_know". The gender belongs
+to a German, Spanish or French noun, so an article of another gender, or no
+article where the article shows the gender or the plural, is "dont_know" too.
+The error classes go to the review log, where status and the coach read them.
 """
 
 from __future__ import annotations
@@ -12,7 +14,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from typing import Any
 
@@ -26,12 +28,15 @@ ERROR_CLASSES = (
     "diacritic",
     "typo",
     "article",
+    "no_article",
     "gender",
     "form",
     "reflexive",
     "wrong_language",
     "wrong",
 )
+# errors that make an answer "dont_know" on their own
+HARD_ERRORS = frozenset({"wrong", "wrong_language", "blank", "gender", "no_article"})
 TYPO_MIN_LENGTH = 5
 
 _APOSTROPHES = str.maketrans({"’": "'", "ʼ": "'", "‘": "'", "´": "'", "`": "'"})
@@ -53,6 +58,7 @@ class Rules:
     optional_prefixes: dict[str, tuple[str, ...]]
     reflexive_prefixes: tuple[str, ...] = ()
     reflexive_suffix: str | None = None
+    indefinite: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def article_words(self) -> frozenset[str]:
@@ -68,6 +74,23 @@ class Rules:
             if word == folded:
                 return gender
         return None
+
+    def genders_of(self, article: str) -> frozenset[str]:
+        """What an article can go with: 'der' {m}, 'die' {f, pl}, 'ein' {m, n}; {} if unknown."""
+        folded = article.casefold()
+        found = {gender for gender, word in self.articles.items() if word == folded}
+        if folded in self.plural_articles:
+            found.add("pl")
+        found.update(self.indefinite.get(folded, ()))
+        return frozenset(found)
+
+    def shows_gender(self, article: str, gender: str | None) -> bool:
+        """The citation article tells the gender or the plural: der, la, les; not l' or el agua."""
+        if gender is None or article == self.elided:
+            return False
+        if gender == "pl":
+            return article.casefold() in self.plural_articles
+        return self.gender_of(article) == gender
 
 
 @cache
@@ -85,6 +108,7 @@ def rules(code: str) -> Rules:
         optional_prefixes={k: tuple(v) for k, v in data.get("optional_prefixes", {}).items()},
         reflexive_prefixes=tuple(data.get("reflexive", {}).get("prefixes", ())),
         reflexive_suffix=data.get("reflexive", {}).get("suffix"),
+        indefinite={k: tuple(v) for k, v in data.get("indefinite_articles", {}).items()},
     )
 
 
@@ -222,14 +246,18 @@ def article_errors(
     if expected is None:
         if given is None or given.casefold() in optional:
             return []
+        if entry.get("bare") and given.casefold() in lang.article_words:
+            return ["article"]  # "el enero" for "enero"
         return None
+    gender = str(entry["gender"]) if entry.get("gender") else None
     if given is None:
-        return ["article"]
+        return ["no_article"] if lang.shows_gender(expected, gender) else ["article"]
     if given.casefold() == expected.casefold():
         return []
-    given_gender = lang.gender_of(given)
-    gender = entry.get("gender")
-    if given_gender is not None and gender is not None and given_gender != gender:
+    genders = lang.genders_of(given)
+    # "un agua" for "el agua" is right: a feminine noun with a stressed a takes el and un
+    euphonic = lang.feminine_el and gender == "f" and expected.casefold() == "el"
+    if gender is not None and genders and gender not in genders and not euphonic:
         return ["gender"]
     return ["article"]
 
@@ -238,7 +266,7 @@ def grade_from(errors: Iterable[str], *, lenient: bool = False) -> str:
     counted = [e for e in errors if not (lenient and e == "diacritic")]
     if not counted:
         return KNOW
-    if "wrong" in counted or "wrong_language" in counted or "blank" in counted:
+    if HARD_ERRORS.intersection(counted):
         return DONT_KNOW
     substantive = [e for e in counted if e != "case"]
     return ALMOST if len(substantive) <= 1 else DONT_KNOW
@@ -250,7 +278,9 @@ def _comparisons(
     g_article, g_core = split_article(given, lang)
     e_article, e_core = split_article(expected, lang)
     whole = core_errors(given, expected, lang, initial=True, typo_length=len(plain(e_core)))
-    yield Verdict(grade_from(whole, lenient=lenient), tuple(whole), expected)
+    if g_article is None or e_article is None or g_article.casefold() == e_article.casefold():
+        # "la livre" for "le livre" is one letter away, but the article is not a typo
+        yield Verdict(grade_from(whole, lenient=lenient), tuple(whole), expected)
     if (
         e_article is not None
         and e_article == lang.elided

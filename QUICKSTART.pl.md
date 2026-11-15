@@ -65,9 +65,15 @@ w drugim.
   pusta odpowiedź oznacza „nie wiem”.
 - Silnik ocenia każdą odpowiedź od razu: wiem, prawie (z opisem potknięcia)
   albo nie wiem. Słowa z błędną odpowiedzią wracają pod koniec sesji.
-- W terminalu Enter zapisuje proponowaną ocenę, klawisze 1, 2 i 3 wybierają
-  inną, z oznacza nowe słowo jako znane, a q kończy sesję z zachowaniem
-  postępu.
+- W terminalu poprawna odpowiedź zapisuje się od razu i zwija się do
+  jednego wiersza. Po pomyłce sesja pokazuje Twoją odpowiedź obok poprawnej
+  z zaznaczonymi różnicami; Enter zapisuje proponowaną ocenę, a klawisze 1,
+  2 i 3 wybierają inną. Podczas wprowadzania nowych słów klawisz z oznacza
+  słowo jako znane. Przy odpowiedzi polecenie `/znam` oznacza nowe słowo jako
+  znane, `/cofnij` zmienia ocenę poprzedniej odpowiedzi, `/pomoc` pokazuje
+  polecenia, a `/koniec` (albo q przy wyborze klawisza) kończy sesję
+  z zachowaniem postępu.
+- `vocabbot` bez polecenia pokazuje plan dnia, a Enter zaczyna sesję.
 - Ocena zmienia się wyłącznie na wyraźną prośbę („to była literówka,
   zalicz”).
 

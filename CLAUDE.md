@@ -8,8 +8,10 @@
     `cli`, `assets`, `errors`) uses the standard library only and runs on
     Python 3.10 and later, because `vocabbot.pyz` runs on whatever
     interpreter a host's sandbox has.
-  - `drill.py` imports Rich inside `RichScreen` only; without Rich the
-    session runs in plain text.
+  - `drill.py` (the terminal session) and `term.py` (colour, symbols and
+    widths) use the standard library too; `term.py` follows `NO_COLOR`,
+    `FORCE_COLOR`, `TERM=dumb` and falls back to ASCII symbols, so
+    `vocabbot.pyz` and the installed program look the same.
   - `data/courses/<lang>/<level>.jsonl` and `meta.json` are the courses. In
     Stage 1 they hold the starter course that `tools/courses/starter.py`
     generates; Stage 2 replaces them with the A1 to B2 courses.
@@ -47,8 +49,15 @@
   the review samples into `.cache/work`. `concepts.tsv` keeps the concept
   ids for good, and `review.jsonl` keeps the decisions of the model review
   (`review.py prepare|submit|collect`, Message Batches API, the key in
-  `.env`). Both are committed, so a build repeats without the API. Raise
-  `VERSION` in `build.py` when the sources or the rules change.
+  `.env`). `editor.jsonl` holds the editors' decisions, which win over the
+  review: new concepts (ids from c09001), the A1 starting list (`start`),
+  meanings told apart, levels and parts of speech. `examples.jsonl` keeps the
+  example review (`examples.py prepare|submit|collect`, which judges the
+  candidate sentences a build writes into `.cache/work`), and
+  `overrides.json` corrects single entries after the merge step. All of them
+  are committed, so a build repeats without the API. A concept enters the
+  courses only with a decision of the review or the editors. Raise `VERSION`
+  in `build.py` when the sources or the rules change.
 - `docs/development-plan.pl.md` is the staged plan. Read the current stage
   before starting work, and update it when a stage closes.
 

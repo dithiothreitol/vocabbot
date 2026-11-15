@@ -22,6 +22,7 @@ The engine's codes and the words the learner reads for them.
 | `diacritic` | znak diakrytyczny |
 | `typo` | literówka |
 | `article` | rodzajnik |
+| `no_article` | brak rodzajnika |
 | `gender` | rodzaj rzeczownika |
 | `form` | inna forma słowa |
 | `wrong_language` | słowo z innego języka |
@@ -53,6 +54,7 @@ The engine's codes and the words the learner reads for them.
 | `m` | r.m. |
 | `f` | r.ż. |
 | `n` | r.n. |
+| `pl` | l.mn. |
 
 ## Forms (`forms`)
 

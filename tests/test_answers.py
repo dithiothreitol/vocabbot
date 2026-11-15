@@ -13,8 +13,8 @@ CASES = [
     ("de", 2, "der Hund", "know", None),
     ("de", 2, "Der Hund", "know", None),
     ("de", 2, "  der   Hund. ", "know", None),
-    ("de", 2, "die Hund", "almost", "gender"),
-    ("de", 2, "Hund", "almost", "article"),
+    ("de", 2, "die Hund", "dont_know", "gender"),
+    ("de", 2, "Hund", "dont_know", "no_article"),
     ("de", 2, "ein Hund", "almost", "article"),
     ("de", 2, "der hund", "almost", "case"),
     ("de", 2, "die Hunde", "almost", "form"),
@@ -28,7 +28,7 @@ CASES = [
     ("es", 4, "el agua", "know", None),
     ("es", 4, "la agua", "almost", "article"),
     ("es", 4, "agua", "almost", "article"),
-    ("es", 2, "la perro", "almost", "gender"),
+    ("es", 2, "la perro", "dont_know", "gender"),
     ("es", 32, "pequeno", "almost", "diacritic"),
     ("es", 40, "si", "almost", "diacritic"),
     ("es", 16, "el ano", "almost", "diacritic"),
@@ -43,9 +43,9 @@ CASES = [
     ("fr", 4, "l’eau", "know", None),
     ("fr", 4, "l' eau", "know", None),
     ("fr", 4, "leau", "almost", "article"),
-    ("fr", 4, "le eau", "almost", "gender"),
-    ("fr", 2, "la chien", "almost", "gender"),
-    ("fr", 2, "chien", "almost", "article"),
+    ("fr", 4, "le eau", "dont_know", "gender"),
+    ("fr", 2, "la chien", "dont_know", "gender"),
+    ("fr", 2, "chien", "dont_know", "no_article"),
     ("fr", 9, "l'ecole", "almost", "diacritic"),
     ("fr", 46, "la fenetre", "almost", "diacritic"),
     ("fr", 38, "aujourd'hui", "know", None),
@@ -151,3 +151,52 @@ def test_edit_distance() -> None:
     assert answers.edit_distance("abcde", "abced") == 1
     assert answers.edit_distance("abc", "abc") == 0
     assert answers.edit_distance("abc", "xyz") == 2
+
+
+def noun(lang: str, display: str, gender: str, **extra: object) -> dict:
+    lemma = display.split(" ", 1)[-1].removeprefix("l'")
+    return {
+        "lang": lang,
+        "pos": "noun",
+        "display": display,
+        "lemma": lemma,
+        "gender": gender,
+        **extra,
+    }
+
+
+@pytest.mark.parametrize(
+    ("entry", "given", "grade", "errors"),
+    [
+        # an article one letter away is still another gender, not a typo
+        (noun("fr", "le livre", "m"), "la livre", "dont_know", ("gender",)),
+        (noun("de", "der Hund", "m"), "eine Hund", "dont_know", ("gender",)),
+        (noun("de", "das Kind", "n"), "ein Kind", "almost", ("article",)),
+        # a feminine noun with a stressed a takes el and un
+        (noun("es", "el agua", "f"), "un agua", "almost", ("article",)),
+        (noun("es", "el agua", "f"), "agua", "almost", ("article",)),
+        # the elided article does not show the gender, so leaving it out is a small error
+        (noun("fr", "l'eau", "f"), "eau", "almost", ("article",)),
+        # nouns used only in the plural
+        (noun("de", "die Eltern", "pl"), "die Eltern", "know", ()),
+        (noun("de", "die Eltern", "pl"), "der Eltern", "dont_know", ("gender",)),
+        (noun("de", "die Eltern", "pl"), "Eltern", "dont_know", ("no_article",)),
+        (noun("fr", "les gens", "pl"), "le gens", "dont_know", ("gender",)),
+        # months without an article
+        (noun("es", "enero", "m", bare=True), "enero", "know", ()),
+        (noun("es", "enero", "m", bare=True), "el enero", "almost", ("article",)),
+    ],
+)
+def test_articles_and_genders(entry: dict, given: str, grade: str, errors: tuple) -> None:
+    verdict = answers.grade(given, entry)
+    assert (verdict.grade, verdict.errors) == (grade, errors), verdict
+
+
+def test_genders_an_article_can_show() -> None:
+    german = answers.rules("de")
+    assert german.genders_of("die") == {"f", "pl"}
+    assert german.genders_of("ein") == {"m", "n"}
+    assert german.genders_of("den") == frozenset()
+    assert german.shows_gender("der", "m") and german.shows_gender("die", "pl")
+    assert not answers.rules("fr").shows_gender("l'", "f")
+    assert not answers.rules("es").shows_gender("el", "f")  # el agua

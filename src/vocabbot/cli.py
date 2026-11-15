@@ -27,6 +27,7 @@ from vocabbot import (
     quiz,
     session,
     store,
+    term,
     words,
 )
 from vocabbot.courses import Catalog, split_card
@@ -158,19 +159,29 @@ def describe_word(w: dict[str, Any]) -> str:
     return f"{text} = {w['meaning']}"
 
 
+def _style() -> term.Style:
+    return term.Style(term.detect())
+
+
+def _days(days: int) -> str:
+    return assets.text("cli.one_day" if days == 1 else "cli.days", days=days)
+
+
 def render_summary(data: dict[str, Any]) -> list[str]:
-    lines = [assets.text("cli.day", day=data["day"], weekday=_weekday(data["day"]))]
+    style = _style()
+    lines = [style(assets.text("cli.day", day=data["day"], weekday=_weekday(data["day"])), "bold")]
     if data["off"]:
         lines.append(assets.text("cli.day_off"))
     for code, counts in data["languages"].items():
-        lines.append(
-            assets.text("cli.lang_line", name=assets.language_name(code), code=code, **counts)
-        )
+        total = counts["reviews"] + counts["new"]
+        done = counts["reviews_done"] + counts["new_done"]
+        line = assets.text("cli.lang_line", name=assets.language_name(code), code=code, **counts)
+        lines.append(f"  {style.bar(done, total, 8)}{line[1:]}" if total else line)
     left = data["left"]
     if any(left.values()):
         lines.append(assets.text("cli.left", minutes=data["minutes"], **left))
     else:
-        lines.append(assets.text("cli.done"))
+        lines.append(style(assets.text("cli.done"), "green"))
     if data.get("extra_new"):
         lines.append(assets.text("cli.extra", count=data["extra_new"]))
     for warning in data["warnings"]:
@@ -234,46 +245,84 @@ def render_answer(data: dict[str, Any]) -> list[str]:
 
 
 def render_status(data: dict[str, Any]) -> list[str]:
+    style = _style()
     lines = render_summary(data["today"])
+    target = round(float(data["target_retention"]) * 100)
     for code, info in data["languages"].items():
-        retention = (
-            f"{round(info['retention_30'] * 100)}%" if info["retention_30"] is not None else "-"
-        )
+        measured = info["retention_30"]
+        retention = f"{round(measured * 100)}%" if measured is not None else "-"
+        if measured is not None and info["reviews_30"] >= 30 and measured * 100 < target - 5:
+            retention = style(retention, "yellow")
+        lines.append("")
         lines.append(
-            assets.text(
-                "cli.status_line",
-                name=assets.language_name(code),
-                code=code,
-                cards=info["cards"],
-                retention=retention,
-                week=info["due_week"],
-                lapses=info["lapses"],
+            style(
+                assets.text(
+                    "cli.status_line",
+                    name=assets.language_name(code),
+                    code=code,
+                    cards=info["cards"],
+                    retention=retention,
+                    target=f"{target}%",
+                    week=info["due_week"],
+                    lapses=info["lapses"],
+                ),
+                "bold",
             )
         )
         for level, counts in info["levels"].items():
             label = assets.text("cli.own_words") if level == "own" else level.upper()
-            lines.append(assets.text("cli.status_level", level=label, **counts))
+            bar = style.bar(counts["learned"], counts["total"], 16)
+            lines.append(f"  {term.pad(label, 4)} {bar} {counts['learned']}/{counts['total']}")
         for leech in info["leeches"][:5]:
             lines.append(
                 assets.text(
                     "cli.status_leech", **{k: leech[k] for k in ("word", "meaning", "lapses")}
                 )
             )
+    lines.append("")
     lines.append(assets.text("cli.streak", days=data["streak_days"]))
+    plan = data.get("schedule")
+    if plan:
+        intervals = ", ".join(
+            f"{assets.text(f'grades.{grade}')} {_days(days)}"
+            for grade, days in plan["first_intervals"].items()
+        )
+        key = "cli.schedule_fitted" if plan["fitted"] else "cli.schedule_default"
+        lines.append(
+            style(
+                assets.text(
+                    key, intervals=intervals, have=plan["second_answers"], need=plan["fit_from"]
+                ),
+                "dim",
+            )
+        )
     return lines
 
 
+FORECAST_TABLE_DAYS = 14
+
+
 def render_forecast(data: dict[str, Any]) -> list[str]:
-    lines = []
-    for row in data["days"]:
+    style = _style()
+    rows = data["days"]
+    lines = [
+        style(assets.text("cli.forecast_title", days=len(rows)), "bold"),
+        "  " + style.spark([row["minutes"] for row in rows]),
+    ]
+    peak = max((row["reviews"] for row in rows), default=0)
+    for row in rows[:FORECAST_TABLE_DAYS]:
+        day = date.fromisoformat(row["day"])
+        label = f"{_weekday(row['day'])[:2]} {day.day:02d}.{day.month:02d}"
         if row.get("off"):
-            lines.append(assets.text("cli.forecast_off", day=row["day"]))
-        else:
-            lines.append(
-                assets.text(
-                    "cli.forecast_line", **{k: row[k] for k in ("day", "reviews", "new", "minutes")}
-                )
-            )
+            lines.append(f"  {label}  " + style(assets.text("cli.forecast_off_short"), "dim"))
+            continue
+        bar = style.bar(row["reviews"], peak, 10) if peak else ""
+        lines.append(
+            f"  {label}  {bar} "
+            + assets.text("cli.forecast_line", **{k: row[k] for k in ("reviews", "new", "minutes")})
+        )
+    if len(rows) > FORECAST_TABLE_DAYS:
+        lines.append(style(f"  … {len(rows) - FORECAST_TABLE_DAYS}", "dim"))
     lines.append(
         assets.text(
             "cli.forecast_avg",
@@ -686,7 +735,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Vocabulary in one to three languages at once, with spaced repetition.",
     )
     parser.add_argument("--version", action="version", version=f"vocabbot {__version__}")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
 
     def add(
         name: str,
@@ -845,9 +894,46 @@ def _utf8() -> None:
                 reconfigure(encoding="utf-8", errors="replace")
 
 
+def start_screen() -> int:
+    """`vocabbot` without a command: the plan of the day and a key that starts the session."""
+    style = _style()
+    print(style("VocabBot", "bold") + style(f" {__version__}", "dim"))
+    try:
+        learner = store.Learner(store.locate(None))
+    except VocabError:
+        print(assets.text("cli.start_no_learner"))
+        print(style(assets.text("cli.start_help"), "dim"))
+        return 0
+    catalog = Catalog(learner=learner.root)
+    day = store.learning_day(session.now_utc(), int(learner.plan()["day_starts_at"]))
+    data = session.summary(learner, catalog, compute(learner, catalog, day))
+    for line in render_summary(data):
+        print(line)
+    if not any(data["left"].values()):
+        return 0
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        print(style(assets.text("cli.start_hint"), "dim"))
+        return 0
+    from vocabbot import drill
+
+    try:
+        key = drill.read_key(style(assets.text("cli.start_keys"), "dim") + " ")
+    except (EOFError, KeyboardInterrupt):
+        return 0
+    if key == "":
+        drill.run(learner, catalog, day)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _utf8()
     args = build_parser().parse_args(argv)
+    if args.command is None:
+        try:
+            return start_screen()
+        except VocabError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
     ctx = Context(args=args, now=session.now_utc())
     try:
         data = args.handler(ctx)

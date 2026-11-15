@@ -2,14 +2,16 @@
 
 [English](development-plan.md) · **Polski**
 
-Stan: 2026-11-15, po Etapie 3 (wersja 1.0.0-rc.2, w pakiecie Pythona
-1.0.0rc2). Plan zaakceptowałeś 14.11.2026. Silnik, program `vocabbot`, kursy
-A1–B2 dla czterech języków (21 919 haseł) oraz wtyczka z czterema
-umiejętnościami dla Claude'a i Codexa działają; wyniki etapów opisuje
-rozdział 10. Wydanie kandydujące `v1.0.0-rc.2` jest opublikowane na GitHubie
-i w PyPI (15.11.2026) razem z hookiem potwierdzenia i poprawką przykładów
-słów funkcyjnych. Do wersji 1.0 pozostają testy sesyjne z modelem (bez
-Twojej zgody) oraz pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
+Stan: 2026-11-15, po Etapie 4 (wersja 1.0.0-rc.3, w pakiecie Pythona
+1.0.0rc3). Plan zaakceptowałeś 14.11.2026, a Etapy 4 i 5 dodałeś 15.11.2026.
+Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
+języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
+i Codexa działają; wyniki etapów opisuje rozdział 10. Na GitHubie i w PyPI
+leży wydanie `v1.0.0-rc.2`, a wersja rc.3 czeka w lokalnym repozytorium na
+Twoją zgodę na push i wydanie. Do wersji 1.0 pozostają testy sesyjne
+z modelem na wersji rc.3 (po Twojej zgodzie) oraz pilotaż według
+`docs/pilot.pl.md`; Etap 5 (harmonogram dopasowany do uczącego się)
+korzysta z dziennika pilotażu. Wersję angielską planu zawiera
 `development-plan.md`.
 
 ---
@@ -92,7 +94,7 @@ nauki i buduje słownictwo z otwartych źródeł (rozdział 3, decyzja D12).
 | Prawo jako dane ze wskazanym źródłem | dostosowany | kurs jako dane: każde hasło ze źródłem, każdy plik z licencją, kontrola `course check` |
 | Język oddzielony od kraju | przejęty | język bazowy oddzielony od języków nauki; komunikaty w `data/i18n` |
 | Każda umiejętność samowystarczalna | dostosowany | każda umiejętność niesie jeden plik `vocabbot.pyz` z całym silnikiem i kursami |
-| Skrypty wyłącznie na bibliotece standardowej | przejęty dla silnika | biblioteka Rich obsługuje wyłącznie wygląd instalowanego CLI |
+| Skrypty wyłącznie na bibliotece standardowej | przejęty dla silnika | od Etapu 4 także sesja w terminalu korzysta wyłącznie z biblioteki standardowej (`term.py`) |
 | Tekst z zewnątrz poza wierszem poleceń | przejęty | odpowiedzi i własne słowa trafiają do silnika na wejściu standardowym |
 | Cztery poziomy weryfikacji | przejęte | struktura, arytmetyka, zachowanie, użycie |
 | Dwa manifesty i dwa katalogi marketplace | przejęte | Claude oraz Codex z jednego folderu wtyczki |
@@ -119,7 +121,8 @@ dzięki czemu ten sam kod działa w programie instalowanym na komputerze
 i w piaskownicy gospodarza, która nie pozwala niczego instalować.
 
 **D2. Dwa wejścia do jednego silnika.** Program `vocabbot` instalowany przez
-`uv tool install vocabbot` korzysta z biblioteki Rich. Plik `vocabbot.pyz`
+`uv tool install vocabbot` od Etapu 4 nie ma zależności, a jego sesja
+w terminalu wygląda tak samo jak w pliku `vocabbot.pyz`. Plik `vocabbot.pyz`
 (archiwum `zipapp` z silnikiem i kursami) uruchamia się poleceniem
 `python vocabbot.pyz` bez żadnej instalacji i trafia do każdej umiejętności.
 Oba wejścia mają te same polecenia i tę samą opcję `--json`, która zwraca
@@ -218,7 +221,7 @@ się od `uv lock --upgrade` i ponownego sprawdzenia tej tabeli.
 | mypy | 2.4.1 | 2026-10-28 | kontrola typów |
 | pytest | 9.2.0 | 2026-10-27 | testy |
 | fsrs (py-fsrs) | 6.3.3 | 2026-11-13 | wzorzec harmonogramu w testach |
-| rich | 15.0.0 | 2026-04-12 | wygląd sesji w terminalu |
+| rich | 15.0.0 | 2026-04-12 | wygląd sesji w terminalu do Etapu 3; od Etapu 4 zastępuje ją `term.py` |
 | wordfreq | 3.1.1 | 2023-11-21 | częstość słów w potoku kursów (ostatnie wydanie biblioteki) |
 | actions/checkout | v7.0.1 | 2026-07-20 | CI |
 | astral-sh/setup-uv | v10.3.3 | 2026-10-28 | CI |
@@ -244,7 +247,7 @@ Biblioteki rozważone i niewybrane:
 | Biblioteka | Wersja | Powód |
 |---|---|---|
 | Typer | 0.29.1 | moduł poleceń musi działać w pliku `.pyz` bez zależności, dlatego polecenia obsługuje `argparse` z biblioteki standardowej |
-| Textual | 8.2.8 | sesja kart ma przebieg sekwencyjny, który Rich obsługuje w całości; pełnoekranowy interfejs nie wnosi tu funkcji |
+| Textual | 8.2.8 | sesja kart ma przebieg sekwencyjny, który `term.py` obsługuje w całości; pełnoekranowy interfejs nie wnosi tu funkcji |
 | prompt_toolkit | 3.0.53 | odczyt pojedynczego klawisza zapewniają `msvcrt` i `termios` z biblioteki standardowej |
 | ty | 0.0.104 | narzędzie ma wersję poniżej 1.0, dlatego kontrolę typów wykonuje stabilny mypy |
 
@@ -274,7 +277,8 @@ vocabbot/
     courses.py     katalog kursów i kontrola haseł
     gate.py        podgląd i commit zmian planu oraz kursów
     cli.py         polecenia i wyjście JSON
-    drill.py       sesja interaktywna (Rich albo zwykły tekst)
+    drill.py       sesja interaktywna
+    term.py        kolory, symbole i szerokości w terminalu
     data/courses/<język>/<poziom>.jsonl  meta.json
     data/lang/<język>.json               reguły oceny odpowiedzi
     data/i18n/pl.json                    komunikaty
@@ -489,8 +493,9 @@ standardowe, potwierdzenie każdej zmiany oraz język i przypomnienia.
 
 ## 10. Etapy
 
-Plan obejmuje trzy etapy, z których każdy stanowi jedną sesję pracy
-prowadzoną jednym ciągiem. Protokół zamknięcia etapu: testy przechodzą, plan
+Plan obejmuje pięć etapów, z których każdy stanowi jedną sesję pracy
+prowadzoną jednym ciągiem. Etap 4 dodałeś 15.11.2026 po audycie wersji
+1.0.0-rc.2. Protokół zamknięcia etapu: testy przechodzą, plan
 ma zaktualizowany stan i wnioski, pamięć projektu ma nowy wpis, zmiany mają
 lokalny commit. Push, tag, wydanie i publikacja wymagają Twojej osobnej,
 wyraźnej zgody.
@@ -912,6 +917,203 @@ tego interfejsu programistycznego.
 
 ---
 
+### Etap 4. Treść kursów, mechanika i sesja w terminalu
+
+Audyt z 15.11.2026, wykonany przed testami sesyjnymi, porównał silnik, kursy
+i program w terminalu z kursami SuperMemo. Silnik odwzorowuje przebieg nauki
+SuperMemo: sekcje powtórek, nowych słów i utrwalania, trzy oceny, utrwalanie
+bez wpływu na harmonogram oraz cel trwałości 90%. Kursom brakuje części
+podstawowego słownictwa, około 6% przykładów używa słowa w innym znaczeniu
+lub innej części mowy, a sesja w terminalu wypisuje zwykły tekst. Etap 4
+zatwierdziłeś 15.11.2026 razem z czterema decyzjami: kolejność prac (treść,
+mechanika, terminal, testy sesyjne), uzupełnienie podstaw bez kosztów
+modeli, przegląd przykładów modelem oraz ocena „nie wiem” za zły rodzajnik.
+
+| Obszar | Ustalenie audytu |
+|---|---|
+| podstawowe słowa | kursy nie mają między innymi angielskich yes, no, with, house, hello, thanks i nazw miesięcy, niemieckich ja, nein, kein, du, danke, Eltern, Leute, kennen, heißen, hiszpańskich sí, gracias, estar, haber, tú, conocer ani francuskich oui, non, merci, tu, chez, il y a, gens, combien |
+| przyczyny w potoku | 1018 pojęć bez polskiego tłumaczenia w tabeli tej samej części mowy, 133 pojęcia bez angielskiego hasła tej części mowy (nazwy miesięcy są w Wikisłowniku nazwami własnymi), określniki CEFR-J poza mapą części mowy, około 1000 scaleń na język, 64 angielskie hasła usunięte jako homonimy (wśród nich with i house), rzeczowniki występujące tylko w liczbie mnogiej odrzucone |
+| początek A1 | słowa funkcyjne stanowią 87–97% pierwszych 30 haseł, a część z nich ma niejednoznaczne lub zawężone znaczenie (niemieckie „mit” jako „razem”) |
+| przykłady | 11 z 180 zdań w losowej próbie używa słowa w innym znaczeniu lub innej części mowy; kilkadziesiąt zdań z Tatoeby ma treść wulgarną |
+| harmonogram | terminy nie mają rozrzutu, więc słowa poznane jednego dnia wracają razem; „prawie” za zły rodzajnik wydłuża odstęp; parametry FSRS są domyślne dla każdego uczącego się |
+| terminal | zwykły tekst, kolor tylko z pakietem Rich, dwa potwierdzenia na każdą kartę, prognoza jako lista 30 wierszy |
+
+Zakres:
+
+1. Potok kursów odzyskuje pojęcia: określniki CEFR-J dostają swoją część
+   mowy, pojęcie bez tabeli tłumaczeń korzysta z tabeli innej części mowy
+   tego samego hasła (wykrzyknik, nazwa własna), a rzeczownik występujący
+   tylko w liczbie mnogiej wchodzi do kursu z rodzajnikiem liczby mnogiej
+   (die Eltern, les gens). Odzyskane pojęcie wchodzi do kursu wyłącznie
+   z decyzją przeglądu modelem albo redakcji.
+2. Plik redakcji `tools/courses/editor.jsonl` zawiera decyzje dla
+   odzyskanych pojęć A1–A2, pojęcia właściwe jednemu językowi (estar,
+   haber, kein, chez, kennen, conocer, connaître i podobne), rozdzielenie
+   częstych synonimów i homonimów dopiskiem w polskim znaczeniu (house
+   i home, with i of) oraz poprawki znaczeń słów funkcyjnych. Redakcja nie
+   korzysta z płatnych modeli.
+3. Poziom A1 zaczyna się od listy startowej redakcji: powitań, „tak”
+   i „nie”, zaimków osobowych oraz podstawowych czasowników i rzeczowników.
+   Dalsze hasła każdego poziomu idą według częstości, a każde kolejne
+   dziesięć haseł zawiera najwyżej trzy słowa funkcyjne.
+4. Claude Sonnet 5.5 przez Message Batches API ocenia do trzech zdań
+   kandydujących na każde hasło (znaczenie, część mowy, wierność polskiego
+   tłumaczenia, stosowność treści) i wybiera pierwsze poprawne albo żadne.
+   Decyzje leżą w `tools/courses/examples.jsonl`, dzięki czemu kolejne
+   budowy nie wymagają API, a filtr wulgaryzmów w potoku chroni hasła bez
+   decyzji. Limit kosztu wynosi 8 USD.
+5. Silnik rozrzuca terminy od 3 dni wzwyż według zakresów FSRS. Rozrzut
+   wynika z identyfikatora karty i dnia odpowiedzi, więc oba komputery
+   widzą te same terminy. W niemieckim, hiszpańskim i francuskim rodzajnik
+   innego rodzaju albo jego brak przy rzeczowniku, którego rodzajnik
+   pokazuje rodzaj, daje ocenę „nie wiem”. Reguły odpowiedzi i kontrola
+   kursu obsługują rzeczowniki w liczbie mnogiej.
+6. Silnik dopasowuje początkowe odstępy, czyli pierwsze cztery parametry
+   FSRS-6, do dziennika uczącego się, gdy dziennik ma wystarczająco wiele
+   drugich odpowiedzi. `status` porównuje zmierzoną trwałość z docelową.
+7. Nowy moduł `term.py` na bibliotece standardowej wykrywa możliwości
+   terminala (`NO_COLOR`, `FORCE_COLOR`, `TERM=dumb`, tryb VT w Windows),
+   zastępuje znaki Unicode znakami ASCII tam, gdzie terminal ich nie
+   pokazuje, i zawija tekst z uwzględnieniem szerokości znaków. Pakiet Rich
+   przestaje być potrzebny.
+8. `vocabbot drill` dostaje nowy wygląd sesji, a `vocabbot` bez polecenia
+   pokazuje ekran startowy z planem dnia. Sesja pokazuje zwartą kartę,
+   zapisuje poprawną odpowiedź bez dodatkowego klawisza, pokazuje różnicę
+   znak po znaku, zwija kartę po odpowiedzi do jednego wiersza i przyjmuje
+   polecenia `/cofnij`, `/znam`, `/koniec` i `/pomoc`. Wiersz postępu
+   pokazuje miejsce w sesji, a podsumowanie podaje wynik, słowa do poprawy,
+   jutrzejsze obciążenie i aktywność ostatnich tygodni.
+9. `today`, `status` i `forecast` dostają paski postępu poziomów, wykres
+   obciążenia i zwięzły układ liczb.
+10. Wersja 1.0.0-rc.3: manifesty, `pyproject.toml`, CHANGELOG, dokumentacja
+    w obu językach i plan.
+
+Kryteria akceptacji:
+
+- `vocabbot course check` przechodzi bez błędów, a każde słowo z listy
+  kontrolnej audytu jest w kursie albo ma w planie opisany powód
+  nieobecności.
+- Każde hasło z przykładem ma decyzję przeglądu przykładów albo pochodzi
+  z budowy po przeglądzie i przeszło filtr wulgaryzmów.
+- Pierwsze 30 haseł A1 każdego języka zawiera najwyżej 9 słów funkcyjnych.
+- Testy obejmują rozrzut terminów, ocenę rodzajnika, rzeczowniki w liczbie
+  mnogiej, dopasowanie parametrów oraz moduł terminala w trybie bez
+  kolorów i ze znakami ASCII.
+- Kontrole z Etapów 1–3 przechodzą, a dwie budowy kursów dają identyczne
+  pliki.
+
+Czynności po Twojej zgodzie, każda osobno: testy sesyjne na wersji rc.3,
+push, tag i wydanie rc.3.
+
+#### Wynik Etapu 4 (15.11.2026, wersja 1.0.0-rc.3)
+
+Etap 4 domknął treść kursów, mechanikę i sesję w terminalu. Kursy w wersji
+2026.11.4 mają 23 095 haseł zamiast 21 919, każde słowo z listy kontrolnej
+audytu jest w kursie, a każde zdanie przykładowe przeszło przegląd modelem.
+
+| Kryterium | Wynik |
+|---|---|
+| `vocabbot course check` | 0 błędów i 0 ostrzeżeń w 16 plikach kursów |
+| hasła | angielski 6286, niemiecki 5649, hiszpański 5581, francuski 5579 |
+| lista kontrolna audytu | wszystkie słowa w kursach, w tym yes, no, with, house, hello, thank you, nazwy miesięcy, ja, nein, kein, du, danke, die Eltern, die Leute, kennen, heißen, sí, gracias, estar, hay, tú, conocer, oui, non, merci, tu, chez, il y a, les gens, combien; angielskie rodzajniki the, a, an nie są kartami, ponieważ polski nie ma ich odpowiedników |
+| decyzje redakcji | 229 wierszy w `tools/courses/editor.jsonl`: 10 nowych pojęć (między innymi ty, Pan, nazywać się, estar, es gibt, znać, ile, chez, rodzice, chętnie), 43 pozycje listy startowej A1, decyzje dla 24 z 46 określników CEFR-J (23 w kursach), 12 nazw miesięcy, około 90 odzyskanych pojęć A1–A2, 42 pojęcia ze znaczeniem rozdzielonym dopiskiem, 5 pojęć usuniętych |
+| początek A1 | pierwsze 30 haseł zawiera 6–7 słów funkcyjnych (próg 9); poziom zaczyna się od „cześć”, „dzień dobry”, „tak”, „nie”, „dziękuję”, „proszę” |
+| przegląd przykładów | Claude Sonnet 5.5 ocenił 42 156 zdań kandydujących dla 16 406 haseł w 411 zapytaniach: 14 911 zdań zostaje, 1495 haseł nie ma poprawnego zdania; pierwszy kandydat odpadł w 3406 przypadkach (najczęściej tłumaczenie, znaczenie i część mowy); koszt 6,36 USD plus 0,03 USD za zapytanie próbne |
+| przykłady z polskim tłumaczeniem, A1–A2 (próg 80%) | angielski 90,0%, niemiecki 84,4%, hiszpański 82,8%, francuski 81,9% |
+| przykłady z polskim tłumaczeniem, B1–B2 (próg 60%) | angielski 66,2%; niemiecki 48,5%, hiszpański 44,3% i francuski 47,1% poniżej progu, ponieważ przegląd odrzucił zdania z innym znaczeniem |
+| silnik | rozrzut terminów według zakresów FSRS z kluczem karta i dzień; „nie wiem” za rodzajnik innego rodzaju i za brak rodzajnika, który pokazuje rodzaj; rzeczowniki tylko w liczbie mnogiej i miesiące bez rodzajnika; dopasowanie początkowych stabilności od 40 drugich odpowiedzi; `status` pokazuje odstępy po pierwszej odpowiedzi i trwałość względem celu |
+| terminal | `term.py` na bibliotece standardowej, nowa sesja `vocabbot drill`, ekran startowy `vocabbot`, nowy wygląd `today`, `status` i `forecast`; pakiet nie zależy już od Rich |
+| powtarzalność | dwie budowy kursów dają identyczne pliki |
+| testy | 188 na Pythonie 3.15; 171 na Pythonie 3.10 (1 pominięty bez grupy `data`) |
+| kontrole wtyczki | `validate.py` 0 błędów i 0 ostrzeżeń, `session_test.py --check` 7 z 7, `claude plugin validate --profile directory --strict` bez uwag |
+
+Próba sesji w terminalu ujawniła błąd, który lista startowa uczyniła
+częstym: oznaczenie słowa jako znanego przeliczało całą listę dnia, a odstęp
+między językami dla jednego pojęcia blokował wtedy kartę już pokazaną
+w drugim języku. Słowa planu powstają teraz najpierw i nie zmieniają się
+w ciągu dnia, a słowa dodane później dochodzą po nich; test sprawdza, że
+pokazana karta zostaje na liście.
+
+Wnioski:
+
+1. Kursy budowane wyłącznie z listy CEFR-J i reguł potoku tracą słowa
+   podstawowe na styku części mowy (nazwy miesięcy jako nazwy własne,
+   określniki poza mapą, angielskie czasowniki o pisowni rzeczownika). Plik
+   redakcji z decyzjami człowieka uzupełnia te luki tanio i powtarzalnie.
+2. Przegląd przykładów modelem odrzucił co piątego pierwszego kandydata.
+   Reguły dopasowania słowa w zdaniu nie rozpoznają znaczenia, dlatego
+   każde nowe zdanie wymaga takiego przeglądu.
+3. Pokrycie przykładami B1–B2 dla niemieckiego, hiszpańskiego
+   i francuskiego zależy od liczby zdań Tatoeby z polskim tłumaczeniem.
+   Uzupełnienie wymaga zdań z innego źródła albo tłumaczeń przygotowanych
+   przez model, z osobną wyceną.
+
+---
+
+### Etap 5. Harmonogram dopasowany do uczącego się
+
+Etap 5 dodałeś 15.11.2026 w trakcie Etapu 4. Obejmuje trzy zagadnienia:
+pełne dopasowanie parametrów FSRS do uczącego się, plan dnia świadomy jego
+obecności oraz narzędzie, które odtwarza dziennik i porównuje każdy wariant
+z FSRS-6. Narzędzie powstaje pierwsze, ponieważ rozstrzyga, czy dwa pozostałe
+warianty poprawiają przewidywanie i obciążenie względem FSRS-6. Etap 4 wnosi
+pierwszy krok dopasowania: początkowe stabilności liczone z drugich
+odpowiedzi uczącego się.
+
+| Zagadnienie | Stan na 15.11.2026 | Źródło |
+|---|---|---|
+| Optymalizator FSRS | py-fsrs dopasowuje parametry w dodatku `fsrs[optimizer]` z ciężkimi zależnościami; FSRS-Optimizer korzysta z PyTorch; fsrs-rs w wersji 1.2.1 zostaje przy parametrach domyślnych poniżej 64 pozycji treningowych | repozytoria open-spaced-repetition |
+| Miary porównania | benchmark algorytmów powtórek porównuje log loss, RMSE(bins) i AUC na odpowiedziach przewidywanych przed poznaniem wyniku | srs-benchmark, opis Expertium |
+| Plan według obecności | Anki od wersji 24.11 ma „Easy Days” (mniej powtórek w wybrane dni tygodnia, ustawiane ręcznie) i równoważenie obciążenia w granicach rozrzutu | dokumentacja FSRS Helper i Anki |
+
+Zakres:
+
+1. `vocabbot replay` odtwarza dziennik w kolejności czasu i dla każdej
+   powtórki zapisuje przewidywaną trwałość każdego wariantu przed poznaniem
+   odpowiedzi. Raport podaje log loss, RMSE(bins) i AUC dla każdego
+   wariantu oraz różnicę względem FSRS-6 z parametrami domyślnymi, całość
+   i osobno dla każdego języka. Dopasowanie korzysta z wcześniejszej części
+   dziennika, a ocena z późniejszej, więc wariant nie widzi odpowiedzi, które
+   przewiduje.
+2. Ta sama komenda symuluje obciążenie: liczbę powtórek dziennie, minuty
+   i przewidywaną trwałość każdego wariantu harmonogramu na kolejne tygodnie.
+   Symulacja korzysta z tych samych reguł co `forecast`.
+3. Pełne dopasowanie 21 parametrów FSRS-6 na bibliotece standardowej
+   (spadek gradientu z regularyzacją w stronę wartości domyślnych), osobno
+   dla każdego języka, gdy dziennik języka ma wystarczająco wiele powtórek.
+   Silnik przyjmuje parametry dopasowane tylko wtedy, gdy `replay` pokazuje
+   na późniejszej części dziennika niższy log loss niż FSRS-6 z parametrami
+   domyślnymi.
+4. Plan dnia świadomy obecności. Silnik liczy ze zwykłych statystyk
+   dziennika, bez sieci, prawdopodobieństwo nauki w każdy dzień tygodnia
+   i typową liczbę minut. Termin powtórki wybiera w granicach rozrzutu dzień
+   z większą szansą obecności i mniejszym obciążeniem, liczba nowych słów
+   pilnuje, żeby prognozowane minuty mieściły się w typowym czasie
+   uczącego się, a przed przewidywaną przerwą sesja proponuje powtórki
+   przed terminem. Wynik zostaje funkcją dziennika i planu, więc oba
+   komputery liczą ten sam plan.
+5. `status` i trener pokazują, które parametry obowiązują, z ilu odpowiedzi
+   powstały i jak wypadają w `replay`.
+
+Kryteria akceptacji:
+
+- `replay` na dziennikach syntetycznych z testów odtwarza znane parametry
+  generatora, a dla FSRS-6 z parametrami domyślnymi daje wyniki zgodne
+  z modułem `fsrs`.
+- Dopasowane parametry obowiązują wyłącznie przy lepszym wyniku
+  w `replay`; w przeciwnym razie silnik zostaje przy FSRS-6.
+- Plan według obecności zmniejsza w symulacji liczbę zaległych powtórek po
+  dniach bez nauki bez spadku przewidywanej trwałości poniżej celu.
+- Kolejka dnia pozostaje identyczna na dwóch komputerach z tym samym
+  dziennikiem.
+
+Dane: dopasowanie i plan według obecności potrzebują kilku tygodni
+dziennika, dlatego narzędzie `replay` powstaje przed końcem pilotażu,
+a dopasowanie i plan korzystają z dziennika pilotażu. Etap nie wymaga
+kosztów modeli.
+
+---
+
 ## 11. Weryfikacja kompletności
 
 ### 11.1 Funkcje kursów SuperMemo
@@ -922,7 +1124,7 @@ tego interfejsu programistycznego.
 | Strona słowa: znaczenie, przykład, wymowa | tak | znaczenie polskie, zdanie z luką, IPA |
 | Trzy oceny | tak | `know`, `almost`, `dont_know` |
 | Nauka, powtórki, utrwalanie | tak | jedna kolejka dnia w tej kolejności |
-| Powtórka przy trwałości około 90% | tak | FSRS-6, trwałość w planie |
+| Powtórka przy trwałości około 90% | tak | FSRS-6, trwałość w planie, rozrzut terminów, początkowe odstępy dopasowane do dziennika; pełne dopasowanie w Etapie 5 |
 | Pomijanie znanych słów | tak | ocena „znałem” i test poziomujący |
 | Liczba kart dziennie, czas trwania kursu | tak | `plan`, `forecast` |
 | Kalendarz z dniami wolnymi | tak | `days_off` |
@@ -956,6 +1158,10 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 2, potok i przegląd próby | brak | akceptacja planu |
 | Etap 2, przebieg wsadowy przez API | wycena przed uruchomieniem | osobna, wyłącznie w punkcie decyzyjnym |
 | Etap 3, testy sesyjne `claude -p` | szacunkowo 3–6 USD przy Claude Sonnet 5.5 (7 sesji, 13 tur) | osobna |
+| Etap 4, redakcja podstawowych słów | brak | zatwierdzona 15.11.2026 |
+| Etap 4, przegląd przykładów przez Message Batches API | do 8 USD przy Claude Sonnet 5.5 | zatwierdzony 15.11.2026 |
+| Etap 4, testy sesyjne na wersji rc.3 | szacunkowo 3–6 USD przy Claude Sonnet 5.5 | osobna |
+| Etap 5, harmonogram dopasowany do uczącego się | brak | akceptacja etapu |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
@@ -979,7 +1185,6 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 
 ## 14. Rozszerzenia po wersji 1.0
 
-- Dopasowanie parametrów FSRS do własnego dziennika, osobno dla każdego języka.
 - Wymowa przez syntezę mowy systemu operacyjnego oraz nagrania z Wikisłownika.
 - Sesja na telefonie: serwer na własnym VPS albo strona w sieci domowej,
   korzystające z tego samego folderu nauki.
@@ -1003,6 +1208,9 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 - kaikki.org, dane Wikisłownika: https://kaikki.org/dictionary/rawdata.html
 - CEFR-J Vocabulary Profile: https://github.com/openlanguageprofiles/olp-en-cefrj
 - Tatoeba, pliki do pobrania: https://tatoeba.org/downloads
+- fsrs-rs: https://docs.rs/fsrs/
+- Benchmark algorytmów powtórek: https://github.com/open-spaced-repetition/srs-benchmark oraz https://expertium.github.io/Benchmark.html
+- FSRS Helper (Easy Days, równoważenie obciążenia): https://github.com/open-spaced-repetition/fsrs4anki-helper
 - Waisman Center, przeplatanie języków: https://www.waisman.wisc.edu/?p=36980
 - MPI Nijmegen, „New in, old out”: https://forms.mpi.nl/node/55663
 - Bartolotti i Marian, nauka trzeciego języka: https://bilingualism.northwestern.edu/wp-content/uploads/2018/05/BartolottiMarian2018.pdf

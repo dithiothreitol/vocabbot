@@ -3,6 +3,53 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## 1.0.0-rc.3 - 2026-11-15
+
+### Added
+
+- A new terminal session (`vocabbot drill`) on the standard library: a
+  compact card with a progress bar, a correct answer saved without an extra
+  key, the typed answer and the expected one with the differing letters
+  marked, a card folded into one line after the answer in an interactive
+  terminal, the commands `/cofnij`, `/znam`, `/pomoc` and `/koniec`, and a
+  summary with the words to work on, tomorrow's load and the activity of the
+  last four weeks. Colour follows `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb`;
+  consoles without Unicode fonts get ASCII symbols (`VOCABBOT_ASCII=1` forces
+  them). The program no longer depends on Rich.
+- `vocabbot` without a command shows the plan of the day and starts the
+  session with Enter.
+- `today`, `status` and `forecast` show progress bars, a load chart and the
+  intervals after a first answer.
+- Due dates spread within the FSRS fuzz ranges from 3 days up. The spread
+  follows from the card and the day of the answer, so both computers see the
+  same dates.
+- The initial intervals (the first four FSRS-6 parameters) fit the learner's
+  second answers once the log holds 40 of them; `status` says which intervals
+  apply.
+- Courses 2026.11.4: 228 decisions of the editors (`tools/courses/editor.jsonl`)
+  add basic words such as yes and no, thank you, goodbye, the months, the
+  possessive determiners, there is (es gibt, hay, il y a), estar, kennen,
+  conocer, connaître, du, tú, tu, Sie, usted, how much (wie viel, cuánto,
+  combien), chez, gern and die Eltern, and tell common meanings apart (house
+  and home, tell and say, tall and high). English keeps verbs and nouns of
+  one spelling (work, stop, walk). Level A1 opens with a starting list of
+  greetings, pronouns and basic verbs and nouns, and any ten entries hold at
+  most three function words. Nouns used only in the plural (die Eltern, les
+  gens) and months without an article (enero, janvier) enter the courses.
+  Claude Sonnet 5.5 reviewed every example sentence (sense, part of speech,
+  Polish translation, suitable content): 14 911 sentences stay, 1 495
+  entries are asked without one, and a filter of vulgar words guards the
+  rest. The courses hold 23 095 entries (21 919 before).
+
+### Changed
+
+- In German, Spanish and French an article of another gender, or no article
+  where the article shows the gender or the plural, makes the answer
+  "nie wiem" (error classes `gender` and the new `no_article`).
+- Words added during the day (more words, a word marked as known) join the
+  day's list after the planned words, so a card already shown never leaves
+  the list.
+
 ## 1.0.0-rc.2 - 2026-11-15
 
 ### Added

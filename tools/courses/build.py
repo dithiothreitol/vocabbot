@@ -1,12 +1,14 @@
 """Build the A1-B2 courses from CEFR-J, Wiktionary, wordfreq and Tatoeba.
 
-For each CEFR-J concept the builder takes the first translation table of the
-English entry that has a Polish translation and at least two of German,
-Spanish and French, picks the most frequent equivalent in each language,
-adds article, gender, forms and pronunciation from the target-language entry,
-finds an example sentence with a Polish translation, and writes one course
-file per language and level. Corrections found by reviewing samples live in
-tools/courses/overrides.json.
+Every concept enters the courses through a decision: the model review
+(tools/courses/review.jsonl) or the editors (tools/courses/editor.jsonl, which
+wins where both decide). A decision names the sense, the Polish meaning and the
+German, Spanish and French equivalents with their gender. The builder adds
+article, forms and pronunciation from the Wiktionary entries, chooses an
+example sentence with a Polish translation (the decisions of the example
+review live in tools/courses/examples.jsonl), orders every level by frequency
+after the editors' starting list, and writes one course file per language and
+level. Corrections of single entries live in tools/courses/overrides.json.
 """
 
 from __future__ import annotations
@@ -14,12 +16,12 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 import wordfreq
 
-from concepts import Concept
+from concepts import EDITOR_POS, Concept
 from concepts import read as read_concepts
 from sources import COURSES, TOOLS, WORK
 from tatoeba import Corpus, course_links, polish_links, read_sentences, tokens
@@ -128,8 +130,38 @@ H_ASPIRE = frozenset(
     ]
 )
 OVERRIDES = TOOLS / "overrides.json"
-VERSION = "2026.11.3"  # raise it with every change of the sources or of the rules
+EDITOR = TOOLS / "editor.jsonl"
+EXAMPLES = TOOLS / "examples.jsonl"
+VERSION = "2026.11.4"  # raise it with every change of the sources or of the rules
 MAX_ACCEPT = 3
+# parts of speech that count as function words when a level is put in order
+FUNCTION_POS = frozenset({"prep", "pron", "conj", "det", "particle"})
+FUNCTION_WINDOW, FUNCTION_LIMIT = 10, 3  # at most 3 function words in any 10 entries
+EXAMPLE_CANDIDATES = 3  # sentences the example review judges for one entry
+# Plural articles, for nouns used only in the plural (die Eltern, les gens, los padres)
+PLURAL_ONLY_ARTICLES = {"de": ("die",), "es": ("los", "las"), "fr": ("les",)}
+# A sentence with one of these words never becomes an example, whatever the
+# example review says; the review judges everything else, including violence.
+VULGAR_WORDS = {
+    "en": r"fuck\w*|shit\w*|bitch\w*|bastards?|assholes?|dicks?|cocks?|pussy|whores?|sluts?|"
+    r"porn\w*|cunts?|wank\w*|sex|sexual\w*|sexy",
+    "de": r"schei(?:ß|ss)\w*|fick\w*|huren?|arsch\w*|fotzen?|wichs\w*|titten|sex|sexuell\w*|"
+    r"sexy|nutten?|schlampen?",
+    "es": r"putas?|putos?|mierda\w*|joder|jodid\w*|coño\w*|pollas?|cabr[oó]n\w*|gilipollas|"
+    r"follar\w*|culos?|sexo|sexual\w*|sexy|maric[oó]n\w*|pendej\w*|vergas?|chingad\w*",
+    "fr": r"merde\w*|putain\w*|putes?|salope\w*|connard\w*|connasse\w*|encul\w*|bites?|"
+    r"couilles?|nique\w*|foutre|sexe|sexuel\w*|sexy|cul",
+    "pl": r"kurw\w*|chuj\w*|huj\w*|pierdol\w*|pierdziel\w*|jeb\w*|zajeb\w*|pizd\w*|dziwk\w*|"
+    r"skurwysyn\w*|cip\w*|seks\w*|fiut\w*|kutas\w*|dupa|dupy|dupie|dupę|dupą|dupek|dupka",
+}
+VULGAR = {
+    lang: re.compile(rf"(?<!\w)(?:{words})(?!\w)", re.IGNORECASE)
+    for lang, words in VULGAR_WORDS.items()
+}
+
+
+def vulgar(text: str, lang: str) -> bool:
+    return bool(VULGAR[lang].search(text))
 
 
 IPA = re.compile(r"^(/[^/]+/|\[[^\]]+\])$")
@@ -350,6 +382,7 @@ class Word:
     forms: dict[str, str] = field(default_factory=dict)
     ipa: str | None = None
     frequency: float = 0.0
+    bare: bool = False  # a noun shown without an article (Spanish and French months)
 
 
 def target_word(
@@ -443,6 +476,35 @@ def load_review() -> dict[str, dict[str, Any]]:
     return out
 
 
+def load_editor() -> dict[str, dict[str, Any]]:
+    """Decisions of the editors (tools/courses/editor.jsonl), by concept.
+
+    A row holds the fields of a review decision it sets ("pl", "de", "keep",
+    ...) and may add "level" (another CEFR level), "en" (false for no English
+    entry, or {"word": ...} for another English word), "start" (the place in
+    the A1 starting list) and "note" (why the editors decided so).
+    """
+    if not EDITOR.is_file():
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for line in EDITOR.read_text("utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            if row["id"] in out:
+                raise SystemExit(f"editor.jsonl names {row['id']} twice")
+            out[row["id"]] = row
+    return out
+
+
+def decision_of(
+    review: dict[str, Any] | None, edit: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """The review decision with the editors' fields over it."""
+    if edit is None:
+        return review
+    return {**(review or {}), **edit}
+
+
 def split_display(text: str, lang: str) -> tuple[str | None, str]:
     if lang == "fr" and text.casefold().startswith("l'"):
         return "l'", text[2:].strip()
@@ -495,12 +557,40 @@ def plural_only(record: dict[str, Any] | None) -> bool:
     return "pl" in rest.split("(")[0].split() or "plural only" in head
 
 
+def plural_noun(lang: str, text: str, decision: dict[str, Any], lexicon: Lexicon) -> Word | None:
+    """A noun used only in the plural, with its plural article: die Eltern, les gens.
+
+    The decision says so with the gender "pl", or Wiktionary marks the noun as
+    used only in the plural. Other nouns are shown in the singular.
+    """
+    head, _, core = text.partition(" ")
+    article = head.casefold()
+    if article not in PLURAL_ONLY_ARTICLES.get(lang, ()) or not core:
+        return None
+    if lang == "de" and not core[:1].isupper():
+        return None
+    if decision.get("gender") != "pl" and not plural_only(lexicon.find(core, "noun")):
+        return None
+    return Word(lang, core, f"{article} {core}", "pl")
+
+
 def reviewed_word(lang: str, pos: str, decision: dict[str, Any], lexicon: Lexicon) -> Word | None:
     """The reviewed equivalent, with article, forms and pronunciation from the pipeline's rules."""
     text = " ".join(str(decision.get("word", "")).split())
     if not text:
         return None
-    if pos == "noun":
+    plural = plural_noun(lang, text, decision, lexicon) if pos == "noun" else None
+    if pos == "noun" and decision.get("bare"):
+        # "enero", "janvier": months go without an article in Spanish and French
+        gender = decision.get("gender")
+        if gender not in ARTICLES[lang]:
+            return None
+        word = Word(lang, text, text, gender, bare=True)
+        record = lexicon.find(text, "noun")
+    elif plural is not None:
+        word = plural
+        record = lexicon.find(word.lemma, "noun")
+    elif pos == "noun":
         if text.split()[0].casefold() in PLURAL_ARTICLES_ANY or decision.get("gender") == "none":
             return None  # a noun the course would have to show in the plural
         article, core = split_display(text, lang)
@@ -523,23 +613,50 @@ def reviewed_word(lang: str, pos: str, decision: dict[str, Any], lexicon: Lexico
     word.accept = [a for a in also if a and a.casefold() != word.display.casefold()][:MAX_ACCEPT]
     if record:
         word.ipa = valid_ipa(record.get("ipa"))
-        word.forms = target_forms(lang, pos, word.gender, record)
+        if word.gender != "pl":
+            word.forms = target_forms(lang, pos, word.gender, record)
     word.frequency = zipf(word.lemma, lang)
     return word
 
 
+def gloss_parts(text: str) -> list[str]:
+    """'z (kimś, czymś), wraz z' -> ['z (kimś, czymś)', 'wraz z']: commas in brackets stay."""
+    parts: list[str] = []
+    depth = 0
+    current = ""
+    for char in text:
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        if char == "," and depth == 0:
+            parts.append(current)
+            current = ""
+        else:
+            current += char
+    parts.append(current)
+    return [" ".join(p.split()) for p in parts]
+
+
 def reviewed_gloss(text: str) -> str | None:
     parts: list[str] = []
-    for part in (" ".join(p.split()) for p in text.split(",")):
+    for part in gloss_parts(text):
         if part and part.casefold() not in (p.casefold() for p in parts):
             parts.append(part)
     return ", ".join(parts[:2]) or None
 
 
-def english_word(concept: Concept, records: list[dict[str, Any]]) -> Word:
-    word = Word("en", concept.headword, concept.headword)
+def english_word(
+    concept: Concept,
+    records: list[dict[str, Any]],
+    others: list[dict[str, Any]] | None = None,
+    headword: str | None = None,
+) -> Word:
+    """The English entry; `others` (entries of other parts of speech) give only the IPA."""
+    headword = headword or concept.headword
+    word = Word("en", headword, headword)
     record = records[0] if records else {}
-    word.ipa = next((valid_ipa(r.get("ipa")) for r in records if valid_ipa(r.get("ipa"))), None)
+    word.ipa = next(
+        (valid_ipa(r.get("ipa")) for r in [*records, *(others or [])] if valid_ipa(r.get("ipa"))),
+        None,
+    )
     if concept.pos == "noun" and record.get("plural"):
         word.forms["plural"] = record["plural"][0]
     if concept.pos == "verb":
@@ -549,7 +666,7 @@ def english_word(concept: Concept, records: list[dict[str, Any]]) -> Word:
             word.forms["participle"] = record["participle"][0]
     if concept.pos == "adj" and record.get("comparative"):
         word.forms["comparative"] = record["comparative"][0]
-    word.frequency = zipf(concept.headword, "en")
+    word.frequency = zipf(headword, "en")
     return word
 
 
@@ -560,50 +677,73 @@ class Draft:
     words: dict[str, Word]
     sense: str
     reviewed: bool = False
+    edited: bool = False
+    start: int | None = None  # place in the A1 starting list
 
 
 def drafts(concepts: list[Concept]) -> tuple[list[Draft], Counter[str]]:
+    """One draft per concept with a decision of the review or of the editors."""
     english: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    any_pos: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in load("english.jsonl"):
         english[(record["word"], record["pos"])].append(record)
+        any_pos[record["word"]].append(record)
     lexicons = load_lexicons()
     reviews = load_review()
+    editor = load_editor()
+    unknown = sorted(set(editor) - {c.id for c in concepts})
+    if unknown:
+        raise SystemExit(f"editor.jsonl names concepts that do not exist: {', '.join(unknown)}")
     out: list[Draft] = []
     missing: Counter[str] = Counter()
     for concept in concepts:
         review = reviews.get(concept.id)
-        if review is not None and not review.get("keep", True):
-            missing["left out by the review"] += 1
+        edit = editor.get(concept.id)
+        decision = decision_of(review, edit)
+        if decision is None:
+            missing["no decision of the review or the editors"] += 1
             continue
-        records = english.get((concept.headword, concept.pos), [])
-        if not records:
-            missing["no English entry"] += 1
+        if not decision.get("keep", True):
+            missing["left out by the review or the editors"] += 1
             continue
-        ctx = Context(concept.headword, concept.pos, lexicons)
-        group = choose_group(translation_groups(records), ctx)
-        if group is None:
-            missing["no Polish translation"] += 1
-            continue
-        gloss = (reviewed_gloss(review["pl"]) if review else None) or polish_gloss(group["pl"], ctx)
+        gloss = reviewed_gloss(str(decision.get("pl") or ""))
         if gloss is None:
-            missing["no usable Polish translation"] += 1
+            missing["no Polish meaning"] += 1
             continue
-        words = {"en": english_word(concept, records)}
+        level = str(decision.get("level") or concept.level)
+        start = decision.get("start")
+        if start is not None and level != "a1":
+            raise SystemExit(f"{concept.id} is on the starting list but not at level A1")
+        pos = str(decision.get("pos") or concept.pos)
+        if pos not in EDITOR_POS:
+            raise SystemExit(f"{concept.id} has the unknown part of speech {pos!r}")
+        concept = replace(concept, level=level, pos=pos)
+        words: dict[str, Word] = {}
+        en = decision.get("en", True)
+        if en is not False:
+            headword = str(en["word"]) if isinstance(en, dict) else concept.headword
+            words["en"] = english_word(
+                concept, english.get((headword, concept.pos), []), any_pos.get(headword), headword
+            )
+            if isinstance(en, dict):
+                words["en"].accept = [str(a) for a in en.get("also", [])][:MAX_ACCEPT]
         for lang in TARGETS:
-            if review is not None:
-                word = reviewed_word(lang, concept.pos, review.get(lang) or {}, lexicons[lang])
-            else:
-                word = target_word(lang, concept.pos, group.get(lang, []), lexicons[lang], ctx)
+            word = reviewed_word(lang, concept.pos, decision.get(lang) or {}, lexicons[lang])
             if word is not None:
                 words[lang] = word
             else:
                 missing[f"no {lang} equivalent"] += 1
-        sense = (
-            review["sense"]
-            if review
-            else next((i[0].get("sense", "") for i in group.values() if i), "")
+        out.append(
+            Draft(
+                concept,
+                gloss,
+                words,
+                str(decision.get("sense") or ""),
+                reviewed=review is not None,
+                edited=edit is not None,
+                start=int(start) if start is not None else None,
+            )
         )
-        out.append(Draft(concept, gloss, words, sense, reviewed=review is not None))
     return out, missing
 
 
@@ -656,14 +796,16 @@ def used_as_article(text: str, gap: str) -> bool:
     return bool(found and found.group(1).isupper())
 
 
-def pick_example(
-    word: Word, pos: str, gloss: str, corpus: Corpus, used: set[int]
-) -> dict[str, Any] | None:
+def example_candidates(
+    word: Word, pos: str, gloss: str, corpus: Corpus, limit: int = EXAMPLE_CANDIDATES
+) -> list[dict[str, Any]]:
+    """The best sentences for an entry, best first: a direct Polish translation, a
+    translation that names the meaning, the citation form, about seven words."""
     if article_homograph(word, pos) and word.lang != "de":
         # a sentence cannot tell "la" the pronoun from "la" the article without a parser,
         # so these entries are asked without a sentence
-        return None
-    best: tuple[tuple[Any, ...], dict[str, Any]] | None = None
+        return []
+    scored: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
     polish_stems = stems(gloss)
     for sid in corpus.candidates(word.lemma):
         sentence = corpus.sentences[sid]
@@ -674,24 +816,19 @@ def pick_example(
         if article_homograph(word, pos) and used_as_article(sentence.text, gap):
             continue
         polish, route = corpus.polish[sid]
+        if vulgar(sentence.text, word.lang) or vulgar(polish.text, "pl"):
+            continue
         indirect = 0 if route == "direct" else 1 if route == "en" else 3 if "+" in route else 2
         count = len(tokens(sentence.text))
         mentions = any(s in polish.text.casefold() for s in polish_stems)
         if route != "direct" and not mentions:
             continue  # a translation through another language must still carry the meaning
-        score = (
-            sid in used,
-            indirect,
-            not mentions,
-            not citation,
-            abs(count - 7),
-            len(sentence.text),
-            sid,
-        )
-        if best is None or score < best[0]:
-            best = (
+        score = (indirect, not mentions, not citation, abs(count - 7), len(sentence.text), sid)
+        scored.append(
+            (
                 score,
                 {
+                    "sid": sid,
                     "text": sentence.text,
                     "gap": gap,
                     "pl": polish.text,
@@ -700,10 +837,45 @@ def pick_example(
                     "users": [sentence.user, polish.user],
                 },
             )
-    if best is None:
-        return None
-    used.add(int(best[1]["source"].split(":")[1]))
-    return best[1]
+        )
+    scored.sort(key=lambda item: item[0])
+    return [example for _, example in scored[:limit]]
+
+
+def load_examples() -> dict[str, dict[str, Any]]:
+    """Decisions of the example review (tools/courses/examples.py), by entry."""
+    if not EXAMPLES.is_file():
+        return {}
+    out = {}
+    for line in EXAMPLES.read_text("utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            out[row["entry"]] = row
+    return out
+
+
+def pick_example(
+    candidates: list[dict[str, Any]], decision: dict[str, Any] | None, used: set[int]
+) -> tuple[dict[str, Any] | None, str]:
+    """The example of an entry and how it was chosen: reviewed, rejected or unreviewed.
+
+    The example review chose among the same candidates, so its choice holds
+    while the sources stay the same. Without a decision the first sentence no
+    other entry uses wins.
+    """
+    if decision is not None:
+        chosen = decision.get("sentence")
+        if chosen is None:
+            return None, "rejected"
+        match = next((c for c in candidates if c["sid"] == chosen), None)
+        if match is not None:
+            used.add(chosen)
+            return match, "reviewed"
+    if not candidates:
+        return None, "none"
+    choice = next((c for c in candidates if c["sid"] not in used), candidates[0])
+    used.add(choice["sid"])
+    return choice, "unreviewed"
 
 
 # ---------------------------------------------------------------- assembly
@@ -753,6 +925,8 @@ def entry_of(draft: Draft, word: Word, example: dict[str, Any] | None) -> dict[s
     }
     if word.gender:
         entry["gender"] = word.gender
+    if word.bare:
+        entry["bare"] = True
     if word.forms:
         entry["forms"] = word.forms
     if word.accept:
@@ -763,12 +937,18 @@ def entry_of(draft: Draft, word: Word, example: dict[str, Any] | None) -> dict[s
     if example:
         entry["example"] = {k: example[k] for k in ("text", "gap", "pl", "source", "pl_source")}
     entry["sources"] = (
-        ["cefrj", "enwiktionary", "wordfreq"]
+        (["cefrj"] if concept.from_cefrj else [])
+        + ["enwiktionary", "wordfreq"]
         + (["review"] if draft.reviewed else [])
+        + (["editor"] if draft.edited else [])
         + (["tatoeba"] if example else [])
     )
     entry["checked"] = False
     entry["_frequency"] = word.frequency
+    # where one form serves several concepts, the more basic concept keeps it
+    english = draft.words.get("en")
+    entry["_concept_frequency"] = english.frequency if english else zipf(concept.headword, "en")
+    entry["_start"] = draft.start if draft.start is not None else 10**6
     entry["_users"] = example["users"] if example else []
     return entry
 
@@ -798,14 +978,27 @@ def merge_duplicates(
     rocket) stay apart with a hint naming the English word; in the English
     course such a hint would give the answer away, so the rarer one goes.
     """
-    order = sorted(entries.values(), key=lambda e: (e["level"], -e["_frequency"], e["concept"]))
-    by_display: dict[str, dict[str, Any]] = {}
-    by_meaning: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    order = sorted(
+        entries.values(),
+        key=lambda e: (
+            e["level"],
+            e.get("_start", 10**6),
+            -e["_frequency"],
+            -e.get("_concept_frequency", 0.0),
+            e["concept"],
+        ),
+    )
+    # one answer may serve two parts of speech ("work": praca, pracować), not one meaning twice
+    by_display: dict[tuple[str, str, str], dict[str, Any]] = {}
     merged = 0
+    by_meaning: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for entry in order:
-        key = entry["display"].casefold()
-        meaning = (entry["gloss"]["pl"].casefold(), entry["pos"])
-        keeper = by_display.get(key)
+        display = entry["display"]
+        gloss = entry["gloss"]["pl"].casefold()
+        meaning = (gloss, entry["pos"])
+        keeper = by_display.get(("pos", display, entry["pos"])) or by_display.get(
+            ("gloss", display.casefold(), gloss)
+        )
         if keeper is None:
             keeper = next(
                 (
@@ -835,7 +1028,8 @@ def merge_duplicates(
                     english = families.get(other["concept"], {}).get("en")
                     if english:
                         other["hint"] = f"ang. {english}"
-            by_display[key] = entry
+            by_display[("pos", display, entry["pos"])] = entry
+            by_display[("gloss", display.casefold(), gloss)] = entry
             by_meaning[meaning].append(entry)
             continue
         MERGES.append(
@@ -859,6 +1053,28 @@ def merge_duplicates(
     return merged
 
 
+def ordered(items: list[dict[str, Any]], start: dict[str, int]) -> list[dict[str, Any]]:
+    """The entries of one level: the editors' starting list, then frequency.
+
+    Any ten entries in a row hold at most three function words, so the first
+    sessions bring nouns, verbs and adjectives next to "und", "in" and "zu".
+    """
+    first = sorted((e for e in items if e["concept"] in start), key=lambda e: start[e["concept"]])
+    pending = sorted(
+        (e for e in items if e["concept"] not in start),
+        key=lambda e: (-e["_frequency"], e["concept"]),
+    )
+    out = list(first)
+    while pending:
+        recent = out[-(FUNCTION_WINDOW - 1) :]
+        crowded = sum(1 for e in recent if e["pos"] in FUNCTION_POS) >= FUNCTION_LIMIT
+        index = 0
+        if crowded:
+            index = next((i for i, e in enumerate(pending) if e["pos"] not in FUNCTION_POS), 0)
+        out.append(pending.pop(index))
+    return out
+
+
 def build(sample_only: bool = False) -> dict[str, Any]:
     concepts = read_concepts()
     built, missing = drafts(concepts)
@@ -866,7 +1082,10 @@ def build(sample_only: bool = False) -> dict[str, Any]:
     to_polish = polish_links()
     between = course_links()
     corpora = {lang: Corpus(lang, polish, to_polish, between) for lang in LANGS}
+    decisions = load_examples()
     entries: dict[str, dict[str, dict[str, Any]]] = {lang: {} for lang in LANGS}
+    candidates: dict[str, list[dict[str, Any]]] = {}
+    how: dict[str, str] = {}
     for lang in LANGS:
         used: set[int] = set()
         for draft in sorted(
@@ -875,20 +1094,30 @@ def build(sample_only: bool = False) -> dict[str, Any]:
             word = draft.words.get(lang)
             if word is None:
                 continue
-            example = pick_example(word, draft.concept.pos, draft.gloss, corpora[lang], used)
-            entries[lang][draft.concept.id] = entry_of(draft, word, example)
+            entry_id = f"{lang}-{draft.concept.id}"
+            found = example_candidates(word, draft.concept.pos, draft.gloss, corpora[lang])
+            example, how[entry_id] = pick_example(found, decisions.get(entry_id), used)
+            candidates[entry_id] = found
+            entry = entry_of(draft, word, example)
+            entry["_sense"] = draft.sense
+            entry["_headword"] = draft.concept.headword
+            entries[lang][draft.concept.id] = entry
     families: dict[str, dict[str, str]] = defaultdict(dict)
     for lang in LANGS:
         for concept, entry in entries[lang].items():
             families[concept][lang] = entry["display"]
     merged = {lang: merge_duplicates(entries[lang], families) for lang in LANGS}
     overrides = apply_overrides(entries)
+    start = {d.concept.id: d.start for d in built if d.start is not None}
     report: dict[str, Any] = {
         "concepts": len(concepts),
         "drafts": len(built),
         "missing": dict(missing),
         "merged": merged,
         "overrides": overrides,
+        "examples": dict(
+            Counter(how[f"{lang}-{concept}"] for lang in LANGS for concept in entries[lang])
+        ),
         "languages": {},
     }
     for lang in LANGS:
@@ -896,8 +1125,9 @@ def build(sample_only: bool = False) -> dict[str, Any]:
         for entry in entries[lang].values():
             by_level[entry["level"]].append(entry)
         stats = {}
-        for level, items in sorted(by_level.items()):
-            items.sort(key=lambda e: (-e["_frequency"], e["concept"]))
+        for level in sorted(by_level):
+            items = ordered(by_level[level], start)
+            by_level[level] = items
             for rank, entry in enumerate(items, 1):
                 entry["rank"] = rank
             stats[level] = {
@@ -908,6 +1138,7 @@ def build(sample_only: bool = False) -> dict[str, Any]:
         report["languages"][lang] = stats
         if not sample_only:
             write_course(lang, by_level)
+    write_candidates(entries, candidates)
     (WORK / "entries.json").write_bytes(json.dumps(entries, ensure_ascii=False).encode("utf-8"))
     merges = "".join("\t".join(m) + "\n" for m in MERGES)
     (WORK / "merges.tsv").write_bytes(merges.encode("utf-8"))
@@ -915,6 +1146,33 @@ def build(sample_only: bool = False) -> dict[str, Any]:
         (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     )
     return report
+
+
+def write_candidates(
+    entries: dict[str, dict[str, dict[str, Any]]], candidates: dict[str, list[dict[str, Any]]]
+) -> None:
+    """The candidate sentences of every entry in the courses, for the example review."""
+    lines = []
+    for lang in LANGS:
+        for _concept, entry in sorted(entries[lang].items()):
+            found = candidates.get(entry["id"], [])
+            if not found:
+                continue
+            row = {
+                "entry": entry["id"],
+                "lang": lang,
+                "word": entry["display"],
+                "pos": entry["pos"],
+                "meaning": entry["gloss"]["pl"],
+                "headword": entry["_headword"],
+                "sense": entry["_sense"],
+                "candidates": [
+                    {"sid": c["sid"], "text": c["text"], "gap": c["gap"], "pl": c["pl"]}
+                    for c in found
+                ],
+            }
+            lines.append(json.dumps(row, ensure_ascii=False))
+    (WORK / "example-candidates.jsonl").write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
 
 
 def write_course(lang: str, by_level: dict[str, list[dict[str, Any]]]) -> None:
@@ -979,6 +1237,17 @@ def write_course(lang: str, by_level: dict[str, list[dict[str, Any]]]) -> None:
                 "name": "Tatoeba example sentences; authors in sentences.tsv",
                 "license": "CC BY 2.0 FR",
                 "url": "https://tatoeba.org",
+            },
+            {
+                "id": "review",
+                "name": "Review by Claude Sonnet 5.5: senses and equivalents "
+                "(tools/courses/review.jsonl) and example sentences (tools/courses/examples.jsonl)",
+            },
+            {
+                "id": "editor",
+                "name": "VocabBot editors: basic words, meanings and the starting list "
+                "(tools/courses/editor.jsonl)",
+                "license": "CC BY-SA 4.0",
             },
         ],
     }

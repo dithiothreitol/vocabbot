@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from vocabbot import answers, assets, store
-from vocabbot.book import RATING, CardState
+from vocabbot.book import RATING, CardState, spread_key
 from vocabbot.courses import Catalog, presentation, question, split_card
 from vocabbot.errors import VocabError
 from vocabbot.queue import DayPlan, compute
@@ -80,16 +80,17 @@ def _left(dp: DayPlan) -> dict[str, int]:
 
 
 def _schedule_after(
-    dp: DayPlan, kind: str, state: CardState | None, grade: str
+    dp: DayPlan, card: str, kind: str, state: CardState | None, grade: str
 ) -> tuple[date | None, int | None]:
     scheduler = dp.scheduler
+    key = spread_key(card, dp.day)
     if kind == "learn":
         memory = scheduler.first(RATING[grade])
-        interval = scheduler.interval(memory.stability)
+        interval = scheduler.due_interval(memory.stability, key)
         return dp.day + timedelta(days=interval), interval
     if kind == "review" and state is not None:
         memory = scheduler.review(state.memory, RATING[grade], (dp.day - state.last_day).days)
-        interval = scheduler.interval(memory.stability)
+        interval = scheduler.due_interval(memory.stability, key)
         return dp.day + timedelta(days=interval), interval
     if state is not None:
         return state.due(scheduler), None
@@ -146,7 +147,7 @@ def record(
     if kind == "review" and state is not None and state.due(dp.scheduler) > dp.day and ahead:
         row["ahead"] = True
     learner.append_review(row)
-    due, interval = _schedule_after(dp, kind, state, grade)
+    due, interval = _schedule_after(dp, card, kind, state, grade)
     result: dict[str, Any] = {
         "card": card,
         "lang": entry["lang"],

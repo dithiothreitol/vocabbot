@@ -328,3 +328,32 @@ def test_merged_logs_give_the_same_state(tmp_path: Path, catalog: Catalog) -> No
     assert {k: (v.memory, v.last_day, v.lapses) for k, v in original.cards.items()} == {
         k: (v.memory, v.last_day, v.lapses) for k, v in joined.cards.items()
     }
+
+
+def test_a_shown_card_never_leaves_the_list(tmp_path: Path, catalog: Catalog) -> None:
+    """Marking words as known adds words; every card of the day's list stays on it."""
+    learner = make_learner(tmp_path, ["de:a1-a2", "fr:a1-a2", "es:a1-a2"], new_per_day=6)
+    first = compute(learner, catalog, MONDAY).new
+    for number, card in enumerate(first[:4]):
+        session.self_grade(
+            learner, catalog, MONDAY, moment(MONDAY, number), card, "known", source="chat"
+        )
+        now = compute(learner, catalog, MONDAY).new
+        assert set(first) <= set(now)
+        assert len(now) == len(first) + number + 1
+
+
+def test_initial_stabilities_follow_the_second_answers() -> None:
+    from vocabbot.fsrs import DEFAULT_PARAMETERS, GOOD, fit_initial
+
+    # second answers after "know" recalled even after 12 days: longer initial stability
+    points = {GOOD: [(12, True)] * 45 + [(12, False)] * 5}
+    fitted = fit_initial(points)
+    assert fitted[GOOD - 1] > DEFAULT_PARAMETERS[GOOD - 1] * 2
+    assert fitted[:2] == DEFAULT_PARAMETERS[:2]  # too few answers for the other ratings
+    assert fitted[3] >= fitted[2]  # a better first rating never gets a shorter stability
+    assert fitted[4:] == DEFAULT_PARAMETERS[4:]
+    # forgotten after two days: shorter
+    assert fit_initial({GOOD: [(2, False)] * 30 + [(2, True)] * 20})[GOOD - 1] < 2.3065
+    # too few second answers in all: the defaults stay
+    assert fit_initial({GOOD: [(5, True)] * 20}) == DEFAULT_PARAMETERS

@@ -18,9 +18,9 @@ learner ── chat ── skill ── bin/vocabbot.pyz --json ┘     │     
 
 | Module | Role |
 |---|---|
-| `fsrs.py` | FSRS-6 with the published default parameters; the target recall sets the interval |
+| `fsrs.py` | FSRS-6 with the published default parameters; the target recall sets the interval; the fuzz of py-fsrs with a day taken from a hash of the card and the day of the answer; the fit of the initial stabilities to the learner's second answers |
 | `store.py` | the learner's folder, the plan and its checks, JSON-lines files written with LF |
-| `book.py` | the state of every card replayed from the log |
+| `book.py` | the state of every card replayed from the log, with the initial stabilities fitted once the log holds 40 second answers |
 | `queue.py` | the day: reviews, new words split by weight, interleaving, the drill |
 | `answers.py` | normalising and grading a typed answer by the rules of its language |
 | `courses.py` | the catalog of courses and own words, questions and presentations, `course check` |
@@ -29,7 +29,7 @@ learner ── chat ── skill ── bin/vocabbot.pyz --json ┘     │     
 | `gate.py` | previews with a token, `commit`, the decisions log |
 | `plans.py`, `words.py`, `doctor.py` | changes of the plan, own words, repairs of the folder; all as previews |
 | `progress.py` | `status` and `forecast` |
-| `cli.py`, `drill.py` | the program and its terminal session |
+| `cli.py`, `drill.py`, `term.py` | the program, its terminal session and the terminal layer (colour by `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb`, ASCII symbols for consoles without Unicode fonts, widths of wide and combining characters) |
 
 Texts the learner reads live in `data/i18n/pl.json`; the answer rules of a
 language in `data/lang/<code>.json`; the courses in
@@ -92,10 +92,16 @@ newer than 3.10, and CI runs the tests on 3.10 and 3.15.
 `tools/courses/pipeline.py` builds the courses in four steps: `fetch`
 downloads the sources into `.cache/` (3.2 GB, outside git), `extract` reads
 the Wiktionary extract once, `build` writes the courses, and `sample` draws
-the review samples. The concept list (`concepts.tsv`) and the decisions of
-the model review (`review.jsonl`, Claude Sonnet 5.5 through the Message
-Batches API) are committed, so a build repeats without the API and gives the
-same files.
+the review samples. A concept enters the courses only with a decision: the
+model review of the senses and equivalents (`review.jsonl`, Claude Sonnet 5.5
+through the Message Batches API) or the editors (`editor.jsonl`, which wins
+and also holds the A1 starting list and the concepts CEFR-J lacks, with ids
+from c09001). Every example sentence comes from up to three Tatoeba
+candidates judged by the example review (`examples.jsonl`); a filter of
+vulgar words guards the entries without a decision. Within a level, any ten
+entries in a row hold at most three function words. These files and
+`overrides.json` are committed, so a build repeats without the API and gives
+the same files.
 
 ## Checks
 

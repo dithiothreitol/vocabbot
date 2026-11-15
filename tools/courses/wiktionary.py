@@ -224,7 +224,10 @@ def extract(english_words: set[str]) -> dict[str, int]:
             except ValueError:
                 continue
             code = entry.get("lang_code")
-            if code not in out or entry.get("pos") not in POS or not is_lemma(entry):
+            if code not in out or not is_lemma(entry):
+                continue
+            # English months and the like are proper names in Wiktionary
+            if entry.get("pos") not in POS and not (code == "en" and entry.get("pos") == "name"):
                 continue
             if code == "en":
                 if entry.get("word") not in english_words:

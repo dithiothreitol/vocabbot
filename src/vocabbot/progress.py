@@ -8,9 +8,9 @@ from datetime import date, timedelta
 from typing import Any
 
 from vocabbot import assets, store
-from vocabbot.book import RATING, CardState, replay
+from vocabbot.book import RATING, CardState, second_answers, spread_key
 from vocabbot.courses import Catalog, card_id, split_card
-from vocabbot.fsrs import AGAIN, GOOD, Memory, Scheduler
+from vocabbot.fsrs import AGAIN, FIT_MIN_ANSWERS, GOOD, Memory
 from vocabbot.queue import DIRECTION_CODES, compute, split_quota
 from vocabbot.session import _seconds, summary
 
@@ -115,6 +115,22 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
         "languages": languages,
         "streak_days": streak,
         "target_retention": plan["retention"],
+        "schedule": schedule(dp),
+    }
+
+
+def schedule(dp: Any) -> dict[str, Any]:
+    """The intervals after a first answer, and whether they fit the learner's log yet."""
+    scheduler = dp.scheduler
+    have = sum(len(points) for points in second_answers(dp.before).values())
+    return {
+        "fitted": dp.before.fitted,
+        "second_answers": have,
+        "fit_from": FIT_MIN_ANSWERS,
+        "first_intervals": {
+            grade: scheduler.interval(scheduler.first(RATING[grade]).stability)
+            for grade in ("dont_know", "almost", "know", "known")
+        },
     }
 
 
@@ -165,11 +181,11 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
     days = max(1, min(days, FORECAST_MAX))
     dp = compute(learner, catalog, day)
     plan = dp.plan
-    scheduler = Scheduler(retention=float(plan["retention"]))
+    scheduler = dp.scheduler
     seconds = _seconds(dp)
     directions = [DIRECTION_CODES[d] for d in plan["directions"]]
     codes = {item["code"] for item in plan["languages"]}
-    book = replay(learner.rows()[0])
+    book = dp.book
     memory: dict[str, Memory] = {}
     last: dict[str, date] = {}
     buckets: dict[date, list[str]] = defaultdict(list)
@@ -232,9 +248,8 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
                 memory[card], GOOD if recalled else AGAIN, max(elapsed, 1)
             )
             last[card] = current
-            buckets[current + timedelta(days=scheduler.interval(memory[card].stability))].append(
-                card
-            )
+            days_later = scheduler.due_interval(memory[card].stability, spread_key(card, current))
+            buckets[current + timedelta(days=days_later)].append(card)
         if offset == 0:
             new_cards = [item.card for item in dp.sequence if item.phase == "new"]
         else:
@@ -247,9 +262,8 @@ def forecast(learner: store.Learner, catalog: Catalog, day: date, days: int = 30
             first = RATING["know"] if _chance(card, current) < 0.8 else RATING["dont_know"]
             memory[card] = scheduler.first(first)
             last[card] = current
-            buckets[current + timedelta(days=scheduler.interval(memory[card].stability))].append(
-                card
-            )
+            days_later = scheduler.due_interval(memory[card].stability, spread_key(card, current))
+            buckets[current + timedelta(days=days_later)].append(card)
             if card in level_of:
                 key = level_of[card]
                 remaining_by_level[key] -= 1

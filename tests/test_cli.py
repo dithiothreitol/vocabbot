@@ -204,3 +204,17 @@ def test_plain_output_in_polish(program: Program, tmp_path: Path) -> None:
     assert "francuski (fr)" in out
     out = program.text("next", "--today", DAY, "--count", "2")
     assert "[FR] nowe słowo: la maison" in out
+    out = program.text("status", "--today", DAY)
+    assert "(cel 90%)" in out and "Odstępy po pierwszej odpowiedzi" in out
+    out = program.text("forecast", "--today", DAY)
+    assert "Prognoza na 30 dni" in out
+
+
+def test_start_screen(program: Program, tmp_path: Path) -> None:
+    out = program.text()
+    assert "Folder nauki jeszcze nie istnieje" in out
+    folder = tmp_path / "nauka"
+    token = program.run("init", str(folder), "--lang", "de:a1")["token"]
+    program.run("commit", "--confirm", token)
+    out = program.text()
+    assert "Dzień nauki" in out and "vocabbot drill" in out

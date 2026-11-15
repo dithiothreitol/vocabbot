@@ -25,6 +25,15 @@
     "dem",
     "des"
   ],
+  "indefinite_articles": {
+    "ein": [
+      "m",
+      "n"
+    ],
+    "eine": [
+      "f"
+    ]
+  },
   "elided_article": null,
   "nouns_capitalized": true,
   "feminine_el": false,

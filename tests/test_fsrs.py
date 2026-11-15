@@ -90,3 +90,24 @@ def test_bad_input_is_refused() -> None:
     with pytest.raises(ValueError, match="rating"):
         Scheduler().first(5)
     assert HARD == 2
+
+
+def test_fuzz_ranges_follow_py_fsrs() -> None:
+    scheduler = Scheduler()
+    assert scheduler.fuzz_range(1) == (1, 1)
+    assert scheduler.fuzz_range(2) == (2, 2)
+    assert scheduler.fuzz_range(3) == (2, 4)
+    assert scheduler.fuzz_range(10) == (8, 12)  # 1 + 0.15 * 4.5 + 0.1 * 3 = 1.975 days
+    assert scheduler.fuzz_range(100) == (93, 107)
+
+
+def test_spread_is_the_same_for_the_same_card_and_day() -> None:
+    scheduler = Scheduler()
+    stability = 40.0
+    low, high = scheduler.fuzz_range(scheduler.interval(stability))
+    days = {scheduler.due_interval(stability, f"de-c{n:05d}#p|2026-11-15") for n in range(200)}
+    assert days <= set(range(low, high + 1)) and len(days) > 3
+    assert scheduler.due_interval(stability, "de-c00001#p|2026-11-15") == scheduler.due_interval(
+        stability, "de-c00001#p|2026-11-15"
+    )
+    assert scheduler.due_interval(0.5, "any") == scheduler.interval(0.5)

@@ -15,7 +15,16 @@ from datetime import date, timedelta
 from typing import Any
 
 from vocabbot.courses import CARD_ID
-from vocabbot.fsrs import AGAIN, EASY, GOOD, HARD, Memory, Scheduler
+from vocabbot.fsrs import (
+    AGAIN,
+    DEFAULT_PARAMETERS,
+    EASY,
+    GOOD,
+    HARD,
+    Memory,
+    Scheduler,
+    fit_initial,
+)
 
 GRADES = ("known", "know", "almost", "dont_know")
 RATING = {"known": EASY, "know": GOOD, "almost": HARD, "dont_know": AGAIN}
@@ -36,7 +45,13 @@ class CardState:
     known: bool = False
 
     def due(self, scheduler: Scheduler) -> date:
-        return self.last_day + timedelta(days=scheduler.interval(self.memory.stability))
+        days = scheduler.due_interval(self.memory.stability, spread_key(self.card, self.last_day))
+        return self.last_day + timedelta(days=days)
+
+
+def spread_key(card: str, day: date) -> str:
+    """What the spread of a due date depends on: the card and the day of its answer."""
+    return f"{card}|{day.isoformat()}"
 
 
 @dataclass
@@ -60,6 +75,11 @@ class Book:
     cards: dict[str, CardState]
     rows: list[Row]
     invalid: int = 0
+    parameters: tuple[float, ...] = DEFAULT_PARAMETERS
+
+    @property
+    def fitted(self) -> bool:
+        return self.parameters != DEFAULT_PARAMETERS
 
     def rows_on(self, day: date) -> list[Row]:
         return [row for row in self.rows if row.day == day]
@@ -81,7 +101,12 @@ def order_key(raw: dict[str, Any]) -> tuple[str, str, str]:
     return (raw["day"], raw["ts"], raw["card"])
 
 
-def replay(raw_rows: list[dict[str, Any]], *, before: date | None = None) -> Book:
+def replay(
+    raw_rows: list[dict[str, Any]],
+    *,
+    before: date | None = None,
+    parameters: tuple[float, ...] = DEFAULT_PARAMETERS,
+) -> Book:
     """Card states from the log; with `before`, only rows of earlier days count."""
     good = [r for r in raw_rows if valid_row(r)]
     invalid = len(raw_rows) - len(good)
@@ -89,23 +114,51 @@ def replay(raw_rows: list[dict[str, Any]], *, before: date | None = None) -> Boo
         limit = before.isoformat()
         good = [r for r in good if r["day"] < limit]
     cards: dict[str, CardState] = {}
-    rows = _apply(cards, good)
-    return Book(cards=cards, rows=rows, invalid=invalid)
+    rows = _apply(cards, good, Scheduler(parameters=parameters))
+    return Book(cards=cards, rows=rows, invalid=invalid, parameters=parameters)
+
+
+def fitted_replay(raw_rows: list[dict[str, Any]]) -> Book:
+    """The replay with initial stabilities fitted to the learner's second answers."""
+    book = replay(raw_rows)
+    parameters = fit_initial(second_answers(book))
+    if parameters == book.parameters:
+        return book
+    return replay(raw_rows, parameters=parameters)
+
+
+def second_answers(book: Book) -> dict[int, list[tuple[int, bool]]]:
+    """For each first rating: days to the second answer and whether it was recalled."""
+    first: dict[str, Row] = {}
+    points: dict[int, list[tuple[int, bool]]] = {rating: [] for rating in RATING.values()}
+    for row in book.rows:
+        if row.kind == "learn":
+            first[row.card] = row
+        elif row.kind == "review" and row.card in first:
+            learned = first.pop(row.card)
+            points[RATING[learned.grade]].append(
+                ((row.day - learned.day).days, row.grade != "dont_know")
+            )
+    return points
 
 
 def extend(book: Book, raw_rows: list[dict[str, Any]]) -> Book:
     """`book` followed by rows of the same or later days; `book` itself stays as it was."""
     good = [r for r in raw_rows if valid_row(r)]
     cards = dict(book.cards)
-    rows = _apply(cards, good)
+    rows = _apply(cards, good, Scheduler(parameters=book.parameters))
     return Book(
-        cards=cards, rows=[*book.rows, *rows], invalid=book.invalid + len(raw_rows) - len(good)
+        cards=cards,
+        rows=[*book.rows, *rows],
+        invalid=book.invalid + len(raw_rows) - len(good),
+        parameters=book.parameters,
     )
 
 
-def _apply(cards: dict[str, CardState], good: list[dict[str, Any]]) -> list[Row]:
+def _apply(
+    cards: dict[str, CardState], good: list[dict[str, Any]], scheduler: Scheduler
+) -> list[Row]:
     """Apply valid rows in order. States are replaced, never changed in place."""
-    scheduler = Scheduler()
     good = sorted(good, key=order_key)
     regrades: dict[tuple[str, str], str] = {}
     for raw in good:
@@ -189,4 +242,18 @@ def activity(book: Book, day: date) -> Today:
     return Today(seen, learned, first, last, last_ts, last_row)
 
 
-__all__ = ["AGAIN", "EASY", "GOOD", "GRADES", "HARD", "RATING", "Book", "CardState", "Row", "Today"]
+__all__ = [
+    "AGAIN",
+    "EASY",
+    "GOOD",
+    "GRADES",
+    "HARD",
+    "RATING",
+    "Book",
+    "CardState",
+    "Row",
+    "Today",
+    "fitted_replay",
+    "second_answers",
+    "spread_key",
+]

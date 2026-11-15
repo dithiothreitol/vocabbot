@@ -63,8 +63,15 @@ in one and end in the other.
   answer means you do not know.
 - Every answer is graded at once: wiem, prawie (with what was off) or nie
   wiem. Words that went wrong come back at the end of the session.
-- In the terminal, Enter saves the proposed grade, 1, 2 and 3 choose another,
-  z marks a new word as known and q ends the session with everything saved.
+- In the terminal a right answer is saved at once and folds into one line.
+  After a mistake you see your answer next to the right one with the
+  differing letters marked; Enter saves the proposed grade and 1, 2 and 3
+  choose another. While introducing new words, z marks one as known. At the
+  answer prompt `/znam` marks a new word as known, `/cofnij` changes the grade
+  of the previous answer, `/pomoc` lists the commands and `/koniec` (or q at a
+  key prompt) ends the session with everything saved.
+- `vocabbot` without a command shows the plan of the day; Enter starts the
+  session.
 - A grade changes only when you ask for it ("to była literówka, zalicz").
 
 ## 4. Own words
