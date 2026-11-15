@@ -32,7 +32,6 @@ The first release candidate: the plugin, its checks and the documents.
 - `scripts/validate.py`, `scripts/session_test.py` with seven sessions,
   `scripts/build.py skills` and `package`, the release workflow, the
   documents in English and Polish, and the pilot protocol.
-
 - Results of `answer`, `grade` and `quiz --check` carry the Polish names of
   the grade and the error classes (`grade_pl`, `errors_pl`); `status`
   carries `errors_30_pl`.
