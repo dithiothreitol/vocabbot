@@ -18,7 +18,8 @@
     program's command handlers through `server/service.py`, and
     `scripts/build.py` leaves it out of `vocabbot.pyz`. Its guides for the
     model (`server/guides/*.md`) follow the skills: a change of a skill's
-    steps or of `rules/` changes them too.
+    steps or of `rules/` changes them too. `server/static/card.html` is the
+    card of MCP Apps; `pages.card()` fills in its labels from `pl.json`.
   - `data/courses/<lang>/<level>.jsonl` and `meta.json` are the courses. In
     Stage 1 they hold the starter course that `tools/courses/starter.py`
     generates; Stage 2 replaces them with the A1 to B2 courses.
@@ -60,8 +61,12 @@
   review: new concepts (ids from c09001), the A1 starting list (`start`),
   meanings told apart, levels and parts of speech. `examples.jsonl` keeps the
   example review (`examples.py prepare|submit|collect`, which judges the
-  candidate sentences a build writes into `.cache/work`), and
-  `overrides.json` corrects single entries after the merge step. All of them
+  candidate sentences a build writes into `.cache/work`), `generated.jsonl`
+  keeps the sentences the model wrote for entries without one and their
+  review (`generate.py`), and `overrides.json` corrects single entries after
+  the merge step. `audio.py` lists the Lingua Libre recordings (Spanish,
+  Italian) during `fetch` and picks one recording per entry; the courses keep
+  Commons file names, never the files. All of them
   are committed, so a build repeats without the API. A concept enters the
   courses only with a decision of the review or the editors. Raise `VERSION`
   in `build.py` when the sources or the rules change.

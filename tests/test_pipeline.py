@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -10,7 +11,9 @@ import pytest
 pytest.importorskip("wordfreq")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools" / "courses"))
 
+import audio
 import build
+import generate
 import wiktionary
 
 
@@ -271,3 +274,142 @@ def test_example_decisions() -> None:
     assert build.pick_example([], None, set()) == (None, "none")
     # a decision about a sentence that is no longer a candidate falls back to the rule
     assert build.pick_example([first], {"sentence": 9}, set()) == (first, "unreviewed")
+
+
+def test_the_recording_of_the_standard_variety_comes_first() -> None:
+    sounds = [
+        {"audio": "Qc-mot.ogg", "ogg_url": "u", "tags": ["Quebec"]},
+        {"ipa": "/mo/"},
+        {"audio": "Fr-mot.ogg", "ogg_url": "u", "tags": ["France"]},
+    ]
+    assert wiktionary.first_audio(sounds, "fr") == "Fr-mot.ogg"
+    english = [
+        {"audio": "En-us-for.ogg", "ogg_url": "u", "tags": ["US"]},
+        {"audio": "En-uk-for.ogg", "mp3_url": "u", "tags": ["UK"]},
+    ]
+    assert wiktionary.first_audio(english, "en") == "En-uk-for.ogg"
+    # a file without an address on Commons, or of another kind, is no recording
+    assert (
+        wiktionary.first_audio([{"audio": "a.txt", "ogg_url": "u"}, {"audio": "B.ogg"}], "de")
+        is None
+    )
+
+
+def test_lingua_libre_names_give_the_word_and_one_voice(tmp_path: Path) -> None:
+    titles = [
+        "LL-Q1321 (spa)-Rodelar-casa.wav",
+        "LL-Q1321 (spa)-Rodelar-perro.wav",
+        "LL-Q1321 (spa)-Other-casa.wav",
+        "LL-Q1321 (spa)-Noaius Paticus-(American Spanish) gato.wav",
+        "LL-Q1321 (spa)-Rodelar-e-mail.wav",
+        "LL-Q1321 (spa)-Ana-María-hola.wav",
+        "not a recording.txt",
+    ]
+    (tmp_path / "spa.txt").write_text("\n".join(titles) + "\n", encoding="utf-8")
+    found = audio.index("es", tmp_path)
+    assert found["casa"] == "LL-Q1321 (spa)-Rodelar-casa.wav"  # the voice with most words
+    assert found["gato"] == "LL-Q1321 (spa)-Noaius Paticus-(American Spanish) gato.wav"
+    assert found["e-mail"] == "LL-Q1321 (spa)-Rodelar-e-mail.wav" and "mail" not in found
+    assert found["hola"] == "LL-Q1321 (spa)-Ana-María-hola.wav"
+    assert audio.index("de", tmp_path) == {}
+
+
+def test_a_written_sentence_needs_its_gap_once_and_a_translation() -> None:
+    entry = {"level": "a1"}
+    assert generate.problems(entry, "Der Hund schläft.", "Der Hund", "Pies śpi.") == []
+    assert generate.problems(entry, "Der Hund sieht den Hund.", "Hund", "Pies.") == ["gap"]
+    assert generate.problems(entry, "Die Katze schläft.", "Hund", "Kot śpi.") == ["gap"]
+    long = " ".join(["Wort"] * 12) + " Hund."
+    assert generate.problems(entry, long, "Hund", "Długie zdanie.") == ["length"]
+    assert generate.problems(entry, "Der Hund schläft.", "Der Hund", " ") == ["polish"]
+
+
+def test_only_accepted_sentences_enter_the_courses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rows = [
+        {
+            "entry": "de-c00001",
+            "text": "Der Hund schläft.",
+            "gap": "Der Hund",
+            "pl": "Pies śpi.",
+            "ok": True,
+        },
+        {"entry": "de-c00002", "text": "Die Katze.", "gap": "Katze", "pl": "Kot.", "ok": False},
+        {"entry": "de-c00003", "text": "Das Haus.", "gap": "Haus", "pl": "Dom.", "ok": None},
+    ]
+    path = tmp_path / "generated.jsonl"
+    path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", "utf-8")
+    monkeypatch.setattr(build, "GENERATED", path)
+    written = build.load_generated()
+    assert list(written) == ["de-c00001"]
+    assert written["de-c00001"]["source"] == "generated"
+
+
+def test_another_part_of_speech_lends_its_pronunciation_when_it_is_the_same() -> None:
+    word = build.Word("de", "nein", "nein")
+    build.fill_pronunciation(word, [{"pos": "intj", "ipa": "/naɪ̯n/", "audio": "De-nein.ogg"}])
+    assert (word.ipa, word.audio) == ("/naɪ̯n/", "De-nein.ogg")
+    two_ways = build.Word("de", "modern", "modern")
+    records = [
+        {"pos": "verb", "ipa": "/ˈmoːdɐn/", "audio": "De-modern1.ogg"},
+        {"pos": "adj", "ipa": "/moˈdɛʁn/", "audio": "De-modern2.ogg"},
+    ]
+    build.fill_pronunciation(two_ways, records)
+    assert (two_ways.ipa, two_ways.audio) == (None, None)
+
+
+def test_a_written_sentence_serves_only_its_word_and_meaning() -> None:
+    sentence = {
+        "text": "Der Hund schläft.",
+        "gap": "Der Hund",
+        "pl": "Pies śpi.",
+        "source": "generated",
+        "pl_source": "generated",
+        "users": ["", ""],
+        "for": ["der Hund", "pies"],
+    }
+    entry = {"id": "de-c00001", "display": "der Hund", "gloss": {"pl": "pies"}}
+    entry.update({"audio": "De-Hund.ogg", "sources": ["enwiktionary", "wordfreq", "commons"]})
+    how: dict[str, str] = {}
+    build.attach_generated(entry, sentence, how)
+    assert entry["example"]["source"] == "generated" and how == {"de-c00001": "generated"}
+    assert entry["sources"] == ["enwiktionary", "wordfreq", "generated", "commons"]
+    changed = {"id": "de-c00001", "display": "der Rüde", "gloss": {"pl": "pies"}, "sources": []}
+    build.attach_generated(changed, sentence, how)
+    assert "example" not in changed
+
+
+def test_a_reflexive_verb_keeps_no_recording_of_the_bare_verb() -> None:
+    record = {"word": "treffen", "audio": "De-treffen2.ogg"}
+    assert build.own_recording(record, "treffen") == "De-treffen2.ogg"
+    assert build.own_recording(record, "sich treffen") is None
+
+
+def test_an_error_of_commons_stops_the_listing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(audio, "_get", lambda params: {"error": {"code": "timeout"}})
+    with pytest.raises(SystemExit, match="refused the listing"):
+        audio.list_titles("spa")
+
+
+def test_a_recording_name_is_one_line() -> None:
+    from vocabbot.courses import AUDIO_FILE
+
+    assert AUDIO_FILE.match("De-Hund.ogg")
+    assert not AUDIO_FILE.match("De-Hund.ogg\n")
+
+
+def test_a_batch_is_collected_once_and_only_for_its_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    requests, record = tmp_path / "requests.jsonl", tmp_path / "batch.json"
+    content = "Items (2):\n" + "\n".join(
+        json.dumps({"id": key}) for key in ("de-c00001", "de-c00002")
+    )
+    row = {"custom_id": "generate-0001", "params": {"messages": [{"content": content}]}}
+    requests.write_text(json.dumps(row) + "\n", encoding="utf-8")
+    monkeypatch.setattr(generate, "files", lambda review: (requests, record))
+    assert generate.asked(False) == {"de-c00001", "de-c00002"}
+    record.write_text(json.dumps({"id": "msgbatch_x", "collected": "2026-11-16"}), "utf-8")
+    with pytest.raises(SystemExit, match="was collected"):
+        generate.results(review=False, wait=False)

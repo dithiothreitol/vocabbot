@@ -43,6 +43,13 @@ builds them from:
 - Tatoeba (https://tatoeba.org), CC BY 2.0 FR: example sentences and their
   Polish translations. src/vocabbot/data/courses/<lang>/sentences.tsv names
   the author of every sentence used.
+- Example sentences that Claude Sonnet 5.5 wrote for the entries without a
+  Tatoeba sentence, accepted by the example review
+  (tools/courses/generated.jsonl), under CC BY-SA 4.0 with the courses.
+- Wikimedia Commons (https://commons.wikimedia.org): pronunciation recordings
+  found through Wiktionary and Lingua Libre (https://lingualibre.org). The
+  courses hold only the file names; the recordings stay on Commons, where the
+  page of each file names its author and licence (mostly CC BY-SA).
 
 The starter course in tests/fixtures/courses was written for VocabBot and is
 licensed under CC BY-SA 4.0.

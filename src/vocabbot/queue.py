@@ -176,6 +176,27 @@ def select_new(
     first = split_quota(planned_base, weights, day.toordinal()) if planned_base > 0 else zero
     second = {code: max(0, quota[code] - first[code]) for code in weights}
     directions = [DIRECTION_CODES[d] for d in plan["directions"]]
+    # Words learned today that the plan no longer holds (its levels or languages changed
+    # during the day) stay in the day and take the places of words not chosen yet, in their
+    # own language, so the day keeps the plan's number of new words: without this, ten words
+    # marked as known before a change of the levels would bring ten more on top of the limit.
+    outside = _outside_plan(plan, catalog, today, directions)
+    cuts = dict.fromkeys(weights, 0)
+    spare = 0
+    for card in outside:
+        code = card[:2]
+        if code in cuts:
+            cuts[code] += 1
+        else:
+            spare += 1  # a language left the plan: its places come from the others
+    if spare and full > 0:
+        for code, extra in split_quota(spare, weights, day.toordinal()).items():
+            cuts[code] += extra
+    for code in weights:
+        from_second = min(second[code], cuts[code])
+        second[code] -= from_second
+        first[code] = max(0, first[code] - (cuts[code] - from_second))
+        quota[code] = first[code] + second[code]
     introduced: dict[str, list[tuple[str, str, date]]] = defaultdict(list)
     for card, state in before.cards.items():
         entry = catalog.card(card)
@@ -236,9 +257,35 @@ def select_new(
     fill(second)
     planned = [card for code in order for card in picks[code]]
     chosen = set(planned)
-    # words learned today outside today's choice (the plan changed during the day)
+    # words learned today outside today's choice: the plan changed during the day, or the
+    # learner reported a word after learning it
     planned += [card for card in today.learned if card not in chosen]
     return planned, quota
+
+
+def _outside_plan(
+    plan: dict[str, Any], catalog: Catalog, today: Today, directions: list[str]
+) -> list[str]:
+    """Cards first shown today that the plan no longer holds: their language, level or
+    direction left it. A reported card stays in the plan, so a report changes nothing."""
+    levels = {
+        item["code"]: set(item["levels"]) for item in plan["languages"] if not item.get("paused")
+    }
+    first: dict[str, set[str]] = {}
+    out = []
+    for card in today.learned:
+        entry = catalog.card(card)
+        if entry is None:
+            continue
+        code = str(entry["lang"])
+        if code not in levels or split_card(card)[1] not in directions:
+            out.append(card)
+            continue
+        if code not in first:
+            first[code] = {str(e["id"]) for e in catalog.first(code)}
+        if entry.get("level") not in levels[code] and str(entry["id"]) not in first[code]:
+            out.append(card)
+    return out
 
 
 def books(
@@ -326,8 +373,14 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     new, quota = select_new(plan, catalog, before, today, day, total, suspended, base=base)
 
     done = set(today.seen)
+    # a card the learner reported leaves the drill too, until the report is withdrawn
     drill = sorted(
-        (card for card in today.seen if today.last_grade[card] in ("almost", "dont_know")),
+        (
+            card
+            for card in today.seen
+            if today.last_grade[card] in ("almost", "dont_know")
+            and split_card(card)[0] not in suspended
+        ),
         key=lambda card: today.last_ts[card],
     )
     ahead_cards = [card for _, card in later if card not in done][: max(0, ahead)]

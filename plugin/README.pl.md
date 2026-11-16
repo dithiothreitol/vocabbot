@@ -14,7 +14,7 @@ dziewięciu na dziesięć słów.
 | Umiejętność | Zakres |
 |---|---|
 | `vocab-start` | Konfiguracja: języki, poziomy, liczba nowych słów dziennie, test poziomujący, folder nauki. Później zmiany planu, prognoza, kontrola folderu i program w terminalu. |
-| `vocab-session` | Codzienna sesja: powtórki, nowe słowa i utrwalanie słów z błędną odpowiedzią, po jednej karcie jak w SuperMemo (albo po kilka, według ustawienia `batch` w planie). |
+| `vocab-session` | Codzienna sesja: powtórki, nowe słowa i utrwalanie słów z błędną odpowiedzią, po jednej karcie jak w SuperMemo (albo po kilka, według ustawienia `batch` w planie), z licznikiem dnia i odnośnikiem do nagrania wymowy. |
 | `vocab-coach` | Wyjaśnienia, skojarzenia do trudnych słów, zestawienia słów mylonych między językami, ćwiczenie w zdaniach i przegląd tygodnia. |
 | `vocab-words` | Własne słowa z tekstu, listy lub zdjęcia strony, przesunięcie słów z kursu na początek kolejki, zgłoszenia błędów w hasłach. |
 

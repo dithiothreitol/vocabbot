@@ -3,7 +3,8 @@
 English entries are kept for the CEFR-J headwords, with their translations
 into German, Spanish, French and Polish. German, Spanish and French entries
 are kept for every lemma (not for inflected forms), with gender, plural and
-other forms, and pronunciation. The records go to .cache/work/*.jsonl.
+other forms, and pronunciation: the IPA and the Wikimedia Commons file name of
+a recording. The records go to .cache/work/*.jsonl.
 """
 
 from __future__ import annotations
@@ -14,6 +15,8 @@ import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+
+from vocabbot.courses import AUDIO_FILE
 
 from sources import WIKTIONARY, WORK
 
@@ -84,6 +87,54 @@ def first_ipa(sounds: list[dict[str, Any]], prefer: tuple[str, ...] = ()) -> str
     return str(ipas[0]["ipa"]) if ipas else None
 
 
+# the recording of the standard variety the course teaches comes first, regional ones last
+AUDIO_PREFER = {
+    "en": ("UK", "Received-Pronunciation", "Southern-England", "England", "US", "General-American"),
+    "de": ("Germany",),
+    "es": ("Spain",),
+    "fr": ("France",),
+    "it": ("Italy",),
+}
+AUDIO_REGIONAL = {
+    "Quebec",
+    "Canada",
+    "Belgium",
+    "Switzerland",
+    "Austria",
+    "Latin-America",
+    "Mexico",
+    "Argentina",
+    "Australia",
+    "India",
+    "Ireland",
+    "Scotland",
+    "New-Zealand",
+    "South-Africa",
+}
+
+
+def first_audio(sounds: list[dict[str, Any]], lang: str) -> str | None:
+    """The Wikimedia Commons file name of the word's recording, standard variety first."""
+    recordings = [
+        s
+        for s in sounds
+        if isinstance(s.get("audio"), str)
+        and AUDIO_FILE.match(s["audio"])
+        and (s.get("ogg_url") or s.get("mp3_url"))
+    ]
+    prefer = AUDIO_PREFER.get(lang, ())
+
+    def rank(sound: dict[str, Any]) -> tuple[int, int]:
+        tags = set(sound.get("tags") or [])
+        name = str(sound["audio"])
+        regional = bool(tags & AUDIO_REGIONAL) or name.startswith("Qc-")
+        wanted = next((i for i, tag in enumerate(prefer) if tag in tags), len(prefer))
+        return (int(regional), wanted)
+
+    recordings.sort(key=rank)  # stable: Wiktionary's order among equals
+    return str(recordings[0]["audio"]) if recordings else None
+
+
 def forms_with(
     forms: list[dict[str, Any]], *required: str, exclude: tuple[str, ...] = ()
 ) -> list[str]:
@@ -135,6 +186,7 @@ def compact_target(entry: dict[str, Any]) -> dict[str, Any]:
         "pos": entry.get("pos"),
         "head": head[:160],
         "ipa": first_ipa(entry.get("sounds") or []),
+        "audio": first_audio(entry.get("sounds") or [], str(entry.get("lang_code"))),
         # English meanings of the word, used to check that it translates back to the English concept
         "gloss": [
             g[:120] for s in (entry.get("senses") or [])[:8] for g in (s.get("glosses") or [])[-1:]
@@ -195,6 +247,7 @@ def compact_english(entry: dict[str, Any]) -> dict[str, Any]:
         "word": entry["word"],
         "pos": entry.get("pos"),
         "ipa": first_ipa(entry.get("sounds") or [], prefer=("Received-Pronunciation", "UK")),
+        "audio": first_audio(entry.get("sounds") or [], "en"),
         "gloss": [g for s in (entry.get("senses") or [])[:4] for g in (s.get("glosses") or [])[:1]],
         "plural": forms_with(forms, "plural")[:2],
         "past": forms_with(forms, "past", exclude=("participle",))[:1],

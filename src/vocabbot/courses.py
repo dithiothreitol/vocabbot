@@ -9,8 +9,10 @@ meaning (recognition).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import urllib.parse
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -54,6 +56,27 @@ GENDERS = {
 ENTRY_ID = re.compile(r"^(?P<lang>[a-z]{2})-(?P<concept>c\d{5}|u[0-9a-f]{6})$")
 CARD_ID = re.compile(r"^(?P<entry>[a-z]{2}-(?:c\d{5}|u[0-9a-f]{6}))#(?P<direction>[pr])$")
 IPA = re.compile(r"^(/[^/]+/|\[[^\]]+\])$")
+AUDIO_FILE = re.compile(
+    r"^[^/\\#?<>\[\]{}|\n]+\.(?:ogg|oga|opus|wav|flac|mp3|webm)\Z", re.IGNORECASE
+)
+COMMONS = "https://upload.wikimedia.org/wikipedia/commons"
+
+
+def audio_url(name: str) -> str:
+    """The address of a Wikimedia Commons recording as MP3, which every browser plays.
+
+    Commons keeps a file under the first characters of the MD5 of its name and
+    serves an MP3 copy of every other audio format under `transcoded/`.
+    """
+    file = name.replace(" ", "_")
+    file = file[:1].upper() + file[1:]
+    digest = hashlib.md5(file.encode("utf-8"), usedforsecurity=False).hexdigest()
+    quoted = urllib.parse.quote(file)
+    if file.lower().endswith(".mp3"):
+        return f"{COMMONS}/{digest[0]}/{digest[:2]}/{quoted}"
+    return f"{COMMONS}/transcoded/{digest[0]}/{digest[:2]}/{quoted}/{quoted}.mp3"
+
+
 GAP = "___"
 
 
@@ -310,6 +333,9 @@ def presentation(entry: dict[str, Any]) -> dict[str, Any]:
     for key in ("gender", "ipa", "hint"):
         if entry.get(key):
             out[key] = entry[key]
+    recording = entry.get("audio")
+    if isinstance(recording, str) and AUDIO_FILE.match(recording):
+        out["audio"] = audio_url(recording)
     if entry.get("forms"):
         out["forms"] = entry["forms"]
     if entry.get("accept"):
@@ -376,6 +402,11 @@ def entry_problems(entry: dict[str, Any], *, own: bool = False) -> list[str]:
     ipa = entry.get("ipa")
     if ipa is not None and (not isinstance(ipa, str) or not IPA.match(ipa)):
         problems.append("ipa must be written between slashes or square brackets")
+    recording = entry.get("audio")
+    if recording is not None and (
+        not isinstance(recording, str) or not AUDIO_FILE.match(recording)
+    ):
+        problems.append("audio must be the file name of a recording on Wikimedia Commons")
     example = entry.get("example")
     if example is not None:
         problems += _example_problems(example)
@@ -454,6 +485,7 @@ def check(catalog: Catalog) -> dict[str, Any]:
         coverage[lang]["entries"] += 1
         coverage[lang]["example"] += "example" in entry
         coverage[lang]["ipa"] += "ipa" in entry
+        coverage[lang]["audio"] += "audio" in entry
         if not own and isinstance(entry.get("rank"), int):
             key = (lang, level, int(entry["rank"]))
             if key in seen_rank:

@@ -19,7 +19,8 @@ samą sesję w czacie.
   powtórki.
 - **Karty.** Karta pokazuje polskie znaczenie, część mowy i zdanie
   przykładowe z luką, a uczący się wpisuje słowo. Nowe słowo pojawia się
-  najpierw z rodzajem, formami, wymową IPA i przykładem.
+  najpierw z rodzajem, formami, wymową IPA, odnośnikiem do nagrania
+  i przykładem. Licznik dnia otwiera każdą wiadomość sesji w czacie.
 - **Oceny.** Silnik porównuje wpisaną odpowiedź z hasłem według reguł języka.
   Zgodność daje „wiem”, drobne potknięcie (znak diakrytyczny, jedna litera,
   rodzajnik, wielkość litery, inna forma słowa) daje „prawie”, pozostałe
@@ -52,8 +53,12 @@ rodzaj, formy i wymowa z Wikisłownika (przez kaikki.org), kolejność z danych
 wordfreq, a zdania przykładowe z polskimi tłumaczeniami z Tatoeby. Claude
 Sonnet 5.5 przejrzał znaczenia i odpowiedniki wszystkich 6600 pojęć, a po
 dodaniu włoskiego także włoskie odpowiedniki 6700 pojęć. W próbie
-1200 haseł błędne znaczenie, odpowiednik lub rodzaj miało 1,2% haseł. Własne
-słowa z dowolnego tekstu uzupełniają kurs.
+1200 haseł błędne znaczenie, odpowiednik lub rodzaj miało 1,2% haseł. Dla
+haseł bez zdania w Tatoebie zdanie napisał Claude Sonnet 5.5 i sprawdził je
+przegląd przykładów, dzięki czemu przykład ma 99,5% haseł. Odnośnik do
+nagrania w Wikimedia Commons (Wikisłownik, Lingua Libre) ma 81,5% haseł, od
+98–99% haseł angielskich do 27–79% haseł włoskich. Własne słowa z dowolnego
+tekstu uzupełniają kurs.
 
 ## Instalacja
 
@@ -84,7 +89,9 @@ prowadzi przez pierwszy tydzień nauki.
 Serwer dla aplikacji czatu, z kontami dla wielu uczących się, działa na
 Twojej maszynie w Dockerze, a Claude w przeglądarce i w telefonie, ChatGPT,
 Claude Code oraz Codex łączą się z nim jak ze zdalnym serwerem MCP.
-[docs/server.pl.md](docs/server.pl.md) opisuje uruchomienie i podłączenie.
+W Claude i ChatGPT sesja pokazuje też kartę z licznikiem dnia i przyciskiem,
+który odtwarza nagranie słowa. [docs/server.pl.md](docs/server.pl.md) opisuje
+uruchomienie i podłączenie.
 
 ## Dokumenty
 

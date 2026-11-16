@@ -23,10 +23,10 @@ się na wersji 1.0.0-rc.4.
 | # | Scenariusz | Prośba albo polecenie | Co sprawdzić |
 |---|---|---|---|
 | 1 | Konfiguracja z testem | „skonfiguruj VocabBota”, test dla jednego języka | test pokazuje pytania bez odpowiedzi; plan powstaje po jednym potwierdzeniu; prognoza pochodzi z silnika |
-| 2 | Sesja w czacie | „sesja” przez trzy dni | jedna karta naraz (ustawienie planu `batch`, domyślnie 1); żadna odpowiedź przed oceną; utrwalanie na końcu |
+| 2 | Sesja w czacie | „sesja” przez trzy dni | jedna karta naraz (ustawienie planu `batch`, domyślnie 1); żadna odpowiedź przed oceną; utrwalanie na końcu; licznik w każdej wiadomości; odnośnik do nagrania obok IPA odtwarza słowo; w Claude i ChatGPT karta z przyciskiem odtwarzania; nowe słowa dnia w podsumowaniu |
 | 3 | Sesja w terminalu | `vocabbot drill` przez trzy dni | wpisywanie ä, ß, ñ, é, ç; zapis poprawnej odpowiedzi od razu; zaznaczona różnica po pomyłce; klawisze ocen; `/cofnij`, `/znam`, `/koniec`; kolory i symbole w Twoim terminalu |
 | 4 | Zmiana drogi w trakcie dnia | początek w czacie, dokończenie w terminalu | ta sama kolejność, bez powtórzonych kart |
-| 5 | Słowo znane przed kursem | „to słowo znałem” | ocena „znałem” tylko przy pierwszym pokazaniu; limit nowych słów bez zmian |
+| 5 | Słowo znane przed kursem | „to słowo znałem” | ocena „znałem” tylko przy pierwszym pokazaniu; limit nowych słów bez zmian; gdy większość z dziesięciu nowych słów była znana, jedna propozycja wyższego poziomu albo testu poziomującego |
 | 6 | Zmiana oceny | „to była literówka, zalicz” | zmiana tylko tej karty; wiersz oznaczony w dzienniku |
 | 7 | Własne słowa | tekst albo zdjęcie strony | podgląd z podziałem na własne, przesunięte i pominięte; zapis po potwierdzeniu |
 | 8 | Zgłoszenie błędu w haśle | „to tłumaczenie jest złe” | karta znika z kolejki do wycofania zgłoszenia |

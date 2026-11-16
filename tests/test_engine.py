@@ -357,3 +357,46 @@ def test_initial_stabilities_follow_the_second_answers() -> None:
     assert fit_initial({GOOD: [(2, False)] * 30 + [(2, True)] * 20})[GOOD - 1] < 2.3065
     # too few second answers in all: the defaults stay
     assert fit_initial({GOOD: [(5, True)] * 20}) == DEFAULT_PARAMETERS
+
+
+def test_the_level_hint_comes_once_a_day_for_the_present_levels(catalog: Catalog) -> None:
+    def row(number: int, grade: str, day: str) -> dict[str, str]:
+        return {
+            "card": card_of("en", number),
+            "lang": "en",
+            "kind": "learn",
+            "grade": grade,
+            "day": day,
+        }
+
+    plan = {"languages": [{"code": "en", "levels": ["a1", "a2"]}]}
+    monday, tuesday = date(2026, 11, 16), date(2026, 11, 17)
+    rows: list[dict[str, str]] = []
+    hints = []
+    # three of four words known, typed answers between them: the share hovers over the mark
+    for number in range(1, 21):
+        grade = "know" if number % 4 == 0 else "known"
+        rows.append(row(number, grade, monday.isoformat()))
+        hints.append(session.level_hint(rows, catalog, "en", plan, monday))
+    given = [i for i, hint in enumerate(hints) if hint]
+    assert given == [9]  # the tenth word, a typed answer, reaches 8 of 10; once that day
+    assert hints[9] == {
+        "lang": "en",
+        "known": 8,
+        "of": 10,
+        "levels": "a1-a2",
+        "suggested": "a2",
+        "setting": "lang.en.levels=a2",
+    }
+    # the next day the first word over the mark brings it again: 7 of 10, then 8 of 10
+    rows.append(row(21, "known", tuesday.isoformat()))
+    assert session.level_hint(rows, catalog, "en", plan, tuesday) is None
+    rows.append(row(22, "known", tuesday.isoformat()))
+    assert session.level_hint(rows, catalog, "en", plan, tuesday) is not None
+    # after the change to A2 the A1 words do not count: ten A2 words are needed first
+    higher = {"languages": [{"code": "en", "levels": ["a2"]}]}
+    assert session.level_hint(rows, catalog, "en", higher, tuesday) is None
+    a2 = [row(40 + n, "known", tuesday.isoformat()) for n in range(1, 11)]
+    assert session.level_hint([*rows, *a2], catalog, "en", higher, tuesday)["suggested"] == "b1"
+    top = {"languages": [{"code": "en", "levels": ["b2"]}]}
+    assert session.level_hint(rows, catalog, "en", top, tuesday) is None

@@ -366,7 +366,31 @@
     "invite_hint": "Konta na tym serwerze powstają z zaproszenia. Kod otrzymujesz od osoby, która prowadzi serwer; ma postać ABCD-EFGH-JKMN, otwiera jedno konto i działa przez czas podany przy zaproszeniu.",
     "disconnect": "Połączenie odłączysz w ustawieniach aplikacji {app}.",
     "home_claude": "Ustawienia, Łączniki, Dodaj własny łącznik i ten adres.",
-    "home_chatgpt": "Ustawienia, Aplikacje i łączniki, Zaawansowane, Tryb dewelopera i ten adres.",
-    "privacy_lead": "Co serwer VocabBota przechowuje i do czego tego używa."
+    "home_chatgpt": "Ustawienia, Integracje, Wtyczki, przycisk „+” i własny serwer MCP z tym adresem oraz uwierzytelnianiem OAuth.",
+    "privacy_lead": "Co serwer VocabBota przechowuje i do czego tego używa.",
+    "card": {
+      "title": "Karta VocabBota",
+      "new_word": "Nowe słowo",
+      "with_article": "z rodzajnikiem",
+      "play": "Odtwórz wymowę",
+      "play_sentence": "Odtwórz zdanie",
+      "recording": "Nagranie z Wikimedia Commons",
+      "synthesis": "Synteza mowy przeglądarki",
+      "learned_today": "Dzisiejsze nowe słowa ({count})",
+      "known": "znane wcześniej",
+      "done": "Na dziś wszystko zrobione.",
+      "off": "Dzisiaj jest dzień wolny od nauki.",
+      "empty": "Karta pokaże słowa po wywołaniu sesji VocabBota.",
+      "level_hint": "Większość ostatnich nowych słów ({known} z {of}) już znasz, więc możesz poprosić o wyższy poziom albo o test poziomujący.",
+      "minutes": "około {minutes} min"
+    }
+  },
+  "progress": {
+    "counter": "Postęp: {done}/{total}",
+    "new": "nowe {done}/{total}",
+    "reviews": "powtórki {done}/{total}",
+    "ahead": "przed terminem {done}/{total}",
+    "drill": "do utrwalenia {count}",
+    "level_hint": "Większość ostatnich nowych słów ({known} z {of}) już znasz. Wyższy poziom ustawisz poleceniem: vocabbot plan set {setting}"
   }
 }

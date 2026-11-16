@@ -21,6 +21,7 @@ from typing import Any
 
 import wordfreq
 
+import audio
 from concepts import EDITOR_POS, Concept
 from concepts import read as read_concepts
 from sources import COURSES, TOOLS, WORK
@@ -157,7 +158,8 @@ H_ASPIRE = frozenset(
 OVERRIDES = TOOLS / "overrides.json"
 EDITOR = TOOLS / "editor.jsonl"
 EXAMPLES = TOOLS / "examples.jsonl"
-VERSION = "2026.11.5"  # raise it with every change of the sources or of the rules
+GENERATED = TOOLS / "generated.jsonl"
+VERSION = "2026.11.6"  # raise it with every change of the sources or of the rules
 MAX_ACCEPT = 3
 # parts of speech that count as function words when a level is put in order
 FUNCTION_POS = frozenset({"prep", "pron", "conj", "det", "particle"})
@@ -437,6 +439,8 @@ class Word:
     accept: list[str] = field(default_factory=list)
     forms: dict[str, str] = field(default_factory=dict)
     ipa: str | None = None
+    audio: str | None = None  # the Wikimedia Commons file name of a recording
+    two_ways: bool = False  # Wiktionary gives the word two pronunciations
     frequency: float = 0.0
     bare: bool = False  # a noun shown without an article (Spanish and French months)
 
@@ -469,7 +473,9 @@ def target_word(
             built = Word(lang, word, word)
         if record:
             built.ipa = valid_ipa(record.get("ipa"))
+            built.audio = own_recording(record, word)
             built.forms = target_forms(lang, pos, built.gender, record)
+        fill_pronunciation(built, lexicon.by_word.get(word, []))
         built.frequency = zipf(word, lang)
         candidates.append((float(order), order, built))
     if not candidates:
@@ -700,10 +706,60 @@ def reviewed_word(lang: str, pos: str, decision: dict[str, Any], lexicon: Lexico
     word.accept = [a for a in also if a and a.casefold() != word.display.casefold()][:MAX_ACCEPT]
     if record:
         word.ipa = valid_ipa(record.get("ipa"))
+        word.audio = own_recording(record, word.lemma)
         if word.gender != "pl":
             word.forms = target_forms(lang, pos, word.gender, record)
+    fill_pronunciation(word, lexicon.by_word.get(word.lemma, []))
     word.frequency = zipf(word.lemma, lang)
     return word
+
+
+def attach_generated(
+    entry: dict[str, Any], sentence: dict[str, Any] | None, how: dict[str, str]
+) -> None:
+    """The model's sentence for an entry without a Tatoeba sentence.
+
+    A sentence serves the word and meaning it was written for: after a change
+    of either, the entry waits for a new sentence (generate.py asks for one).
+    """
+    if "example" in entry or not sentence:
+        return
+    if sentence["for"] != [entry["display"], entry["gloss"]["pl"]]:
+        return
+    entry["example"] = {k: sentence[k] for k in ("text", "gap", "pl", "source", "pl_source")}
+    sources = [s for s in entry["sources"] if s != "commons"] + ["generated"]
+    entry["sources"] = sources + (["commons"] if "audio" in entry else [])
+    entry["_users"] = ["", ""]
+    how[entry["id"]] = "generated"
+
+
+def own_recording(record: dict[str, Any], word: str) -> str | None:
+    """The record's recording, when the record is the word itself.
+
+    `Lexicon.find` falls back from "sich treffen" to the record of "treffen",
+    whose recording says the verb without its pronoun.
+    """
+    return str(record["audio"]) if record.get("audio") and record.get("word") == word else None
+
+
+def fill_pronunciation(word: Word, records: list[dict[str, Any]]) -> None:
+    """The IPA and a recording from another part of speech of the same word.
+
+    Wiktionary often files a word under another part of speech than the course
+    ("nein" as an interjection, the course's particle). Its pronunciation serves
+    only when every record of the word that has an IPA has the same one, so a
+    word pronounced two ways (German "modern": to rot, modern) keeps none.
+    """
+    ipas = {valid_ipa(r.get("ipa")) for r in records} - {None}
+    if len(ipas) > 1 or (word.ipa and ipas and word.ipa not in ipas):
+        word.two_ways = True
+        return
+    if word.ipa and word.audio:
+        return
+    if not word.ipa and ipas:
+        word.ipa = next(iter(ipas))
+    if not word.audio:
+        word.audio = next((str(r["audio"]) for r in records if r.get("audio")), None)
 
 
 def gloss_parts(text: str) -> list[str]:
@@ -744,6 +800,11 @@ def english_word(
         (valid_ipa(r.get("ipa")) for r in [*records, *(others or [])] if valid_ipa(r.get("ipa"))),
         None,
     )
+    # a recording of the same part of speech, or of another one pronounced the same way:
+    # "record" the noun and the verb differ
+    word.audio = next((str(r["audio"]) for r in records if r.get("audio")), None)
+    if word.audio is None:
+        fill_pronunciation(word, [*records, *(others or [])])
     if concept.pos == "noun" and record.get("plural"):
         word.forms["plural"] = record["plural"][0]
     if concept.pos == "verb":
@@ -952,6 +1013,32 @@ def load_examples() -> dict[str, dict[str, Any]]:
     return out
 
 
+def load_generated() -> dict[str, dict[str, Any]]:
+    """Sentences the model wrote for entries without one (tools/courses/generate.py).
+
+    Only sentences the example review accepted count; the build uses them for
+    entries whose Tatoeba candidates gave no sentence.
+    """
+    if not GENERATED.is_file():
+        return {}
+    out = {}
+    # split on newlines only: a sentence may hold a line separator that splitlines() would cut
+    for line in GENERATED.read_text("utf-8").split("\n"):
+        if line.strip():
+            row = json.loads(line)
+            if row.get("ok") is True:
+                out[row["entry"]] = {
+                    "text": row["text"],
+                    "gap": row["gap"],
+                    "pl": row["pl"],
+                    "source": "generated",
+                    "pl_source": "generated",
+                    "users": ["", ""],
+                    "for": [row.get("word"), row.get("meaning")],
+                }
+    return out
+
+
 def pick_example(
     candidates: list[dict[str, Any]], decision: dict[str, Any] | None, used: set[int]
 ) -> tuple[dict[str, Any] | None, str]:
@@ -1032,6 +1119,8 @@ def entry_of(draft: Draft, word: Word, example: dict[str, Any] | None) -> dict[s
     entry["gloss"] = {"pl": draft.gloss}
     if word.ipa:
         entry["ipa"] = word.ipa
+    if word.audio:
+        entry["audio"] = word.audio
     if example:
         entry["example"] = {k: example[k] for k in ("text", "gap", "pl", "source", "pl_source")}
     entry["sources"] = (
@@ -1040,6 +1129,7 @@ def entry_of(draft: Draft, word: Word, example: dict[str, Any] | None) -> dict[s
         + (["review"] if draft.reviewed else [])
         + (["editor"] if draft.edited else [])
         + (["tatoeba"] if example else [])
+        + (["commons"] if word.audio else [])
     )
     entry["checked"] = False
     entry["_frequency"] = word.frequency
@@ -1181,6 +1271,8 @@ def build(sample_only: bool = False) -> dict[str, Any]:
     between = course_links()
     corpora = {lang: Corpus(lang, polish, to_polish, between) for lang in LANGS}
     decisions = load_examples()
+    written = load_generated()
+    recordings = {lang: audio.index(lang) for lang in LANGS}
     entries: dict[str, dict[str, dict[str, Any]]] = {lang: {} for lang in LANGS}
     candidates: dict[str, list[dict[str, Any]]] = {}
     how: dict[str, str] = {}
@@ -1195,6 +1287,8 @@ def build(sample_only: bool = False) -> dict[str, Any]:
             entry_id = f"{lang}-{draft.concept.id}"
             found = example_candidates(word, draft.concept.pos, draft.gloss, corpora[lang])
             example, how[entry_id] = pick_example(found, decisions.get(entry_id), used)
+            if word.audio is None and not word.two_ways:
+                word.audio = recordings[lang].get(word.lemma.casefold())
             candidates[entry_id] = found
             entry = entry_of(draft, word, example)
             entry["_sense"] = draft.sense
@@ -1206,6 +1300,9 @@ def build(sample_only: bool = False) -> dict[str, Any]:
             families[concept][lang] = entry["display"]
     merged = {lang: merge_duplicates(entries[lang], families) for lang in LANGS}
     overrides = apply_overrides(entries)
+    for lang in LANGS:
+        for entry in entries[lang].values():
+            attach_generated(entry, written.get(entry["id"]), how)
     start = {d.concept.id: d.start for d in built if d.start is not None}
     report: dict[str, Any] = {
         "concepts": len(concepts),
@@ -1231,7 +1328,11 @@ def build(sample_only: bool = False) -> dict[str, Any]:
             stats[level] = {
                 "entries": len(items),
                 "examples": sum(1 for e in items if "example" in e),
+                "generated": sum(
+                    1 for e in items if e.get("example", {}).get("source") == "generated"
+                ),
                 "ipa": sum(1 for e in items if "ipa" in e),
+                "audio": sum(1 for e in items if "audio" in e),
             }
         report["languages"][lang] = stats
         if not sample_only:
@@ -1284,7 +1385,7 @@ def write_course(lang: str, by_level: dict[str, list[dict[str, Any]]]) -> None:
         for entry in items:
             public = {k: v for k, v in entry.items() if not k.startswith("_")}
             lines.append(json.dumps(public, ensure_ascii=False))
-            if "example" in entry:
+            if "example" in entry and entry["example"]["source"] != "generated":
                 users = entry["_users"]
                 attribution.append(
                     "\t".join(
@@ -1346,6 +1447,21 @@ def write_course(lang: str, by_level: dict[str, list[dict[str, Any]]]) -> None:
                 "name": "VocabBot editors: basic words, meanings and the starting list "
                 "(tools/courses/editor.jsonl)",
                 "license": "CC BY-SA 4.0",
+            },
+            {
+                "id": "generated",
+                "name": "Example sentences written by Claude Sonnet 5.5 for entries without a "
+                "Tatoeba sentence and accepted by the example review "
+                "(tools/courses/generated.jsonl)",
+                "license": "CC BY-SA 4.0",
+            },
+            {
+                "id": "commons",
+                "name": "Pronunciation recordings on Wikimedia Commons, found through "
+                "Wiktionary and Lingua Libre; the courses keep only the file names, and "
+                "each file's page names its author and licence",
+                "license": "per file, mostly CC BY-SA",
+                "url": "https://commons.wikimedia.org",
             },
         ],
     }

@@ -32,7 +32,7 @@ learner ── chat ── skill ── bin/vocabbot.pyz --json ┘     │     
 | `optimize.py` | the full fit of the 21 FSRS-6 parameters on the standard library (reverse-mode derivatives, Adam as in py-fsrs) |
 | `replay.py` | `replay`: predictions of every review before its outcome, log loss, RMSE(bins) and AUC of each variant against FSRS-6 on the later part of the log |
 | `presence.py` | the presence profile from the log (the chance of a session on each weekday, the usual minutes), pacing of new words |
-| `server/` | the remote MCP server with accounts (`vocabbot-server`, the `server` extra): OAuth 2.1 with the MCP SDK, accounts and tokens in SQLite, the sign-in page, one learner folder per account, the guides for the model; outside `vocabbot.pyz` and the only part that needs packages beyond the standard library |
+| `server/` | the remote MCP server with accounts (`vocabbot-server`, the `server` extra): OAuth 2.1 with the MCP SDK, accounts and tokens in SQLite, the sign-in page, one learner folder per account, the guides for the model, and the card of MCP Apps (`static/card.html`, its labels from `pl.json`) that shows the session's results with the recordings; outside `vocabbot.pyz` and the only part that needs packages beyond the standard library |
 | `cli.py`, `drill.py`, `term.py` | the program, its terminal session and the terminal layer (colour by `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb`, ASCII symbols for consoles without Unicode fonts, widths of wide and combining characters) |
 
 Texts the learner reads live in `data/i18n/pl.json`; the answer rules of a
@@ -100,10 +100,15 @@ the review samples. A concept enters the courses only with a decision: the
 model review of the senses and equivalents (`review.jsonl`, Claude Sonnet 5.5
 through the Message Batches API) or the editors (`editor.jsonl`, which wins
 and also holds the A1 starting list and the concepts CEFR-J lacks, with ids
-from c09001). Every example sentence comes from up to three Tatoeba
+from c09001). An example sentence comes from up to three Tatoeba
 candidates judged by the example review (`examples.jsonl`); a filter of
-vulgar words guards the entries without a decision. Within a level, any ten
-entries in a row hold at most three function words. These files and
+vulgar words guards the entries without a decision. An entry without a
+Tatoeba sentence gets one written by the model and judged by the same review
+(`generate.py`, `generated.jsonl`). A recording is the Wikimedia Commons file
+name of the word: from the Wiktionary extract, or for Spanish and Italian
+from the Lingua Libre listings that `fetch` stores (`audio.py`); the engine
+turns the name into an address on Commons. Within a level, any ten entries
+in a row hold at most three function words. These files and
 `overrides.json` are committed, so a build repeats without the API and gives
 the same files.
 

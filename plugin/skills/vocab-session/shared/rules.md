@@ -82,8 +82,8 @@ number is needed and no result holds it, run the command that gives it
   "(wygenerowane)".
 - Generated content enters the learner's course only through `words add`, its
   preview and the learner's yes, never by itself.
-- Course data (word, meaning, gender, forms, IPA, example) is quoted from the
-  engine's results without changes.
+- Course data (word, meaning, gender, forms, IPA, recording link, example) is
+  quoted from the engine's results without changes.
 
 ## The learner's text goes on standard input
 

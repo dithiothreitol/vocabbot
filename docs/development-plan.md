@@ -8,8 +8,9 @@ version kept up to date first.
 Status: 2026-11-16, after Stage 7 (version 1.0.0-rc.6, 1.0.0rc6 in the Python
 package). You accepted the plan on 14.11.2026 and added Stages 4, 5, 6 and 7 on
 15.11.2026. Stage 7 gave the Italian course and the session one card at a
-time. Stage 8 (pilot feedback: pronunciation, examples, a counter and
-ChatGPT) awaits your acceptance. The engine, the `vocabbot` program with its new terminal session,
+time. I carried out Stages 8 and 9 (pilot feedback: pronunciation,
+examples, a counter, ChatGPT and a card in the chat window) on 16.11.2026;
+their release as rc.7 and the deployment await your approval. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1288,9 +1289,8 @@ Conclusions:
 ### Stage 8. Pilot feedback: pronunciation, examples, a counter and ChatGPT
 
 You added Stage 8 on 16.11.2026 after the feedback of the first pilot
-learner, who learns English in ChatGPT. Status: a proposal for your
-acceptance. The code follows the acceptance, and the model runs follow a
-separate approval with a cost estimate.
+learner, who learns English in ChatGPT. Status: carried out on 16.11.2026,
+the result below.
 
 #### Check of the feedback (16.11.2026)
 
@@ -1352,6 +1352,40 @@ Scope:
    Release `v1.0.0-rc.7` and deployment on the server, each with a separate
    approval.
 
+#### Result of Stage 8 (16.11.2026)
+
+You accepted Stages 8 and 9 on 16.11.2026 with one request that also asked
+for a confirmation that they work, simulations and a code review. You
+approved the full run of the model's sentences with a limit of 12 USD after
+the estimate from the sample.
+
+| Criterion | Result |
+|---|---|
+| ChatGPT | the path Settings, Integrations, Plugins and a custom MCP server in `docs/server.md`, `docs/server.pl.md`, on the server's start page and in the pilot invitation |
+| the counter | `done` and `counter` in the results of `next`, `answer`, `grade`, `regrade` and `today`, the list `learned_today` in `today`; the server's guide and the `vocab-session` skill start every message with the counter and end the session with the day's new words |
+| pronunciation | 23,368 entries (81.5%) with a recording on Wikimedia Commons: English 98–99%, German 92–95%, French 86–94%, Spanish 63–91%, Italian 27–79% by level; a reflexive verb and a word pronounced two ways get no recording of another form; recordings from Wiktionary, for Spanish and Italian from the Lingua Libre listings (`audio.py`); the IPA and the recording from another part of speech of the same word with one pronunciation gave an IPA to 196 more entries (91.4% of the entries in all) |
+| examples | 10,738 entries without a Tatoeba sentence; the model wrote a sentence for each, the example review accepted 10,380 in the first run and 222 of 358 after one retry; 10,602 sentences in all (`generated.jsonl`) and an example in 99.5% of the entries, at least 99% on every level |
+| quality sample | of 40 random sentences of the sample 38 right, two with a wrong tense in the translation (regañar) and a meaning inside a compound (sex education); the review rejected 356 sentences of the first run, mostly as unnatural (137), for the translation (76), the sense (46) or the part of speech (43) |
+| a level set too low | `level_hint` in the result of `grade` or `answer` when 8 of the last 10 new words at the present levels were known, with the plan setting to change, at most once a day for the same levels; one line of hint in the terminal |
+| an engine fix | a change of the levels during the day no longer adds new words on top of the daily limit; the simulation with the model found it (a counter of 10/35 instead of 10/25 after ten "znałem" and a change of the levels) |
+| courses | version 2026.11.6; against version 2026.11.5 only added fields: a recording in 23,368 entries, an example in 10,602, an IPA in 196; no existing sentence or IPA changed; the course check without remarks |
+| simulation without a model | two learners over 10 days (English from A2 with 12 words "znałem" on the first day and a change to B1–B2; Italian, Spanish and German from A1): 2496 checks of the counter, 804 answers, 550 new words (548 with a sentence, 537 with a recording, 531 with an IPA), one level hint, every day ended without cards left, no violation; the recordings of all five languages answer from Commons as `audio/mpeg` |
+| simulation with a model | 9 turns of Claude Code (the Sonnet model) through a local server with a synthetic account, 1.84 USD: the counter in every message, a new word with its IPA and recording link, the level hint once, the change of the levels through a preview and "tak", the summary with the day's words; in the result "nie wiem" the model left out the recording link, so the result examples of the guide and the skill now show it; a second session after the fixes of the code review (6 turns, 1.02 USD) confirmed the counter of 10/25 after the change of the levels, one level hint without a break in the session and the recording link in the result "nie wiem" |
+| code review | 15 confirmed faults, all fixed: a second choice of new words on spent generators that also moved shares between languages (replaced by places counted beforehand for the words outside the plan, in their language), the day's list with the answers of cards waiting in the drill, a level hint repeated or missing after a typed answer (now at most once a day for the present levels), a counter without reviews ahead, a reported card in the drill, the card's speech of the previous word, a voice of another variety, a batch collected twice and sentences kept for a changed entry, a Lingua Libre listing cut by an API error, a reflexive verb's recording without its pronoun, the copy of the rules in the server's guide, needless recounts of the day in the terminal; after the fixes 139 entries lost a wrong recording |
+| tests | 248 on Python 3.15 and 220 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 of 7), `claude plugin validate --strict` and the course check without remarks |
+| cost | 8.32 USD for the sentences (sample 0.09, writing 4.82, review 3.14, retry 0.27) of the 12 USD limit, and 2.86 USD for two simulations with the model |
+
+Conclusions:
+
+1. Sentences from the model with a review fill the course cheaply: the gap of
+   37% of the entries cost 8.32 USD, and the review accepted 98.7% of the
+   sentences.
+2. Wiktionary gives recordings for English, German and French; Lingua Libre
+   helps for Spanish and Italian, and the speech synthesis of the card from
+   Stage 9 covers the words without a recording.
+3. The simulation with a real model found an engine fault that the unit tests
+   did not show, so it is worth repeating before a release.
+
 ### Stage 9 (conditional). A card in the chat window
 
 MCP Apps let a tool show an interactive card in the conversation, in a frame
@@ -1363,8 +1397,18 @@ plays the recording. The browser's speech synthesis would read the words and
 sentences without a recording. The stage starts with a trial: support for the
 extension in the MCP Python SDK, the CSP rules for files from
 `upload.wikimedia.org`, and playback in Claude and ChatGPT on a computer and
-on a phone. You decide on the stage after the result of Stage 8 and further
-pilot feedback.
+on a phone. I carried out the stage on 16.11.2026 together with Stage 8 at
+your request, the result below.
+
+#### Result of Stage 9 (16.11.2026)
+
+| Criterion | Result |
+|---|---|
+| SDK | MCP Python SDK 2.3.0 has the `Apps` extension; the server announces `io.modelcontextprotocol/ui`, the tools `vocab_today`, `vocab_next`, `vocab_answer` and `vocab_grade` name the card in `_meta.ui.resourceUri` and in `openai/outputTemplate`, and the resource `ui://vocabbot/card.html` has the type `text/html;profile=mcp-app` |
+| the card | `server/static/card.html` without outside dependencies: `ui/initialize`, `tool-result`, the size reports, the host's theme and variables; the labels from `pl.json`; the host draws the border (`prefersBorder`); a question neither shows nor plays its word |
+| sound | the button plays the MP3 from `upload.wikimedia.org`, the only domain in the card's CSP; the browser's speech synthesis reads the words and sentences without a recording, marked by a dashed outline of the button |
+| trial | a test host in Edge with real tool results: the card completes the handshake and shows a new word, a result with the drill and the day's summary in the light and dark theme, without JavaScript errors; the server test checks the tools' metadata, the resource and the CSP |
+| to check after the deployment | the card in Claude and ChatGPT on a computer and on a phone, since these applications connect only to a public server |
 
 ---
 
@@ -1420,7 +1464,8 @@ of words confused between languages, own words from any text.
 | Stage 6, a session test with a model through the connector | 1.54 USD with Claude Sonnet 5.5 (estimate 1–3 USD) | approved on 15.11.2026 |
 | Stage 6, the deployment on the VPS | no model costs | approved on 15.11.2026 |
 | Stage 7, the review of the Italian meanings and examples | 3.54 USD with Claude Sonnet 5.5 (limit 7 USD) | approved on 15.11.2026 |
-| Stage 8, example sentences from the model for about 10,700 entries | a sample for about 0.3 USD; the whole run an estimated 10–15 USD with Claude Sonnet 5.5 (estimated from the cost of the reviews of Stages 4 and 7) | separate, after the sample |
+| Stage 8, example sentences from the model for 10,738 entries | 8.32 USD with Claude Sonnet 5.5 (sample 0.09 USD, limit 12 USD) | approved on 16.11.2026 after the sample |
+| Stage 8, simulated sessions with the model through a local server | 2.86 USD (9 and 6 turns, the Sonnet model in Claude Code) | within the request of 16.11.2026 |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub

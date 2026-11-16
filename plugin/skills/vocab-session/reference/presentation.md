@@ -4,11 +4,13 @@ The examples use invented cards; the real ones come from `next`.
 
 ## One card at a time (`batch` 1)
 
-A new word, alone in its message:
+A new word, alone in its message, under the counter:
 
 ```
+Postęp: 6/25 · nowe 3/15 · powtórki 3/10
+
 Nowe słowo · DE
-der Hund (r.m., l.mn. die Hunde) /hʊnt/ = pies
+der Hund (r.m., l.mn. die Hunde) /hʊnt/ [🔊 wymowa](https://upload.wikimedia.org/…) = pies
 Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
 
 Napisz „dalej”, gdy będziesz gotowy, albo „znałem”, jeśli znałeś to słowo przed kursem.
@@ -31,7 +33,7 @@ ___ es de madera. · Stół jest z drewna.
 ```
 
 ```
-≈ prawie (rodzajnik) · la mesa
+≈ prawie (rodzajnik) · la mesa /ˈme.sa/ [🔊 wymowa](https://upload.wikimedia.org/…)
 La mesa es de madera. · Stół jest z drewna.
 
 FR · czytać (czasownik)
@@ -75,9 +77,9 @@ the engine spreads the languages and keeps the cards of one concept apart.
 
 ```
 1. ✓ wiem · der Hund
-2. ≈ prawie (rodzajnik) · la mesa
+2. ≈ prawie (rodzajnik) · la mesa /ˈme.sa/ [🔊 wymowa](https://upload.wikimedia.org/…)
    La mesa es de madera. · Stół jest z drewna.
-3. ✗ nie wiem · lire
+3. ✗ nie wiem · lire /liʁ/ [🔊 wymowa](https://upload.wikimedia.org/…)
    J'aime lire le soir. · Lubię czytać wieczorem.
 ```
 

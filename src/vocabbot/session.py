@@ -26,6 +26,9 @@ from vocabbot.queue import DayPlan, compute
 SELF_GRADES = ("known", "know", "almost", "dont_know")
 MAX_GIVEN = 200
 SECONDS = {"review": 10, "new": 25, "drill": 8, "ahead": 10}
+# a level set too low: most of the last new words of a language were known before the course
+HINT_WINDOW = 10
+HINT_KNOWN = 8
 
 
 def now_utc() -> datetime:
@@ -77,6 +80,118 @@ def _left(dp: DayPlan) -> dict[str, int]:
     for item in dp.sequence:
         counts[item.phase] += 1
     return {"reviews": counts["review"], "new": counts["new"], "drill": counts["drill"]}
+
+
+def progress(dp: DayPlan) -> dict[str, Any]:
+    """The day's cards done and left, and the counter line a session shows with every card.
+
+    A card counts once: a review when it is first answered today, a new word
+    when it is first shown. Drill repeats are counted apart, as the cards left
+    to consolidate. The totals are the sums of done and left, so the counter
+    adds up even when a card leaves the day (a report of a mistake). Reviews
+    ahead of their day count only on a day with such reviews (`ahead`).
+    """
+    seen, learned = set(dp.today.seen), set(dp.today.learned)
+    left = _left(dp)
+    done = {
+        "reviews": sum(1 for card in dp.reviews if card in seen),
+        "new": sum(1 for card in dp.new if card in learned),
+    }
+    due = set(dp.reviews)
+    ahead_done = sum(1 for card in dp.today.seen if card in dp.before.cards and card not in due)
+    ahead_left = sum(1 for item in dp.sequence if item.phase == "ahead")
+    reviews, new = done["reviews"] + left["reviews"], done["new"] + left["new"]
+    finished = done["reviews"] + done["new"] + ahead_done
+    parts = [
+        assets.text(
+            "progress.counter", done=finished, total=reviews + new + ahead_done + ahead_left
+        )
+    ]
+    if new:
+        parts.append(assets.text("progress.new", done=done["new"], total=new))
+    if reviews:
+        parts.append(assets.text("progress.reviews", done=done["reviews"], total=reviews))
+    if ahead_done or ahead_left:
+        parts.append(assets.text("progress.ahead", done=ahead_done, total=ahead_done + ahead_left))
+    if left["drill"]:
+        parts.append(assets.text("progress.drill", count=left["drill"]))
+    out: dict[str, Any] = {"left": left, "done": done, "counter": " · ".join(parts)}
+    if ahead_done or ahead_left:
+        out["ahead"] = {"done": ahead_done, "left": ahead_left}
+    return out
+
+
+def day_progress(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any]:
+    """`progress` after the latest answers, for results that changed the day."""
+    return progress(compute(learner, catalog, day))
+
+
+def _higher(levels: list[str]) -> list[str]:
+    """The levels without the lowest one; one level up when the plan has a single level."""
+    if len(levels) > 1:
+        return levels[1:]
+    index = store.LEVELS.index(levels[0])
+    return [store.LEVELS[index + 1]] if index + 1 < len(store.LEVELS) else []
+
+
+def _levels_text(levels: list[str]) -> str:
+    indexes = [store.LEVELS.index(level) for level in levels]
+    if len(levels) > 1 and indexes == list(range(indexes[0], indexes[-1] + 1)):
+        return f"{levels[0]}-{levels[-1]}"
+    return ",".join(levels)
+
+
+def level_hint(
+    rows: list[dict[str, Any]], catalog: Catalog, lang: str, plan: dict[str, Any], day: date
+) -> dict[str, Any] | None:
+    """A hint to raise the level when most of the last new words were known before the course.
+
+    It looks at the last HINT_WINDOW new words of the language at the plan's
+    current levels, whether marked "znałem" or answered, and comes when
+    HINT_KNOWN of them were known. It comes once a day for the same levels: at
+    the first new word of the day that reaches the mark. Words of levels the
+    learner has just left do not count, so following the hint starts afresh.
+    """
+    item = next((i for i in plan["languages"] if i["code"] == lang), None)
+    if item is None:
+        return None
+    levels = [str(level) for level in item["levels"]]
+    higher = _higher(levels)
+    if not higher:
+        return None
+    current = set(levels)
+    learn: list[dict[str, Any]] = []
+    for row in rows:
+        if row.get("lang") != lang or row.get("kind") != "learn":
+            continue
+        entry = catalog.card(str(row.get("card")))
+        if entry is not None and entry.get("level") in current:
+            learn.append(row)
+
+    def known_in(end: int) -> int | None:
+        window = learn[max(0, end - HINT_WINDOW) : end]
+        if len(window) < HINT_WINDOW:
+            return None
+        return sum(1 for r in window if r.get("grade") == "known")
+
+    known = known_in(len(learn))
+    if known is None or known < HINT_KNOWN:
+        return None
+    first_today = next(
+        (i for i, r in enumerate(learn) if r.get("day") == day.isoformat()), len(learn)
+    )
+    for end in range(first_today + 1, len(learn)):
+        earlier = known_in(end)
+        if earlier is not None and earlier >= HINT_KNOWN:
+            return None
+    return {
+        "lang": lang,
+        "known": known,
+        "of": HINT_WINDOW,
+        "levels": _levels_text(levels),
+        "suggested": _levels_text(higher),
+        "setting": f"lang.{lang}.levels={_levels_text(higher)}",
+    }
 
 
 def _schedule_after(
@@ -186,6 +301,7 @@ def answer(
     ahead: bool = False,
     source: str = "chat",
     ms: int | None = None,
+    with_progress: bool = True,
 ) -> dict[str, Any]:
     """Grade a typed answer to a production card and log it."""
     dp = compute(learner, catalog, day)
@@ -193,7 +309,7 @@ def answer(
     if split_card(card)[1] != "p":
         raise VocabError("answer_needs_production", card=card)
     verdict = evaluate(dp, catalog, entry, given)
-    return record(
+    result = record(
         learner,
         dp,
         card,
@@ -208,6 +324,13 @@ def answer(
         source=source,
         ahead=ahead,
     )
+    if kind == "learn":
+        hint = level_hint(learner.rows()[0], catalog, str(entry["lang"]), dp.plan, day)
+        if hint is not None:
+            result["level_hint"] = hint
+    if with_progress:
+        result.update(day_progress(learner, catalog, day))
+    return result
 
 
 def self_grade(
@@ -220,6 +343,7 @@ def self_grade(
     *,
     ahead: bool = False,
     source: str = "chat",
+    with_progress: bool = True,
 ) -> dict[str, Any]:
     """The learner's own grade: "known" at a first showing, any grade for recognition cards."""
     if grade not in SELF_GRADES:
@@ -230,7 +354,14 @@ def self_grade(
         raise VocabError("known_only_first", card=card)
     if grade != "known" and split_card(card)[1] == "p":
         raise VocabError("production_needs_answer", card=card)
-    return record(learner, dp, card, entry, kind, state, grade, now, source=source, ahead=ahead)
+    result = record(learner, dp, card, entry, kind, state, grade, now, source=source, ahead=ahead)
+    if kind == "learn":
+        hint = level_hint(learner.rows()[0], catalog, str(entry["lang"]), dp.plan, day)
+        if hint is not None:
+            result["level_hint"] = hint
+    if with_progress:
+        result.update(day_progress(learner, catalog, day))
+    return result
 
 
 LOOKUP_MAX = 10
@@ -333,7 +464,7 @@ def regrade(
     out: dict[str, Any] = {"card": card, "grade": grade, "was": target.grade, "kind": target.kind}
     if state is not None:
         out["next_due"] = state.due(after.scheduler_for(state.lang)).isoformat()
-    out["left"] = _left(after)
+    out.update(progress(after))
     return out
 
 
@@ -354,7 +485,7 @@ def next_items(
             out["word"] = presentation(item.entry)
         items.append(out)
     hide_other_answers(catalog, items)
-    return {"day": day.isoformat(), "items": items, "left": _left(dp), "off": dp.off}
+    return {"day": day.isoformat(), "items": items, **progress(dp), "off": dp.off}
 
 
 def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, Any]:
@@ -374,7 +505,8 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
             "drill": sum(1 for c in dp.drill if c[:2] == code),
             "paused": bool(item.get("paused")),
         }
-    left = _left(dp)
+    counts = progress(dp)
+    left = counts["left"]
     seconds = _seconds(dp)
     minutes = (
         left["reviews"] * seconds["review"]
@@ -398,6 +530,9 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
         "extra_new": dp.extra,
         "languages": languages,
         "left": left,
+        "done": counts["done"],
+        "counter": counts["counter"],
+        "learned_today": learned_today(catalog, dp),
         "minutes": round(minutes),
         "batch": int(dp.plan.get("batch", 1)),
         "warnings": warnings,
@@ -412,6 +547,31 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
     hint = ahead_hint(dp)
     if hint:
         out["ahead_hint"] = hint
+    return out
+
+
+def learned_today(catalog: Catalog, dp: DayPlan) -> list[dict[str, Any]]:
+    """The words first shown today, in their order, for the summary at the end of a session.
+
+    A word whose card still waits in today's queue (the drill) stays out of
+    the list until it is answered, so the list never shows an answer early.
+    """
+    out: list[dict[str, Any]] = []
+    waiting = {item.card.split("#")[0] for item in dp.sequence}
+    entries: set[str] = set(waiting)
+    for card in dp.today.learned:
+        entry_id = card.split("#")[0]
+        entry = catalog.entry(entry_id)
+        if entry is None or entry_id in entries:
+            continue
+        entries.add(entry_id)
+        item = {"lang": entry["lang"], "word": entry["display"], "meaning": entry["gloss"]["pl"]}
+        if dp.today.first_grade.get(card) == "known":
+            item["known"] = True
+        recording = presentation(entry).get("audio")
+        if recording:
+            item["audio"] = recording
+        out.append(item)
     return out
 
 

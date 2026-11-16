@@ -61,17 +61,28 @@ Run `next --json`; it returns `batch` items. Keep their order. Each item has
 `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and `question`; a
 new word also has `word`. `reference/presentation.md` shows the layout.
 
+- **The counter.** Every result of `next`, `answer`, `grade` and `regrade`
+  holds `counter`, the line of the day's progress ("Postęp: 6/25 · nowe 3/15
+  · powtórki 3/10"). Start every message of the session with the `counter` of
+  the latest result, as it is.
+
 - **A question** shows the language tag (EN, DE, ES, FR, IT), the Polish meaning,
   the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
   if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
   cards (`question.ask: meaning`) follow `reference/recognition.md`.
 - **A new word** (`phase: new`) is introduced before its question: `word`
-  with its gender, forms and IPA, the Polish meaning, and the example with
-  its translation. End the message there; its question comes in the next
-  message, after the learner says they are ready, so the answer is not on the
-  screen. A learner who knew the word before the course says so, and
+  with its gender, forms and IPA, the link to its recording when `word.audio`
+  is there (a Markdown link with the text "🔊 wymowa" to `word.audio`), the
+  Polish meaning, and the example with its translation. End the message
+  there; its question comes in the next message, after the learner says
+  they are ready, so the answer is not on the screen. A learner who knew the word before the course says so, and
   `grade --card <card> --grade known --json` records it; that card then needs
   no question.
+- **A level set too low.** A result of `grade` with `level_hint` means that
+  most of the learner's last new words (`known` of `of`) were known before the
+  course. Say so in one sentence and offer, once, the placement test or the
+  levels in `suggested` (`vocab-start`, `plan set <setting>` with its preview
+  and the learner's yes). The session goes on with the next card.
 - **The answers** go to the engine exactly as typed, an unknown one as an
   empty answer, on standard input, with `--next`, so the result also holds
   the next cards (`next`):
@@ -83,10 +94,11 @@ new word also has `word`. `reference/presentation.md` shows the layout.
   ```
 
 - **A result** is one line per card: "✓ wiem", "≈ prawie" with the error
-  classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; add the
-  example for "prawie" and "nie wiem". `other_lang` means the learner typed
-  the word of another language being learned: name that language. A result
-  with `error` was refused; show its message and go on.
+  classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; for
+  "prawie" and "nie wiem" add the IPA, the recording link and the example.
+  `other_lang` means the learner typed the word of another language being
+  learned: name that language. A result with `error` was refused; show its
+  message and go on.
 
 **One card at a time (`batch` 1).** Every message holds the result of the
 last answer and then the next card from `next.items` of that result: its
@@ -105,8 +117,10 @@ times as needed; their due date no longer changes that day.
 
 ## Step 2: the end
 
-Run `today --json` and sum up the session from it in two lines. Offer the
-coach (`vocab-coach`) for the words that went wrong. Announce the next
+Run `today --json` and sum up the session from it: the `counter`, then the
+new words of the day from `learned_today` (word and meaning, "znane
+wcześniej" for `known`). Offer the coach (`vocab-coach`) for the words that
+went wrong. Announce the next
 session or a reminder only as `shared/rules.md` allows.
 
 ## During the session

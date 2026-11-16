@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VocabBot</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --vb-bg: var(--color-background-primary, #ffffff);
+    --vb-muted-bg: var(--color-background-secondary, #f5f5f5);
+    --vb-fg: var(--color-text-primary, #0a0a0a);
+    --vb-muted: var(--color-text-secondary, #737373);
+    --vb-border: var(--color-border-primary, #e5e5e5);
+    --vb-ok: var(--color-text-success, #15803d);
+    --vb-warn: var(--color-text-warning, #b45309);
+    --vb-bad: var(--color-text-danger, #b91c1c);
+    --vb-radius: var(--border-radius-lg, 12px);
+    --vb-font: var(--font-sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+    --vb-mono: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --vb-bg: var(--color-background-primary, #0a0a0a);
+      --vb-muted-bg: var(--color-background-secondary, #171717);
+      --vb-fg: var(--color-text-primary, #fafafa);
+      --vb-muted: var(--color-text-secondary, #a3a3a3);
+      --vb-border: var(--color-border-primary, #262626);
+      --vb-ok: var(--color-text-success, #4ade80);
+      --vb-warn: var(--color-text-warning, #fbbf24);
+      --vb-bad: var(--color-text-danger, #f87171);
+    }
+  }
+  :root[data-theme="dark"] {
+    --vb-bg: var(--color-background-primary, #0a0a0a);
+    --vb-muted-bg: var(--color-background-secondary, #171717);
+    --vb-fg: var(--color-text-primary, #fafafa);
+    --vb-muted: var(--color-text-secondary, #a3a3a3);
+    --vb-border: var(--color-border-primary, #262626);
+    --vb-ok: var(--color-text-success, #4ade80);
+    --vb-warn: var(--color-text-warning, #fbbf24);
+    --vb-bad: var(--color-text-danger, #f87171);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font: 15px/1.5 var(--vb-font); color: var(--vb-fg); background: var(--vb-bg); }
+  .card { padding: 14px 16px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .brand { font-weight: 600; font-size: 13px; letter-spacing: -0.01em; }
+  .counter { color: var(--vb-muted); font-size: 12px; text-align: right; }
+  .bar { height: 4px; border-radius: 999px; background: var(--vb-muted-bg); margin: 8px 0 4px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--vb-fg); border-radius: 999px; transition: width .3s ease; }
+  section:empty { display: none; }
+  .block { border-top: 1px solid var(--vb-border); padding-top: 10px; margin-top: 10px; }
+  .tag { color: var(--vb-muted); font-size: 12px; text-transform: none; }
+  .word { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 2px; }
+  .word strong { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .details { color: var(--vb-muted); font-size: 13px; }
+  .ipa { font-family: var(--vb-mono); font-size: 13px; color: var(--vb-muted); }
+  .meaning { margin-top: 2px; }
+  .sentence { margin-top: 6px; display: flex; gap: 8px; align-items: flex-start; }
+  .sentence p { margin: 0; }
+  .sentence .pl { color: var(--vb-muted); font-size: 13px; }
+  .grade { font-weight: 600; }
+  .grade.know, .grade.known { color: var(--vb-ok); }
+  .grade.almost { color: var(--vb-warn); }
+  .grade.dont_know, .error { color: var(--vb-bad); }
+  .hint { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--vb-muted-bg); font-size: 13px; }
+  .muted { color: var(--vb-muted); font-size: 13px; margin: 10px 0 0; }
+  ul.words { list-style: none; padding: 0; margin: 6px 0 0; }
+  ul.words li { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; }
+  ul.words .tag { min-width: 22px; }
+  button.play {
+    font: inherit; font-size: 13px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; flex: none; padding: 0;
+    border-radius: 999px; border: 1px solid var(--vb-border);
+    background: var(--vb-bg); color: var(--vb-fg);
+  }
+  button.play:hover { background: var(--vb-muted-bg); }
+  button.play:focus-visible { outline: 2px solid var(--vb-fg); outline-offset: 2px; }
+  button.play.synth { border-style: dashed; }
+</style>
+</head>
+<body>
+<main class="card" aria-live="polite">
+  <header><span class="brand">VocabBot</span><span id="counter" class="counter"></span></header>
+  <div class="bar" id="bar" hidden><div id="bar-fill"></div></div>
+  <section id="results"></section>
+  <section id="items"></section>
+  <section id="today"></section>
+  <p id="note" class="muted"></p>
+</main>
+<script>
+(function () {
+  "use strict";
+  var L = /*VOCABBOT_LABELS*/{};
+  var VERSION = "/*VOCABBOT_VERSION*/";
+  var VOICES = { en: "en-GB", de: "de-DE", es: "es-ES", fr: "fr-FR", it: "it-IT" };
+  var GLYPHS = { know: "✓", known: "✓", almost: "≈", dont_know: "✗" };
+  var nextId = 1;
+  var pending = {};
+  var current = null;
+
+  function text(key, params) {
+    var value = (L.card && L.card[key]) || "";
+    Object.keys(params || {}).forEach(function (name) {
+      value = value.split("{" + name + "}").join(String(params[name]));
+    });
+    return value;
+  }
+  function el(tag, cls, content) {
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (content !== undefined && content !== null) node.textContent = String(content);
+    return node;
+  }
+  function send(message) { window.parent.postMessage(message, "*"); }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+  function request(method, params) {
+    var id = nextId++;
+    send({ jsonrpc: "2.0", id: id, method: method, params: params || {} });
+    return new Promise(function (resolve, reject) { pending[id] = { resolve: resolve, reject: reject }; });
+  }
+
+  function speechAvailable() {
+    return typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
+  }
+  function speak(words, lang) {
+    if (!speechAvailable() || !words) return;
+    var synth = window.speechSynthesis;
+    synth.cancel();
+    var utterance = new window.SpeechSynthesisUtterance(words);
+    utterance.lang = VOICES[lang] || lang || "";
+    // only a voice of the exact variety (en-GB, not en-US); otherwise the browser picks by lang
+    var wanted = utterance.lang.toLowerCase().replace("_", "-");
+    var voice = synth.getVoices().filter(function (v) {
+      return (v.lang || "").toLowerCase().replace("_", "-") === wanted;
+    })[0];
+    if (voice) utterance.voice = voice;
+    synth.speak(utterance);
+  }
+  function stop() {
+    if (current) {
+      var previous = current;
+      current = null;
+      previous.pause();
+    }
+    if (speechAvailable()) window.speechSynthesis.cancel();
+  }
+  function play(url, words, lang) {
+    stop();
+    if (!url) { speak(words, lang); return; }
+    var audio = new Audio(url);
+    current = audio;
+    var fallen = false;
+    function fallback() {
+      // only the recording still asked for falls back, and only once
+      if (fallen || current !== audio) return;
+      fallen = true;
+      speak(words, lang);
+    }
+    audio.onerror = fallback;
+    var started = audio.play();
+    if (started && started.catch) {
+      started.catch(function (error) {
+        if (!error || error.name !== "AbortError") fallback();
+      });
+    }
+  }
+  function playButton(url, words, lang, sentence) {
+    if (!url && !speechAvailable()) return null;
+    var button = el("button", "play" + (url ? "" : " synth"), "▶");
+    var label = sentence ? text("play_sentence") : text("play");
+    button.type = "button";
+    button.setAttribute("aria-label", label);
+    button.title = label + " · " + (url ? text("recording") : text("synthesis"));
+    button.addEventListener("click", function () { play(url, words, lang); });
+    return button;
+  }
+
+  function label(group, code) { return (L[group] && L[group][code]) || code || ""; }
+  function details(word) {
+    var parts = [];
+    if (word.gender) parts.push(label("genders", word.gender));
+    Object.keys(word.forms || {}).forEach(function (key) { parts.push(label("forms", key) + " " + word.forms[key]); });
+    return parts.join(", ");
+  }
+  function wordLine(word, lang) {
+    var line = el("div", "word");
+    line.appendChild(el("strong", null, word.word));
+    var more = details(word);
+    if (more) line.appendChild(el("span", "details", "(" + more + ")"));
+    if (word.ipa) line.appendChild(el("span", "ipa", word.ipa));
+    var button = playButton(word.audio, word.word, lang, false);
+    if (button) line.appendChild(button);
+    return line;
+  }
+  function sentenceBlock(sentence, polish, lang, speakable) {
+    if (!sentence) return null;
+    var box = el("div", "sentence");
+    if (speakable) {
+      var button = playButton(null, sentence, lang, true);
+      if (button) box.appendChild(button);
+    }
+    var body = el("div");
+    body.appendChild(el("p", null, sentence));
+    if (polish) body.appendChild(el("p", "pl", polish));
+    box.appendChild(body);
+    return box;
+  }
+  function tag(lang, phase) {
+    var parts = [String(lang || "").toUpperCase()];
+    if (phase) parts.push(label("phases", phase));
+    return el("div", "tag", parts.join(" · "));
+  }
+
+  function renderNewWord(item) {
+    var block = el("div", "block");
+    block.appendChild(el("div", "tag", text("new_word") + " · " + String(item.lang).toUpperCase()));
+    block.appendChild(wordLine(item.word, item.lang));
+    block.appendChild(el("div", "meaning", item.word.meaning));
+    var example = sentenceBlock(item.word.example, item.word.example_pl, item.lang, true);
+    if (example) block.appendChild(example);
+    return block;
+  }
+  function renderQuestion(item) {
+    // a question never shows or plays the word it asks for
+    var question = item.question || {};
+    var block = el("div", "block");
+    block.appendChild(tag(item.lang, item.phase));
+    if (question.ask === "meaning") {
+      block.appendChild(el("div", "word")).appendChild(el("strong", null, question.word));
+      var shown = sentenceBlock(question.sentence, null, item.lang, false);
+      if (shown) block.appendChild(shown);
+      return block;
+    }
+    var about = [label("pos", question.pos)];
+    if (question.with_article) about.push(text("with_article"));
+    var line = el("div", "word");
+    line.appendChild(el("strong", null, question.meaning));
+    line.appendChild(el("span", "details", "(" + about.join(", ") + ")"));
+    block.appendChild(line);
+    if (question.hint) block.appendChild(el("div", "details", question.hint));
+    var gap = sentenceBlock(question.sentence, question.sentence_pl, item.lang, false);
+    if (gap) block.appendChild(gap);
+    return block;
+  }
+  function renderResult(result) {
+    var block = el("div", "block");
+    if (result.error) {
+      block.appendChild(el("div", "error", (result.card ? result.card + ": " : "") + (result.error.message || "")));
+      return block;
+    }
+    var head = el("div");
+    var grade = el("span", "grade " + result.grade, (GLYPHS[result.grade] || "") + " " + (result.grade_pl || ""));
+    head.appendChild(grade);
+    if (result.errors_pl && result.errors_pl.length) head.appendChild(el("span", "details", " (" + result.errors_pl.join(", ") + ")"));
+    block.appendChild(head);
+    if (result.word) {
+      block.appendChild(wordLine(result.word, result.lang));
+      if (result.grade === "almost" || result.grade === "dont_know") {
+        block.appendChild(el("div", "meaning", result.word.meaning));
+        var example = sentenceBlock(result.word.example, result.word.example_pl, result.lang, true);
+        if (example) block.appendChild(example);
+      }
+    }
+    return block;
+  }
+  function renderToday(data) {
+    var words = data.learned_today || [];
+    if (!words.length) return null;
+    var block = el("div", "block");
+    block.appendChild(el("div", "tag", text("learned_today", { count: words.length })));
+    var list = el("ul", "words");
+    words.forEach(function (item) {
+      var row = el("li");
+      row.appendChild(el("span", "tag", String(item.lang).toUpperCase()));
+      row.appendChild(el("strong", null, item.word));
+      row.appendChild(el("span", "details", item.meaning + (item.known ? " · " + text("known") : "")));
+      var button = playButton(item.audio, item.word, item.lang, false);
+      if (button) row.appendChild(button);
+      list.appendChild(row);
+    });
+    block.appendChild(list);
+    return block;
+  }
+
+  function counter(data) {
+    var line = document.getElementById("counter");
+    var bar = document.getElementById("bar");
+    line.textContent = data.counter || "";
+    var done = data.done || {}, left = data.left || {};
+    var finished = (done.reviews || 0) + (done["new"] || 0);
+    var total = finished + (left.reviews || 0) + (left["new"] || 0);
+    bar.hidden = !total;
+    document.getElementById("bar-fill").style.width = total ? Math.round(100 * finished / total) + "%" : "0";
+  }
+  function parse(params) {
+    if (!params) return null;
+    if (params.structuredContent && typeof params.structuredContent === "object") return params.structuredContent;
+    var blocks = (params.content || []).filter(function (c) { return c && c.type === "text"; });
+    if (!blocks.length) return null;
+    try { return JSON.parse(blocks[0].text); } catch (e) { return { error: { message: blocks[0].text } }; }
+  }
+  function clear() {
+    ["results", "items", "today"].forEach(function (id) { document.getElementById(id).textContent = ""; });
+    document.getElementById("note").textContent = "";
+  }
+  function render(params) {
+    var data = parse(params);
+    clear();
+    if (!data) { document.getElementById("note").textContent = text("empty"); return; }
+    var results = Array.isArray(data.results) ? data.results : (data.grade && data.word ? [data] : []);
+    var items = Array.isArray(data.items) ? data.items : (data.next && Array.isArray(data.next.items) ? data.next.items : []);
+    var latest = data.next && data.next.counter ? data.next : data;
+    counter(latest);
+    var resultsBox = document.getElementById("results");
+    results.forEach(function (result) { resultsBox.appendChild(renderResult(result)); });
+    if (data.level_hint) resultsBox.appendChild(el("div", "hint", text("level_hint", data.level_hint)));
+    var itemsBox = document.getElementById("items");
+    items.forEach(function (item) { itemsBox.appendChild(item.phase === "new" && item.word ? renderNewWord(item) : renderQuestion(item)); });
+    var today = renderToday(data);
+    if (today) document.getElementById("today").appendChild(today);
+    var note = document.getElementById("note");
+    var left = data.left || {};
+    var nothingLeft = !left.reviews && !left["new"] && !left.drill;
+    if (data.error && !results.length) note.textContent = data.error.message || "";
+    else if (items.length) note.textContent = "";
+    else if (typeof data.minutes === "number" && data.minutes > 0 && !nothingLeft) note.textContent = text("minutes", { minutes: data.minutes });
+    else if (data.off && nothingLeft) note.textContent = text("off");
+    else if (data.left && nothingLeft && !results.length) note.textContent = text("done");
+    reportSize();
+  }
+  function applyContext(context) {
+    if (!context) return;
+    if (context.theme === "dark" || context.theme === "light") {
+      document.documentElement.setAttribute("data-theme", context.theme);
+      document.documentElement.style.colorScheme = context.theme;
+    }
+    var variables = context.styles && context.styles.variables;
+    if (variables) Object.keys(variables).forEach(function (name) {
+      if (name.indexOf("--") === 0 && variables[name]) document.documentElement.style.setProperty(name, variables[name]);
+    });
+  }
+
+  window.addEventListener("message", function (event) {
+    if (event.source !== window.parent) return;
+    var message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (message.method === undefined) {
+      // a response: to a request of this card, or to nothing it asked, which needs no reply
+      var waiting = message.id !== undefined ? pending[message.id] : undefined;
+      if (waiting) {
+        delete pending[message.id];
+        if (message.error) waiting.reject(message.error); else waiting.resolve(message.result || {});
+      }
+      return;
+    }
+    switch (message.method) {
+      case "ui/notifications/tool-result": render(message.params); break;
+      case "ui/notifications/host-context-changed": applyContext(message.params); break;
+      case "ui/notifications/tool-input":
+      case "ui/notifications/tool-input-partial":
+      case "ui/notifications/tool-cancelled": break;
+      case "ui/resource-teardown":
+      case "ping":
+        if (message.id !== undefined) send({ jsonrpc: "2.0", id: message.id, result: {} });
+        break;
+      default:
+        if (message.id !== undefined) send({ jsonrpc: "2.0", id: message.id, error: { code: -32601, message: "Method not found" } });
+    }
+  });
+
+  var lastHeight = 0;
+  function reportSize() {
+    var box = document.body.getBoundingClientRect();
+    var height = Math.ceil(box.height);
+    if (height !== lastHeight) {
+      lastHeight = height;
+      notify("ui/notifications/size-changed", { width: Math.ceil(box.width), height: height });
+    }
+  }
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(reportSize).observe(document.body);
+
+  document.getElementById("note").textContent = text("empty");
+  if (speechAvailable()) window.speechSynthesis.getVoices();
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "VocabBot", version: VERSION },
+    appCapabilities: {}
+  }).then(function (result) {
+    applyContext(result.hostContext);
+    notify("ui/notifications/initialized", {});
+    reportSize();
+  }, function () {
+    notify("ui/notifications/initialized", {});
+  });
+})();
+</script>
+</body>
+</html>

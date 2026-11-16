@@ -37,7 +37,7 @@ from vocabbot import plans, store
 from vocabbot.courses import Catalog
 from vocabbot.server import guides
 from vocabbot.server.accounts import Registry, SignupError, check_password
-from vocabbot.server.app import Tools, build, register
+from vocabbot.server.app import CARD, Tools, build, register
 from vocabbot.server.config import Settings
 from vocabbot.server.oauth import Throttle
 from vocabbot.server.service import Service
@@ -377,8 +377,29 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             httpx2.AsyncClient(auth=auth, timeout=30) as http,
             Client(streamable_http_client(live.resource, http_client=http)) as client,
         ):
-            tools = {tool.name for tool in (await client.list_tools()).tools}
+            listed = {tool.name: tool for tool in (await client.list_tools()).tools}
+            tools = set(listed)
             assert "vocab_next" in tools and len(tools) == 22
+            # the card of MCP Apps: the session's tools name it, the server serves it
+            with_card = {name for name, tool in listed.items() if (tool.meta or {}).get("ui")}
+            assert with_card == {"vocab_today", "vocab_next", "vocab_answer", "vocab_grade"}
+            assert listed["vocab_next"].meta == {
+                "ui": {"resourceUri": CARD},
+                "openai/outputTemplate": CARD,
+            }
+            resources = {str(r.uri) for r in (await client.list_resources()).resources}
+            assert CARD in resources
+            card = (await client.read_resource(CARD)).contents[0]
+            assert card.mime_type == "text/html;profile=mcp-app"
+            html = card.text  # type: ignore[union-attr]
+            assert "VOCABBOT_LABELS" not in html and "Nowe słowo" in html
+            assert "ui/initialize" in html and "ui/notifications/size-changed" in html
+            assert card.meta == {
+                "ui": {
+                    "csp": {"resourceDomains": ["https://upload.wikimedia.org"]},
+                    "prefersBorder": True,
+                }
+            }
             assert "vocab_guide" in (client.instructions or "")
             assert "# The daily session" in await _call(client, "vocab_guide", topic="session")
             assert (await _call(client, "vocab_today"))["error"]["code"] == "no_account_plan"
@@ -389,6 +410,7 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             assert live.data.as_posix() not in json.dumps(preview)
             assert (await _call(client, "vocab_commit", token=preview["token"]))["ok"]
             batch = await _call(client, "vocab_next", count=3)
+            assert batch["counter"] == "Postęp: 0/6 · nowe 0/6"
             answers = [
                 {"card": item["card"], "answer": correct(catalog, item["card"])}
                 for item in batch["items"]
@@ -407,6 +429,8 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
                 then_next=True,
             )
             assert chained["results"][0]["grade"] == "know"
+            assert chained["counter"] == "Postęp: 4/6 · nowe 4/6 · do utrwalenia 1"
+            assert chained["next"]["counter"] == chained["counter"]
             assert len(chained["next"]["items"]) == 1
             assert chained["next"]["items"][0]["card"] != card
             refused = await client.call_tool("vocab_plan_change", {"settings": ["--x=1"]})

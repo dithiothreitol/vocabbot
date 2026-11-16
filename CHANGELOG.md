@@ -3,6 +3,52 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Added
+
+- A counter of the day in every result of the session: `done` beside `left`,
+  and `counter`, the line "Postęp: 6/25 · nowe 3/15 · powtórki 3/10" that the
+  session in a chat shows at the top of every message. `today` lists the
+  words first shown that day (`learned_today`) for the summary at the end.
+- Recordings: 23,368 entries (81.5%) name a recording on Wikimedia Commons,
+  found through Wiktionary and, for Spanish and Italian, through Lingua Libre
+  (`tools/courses/audio.py`); English 98–99%, German 92–95%, French 86–94%,
+  Spanish 63–91%, Italian 27–79% by level. A reflexive verb or a word
+  pronounced two ways gets no recording of another form. The engine gives its MP3 address in
+  `word.audio`, and the session shows it as a link beside the IPA, with a new
+  word and in the results "prawie" and "nie wiem". The package holds only the
+  file names.
+- Example sentences for 10,602 entries that had none: Claude Sonnet 5.5 wrote
+  one sentence for every entry without a Tatoeba sentence and the example
+  review judged it (`tools/courses/generate.py`, `generated.jsonl`; 8.32 USD).
+  99.5% of the entries now have an example, at least 99% on every level.
+- A hint to raise the level: when 8 of the last 10 new words of a language
+  at its present levels were known before the course, the result of `grade`
+  or `answer` holds `level_hint` with the plan setting to change, at most once
+  a day for the same levels; the session offers it, and the terminal shows it.
+- The card of MCP Apps: Claude and ChatGPT show the results of `vocab_today`,
+  `vocab_next`, `vocab_answer` and `vocab_grade` as a card with the counter,
+  the word, its IPA and a button that plays the recording; the browser's
+  speech synthesis reads words and sentences without one.
+
+### Changed
+
+- ChatGPT connects through Settings, Integrations, Plugins and a custom MCP
+  server, without developer mode (`docs/server.md`, the server's start page).
+- The IPA and the recording come from another part of speech of the same
+  word when every record of the word has one pronunciation (German "nein"):
+  196 more entries have an IPA. Courses 2026.11.6.
+
+### Fixed
+
+- A change of the levels during the day no longer adds new words on top of
+  the daily limit: the words learned that day outside the new plan take the
+  places of words not chosen yet, in their own language.
+- A card the learner reports leaves the drill as well, so the session ends.
+- The server named the course languages without Italian in the description of
+  `lang`.
+
 ## 1.0.0-rc.6 - 2026-11-15
 
 ### Added

@@ -4,8 +4,10 @@
 
 Stan: 2026-11-16, po Etapie 7 (wersja 1.0.0-rc.6, w pakiecie Pythona
 1.0.0rc6). Plan zaakceptowałeś 14.11.2026, a Etapy 4, 5, 6 i 7 dodałeś
-15.11.2026. Etap 7 dał kurs włoski i sesję po jednej karcie. Etap 8 (uwagi
-z pilotażu: wymowa, przykłady, licznik i ChatGPT) czeka na Twoją akceptację.
+15.11.2026. Etap 7 dał kurs włoski i sesję po jednej karcie. Etapy 8 i 9
+(uwagi z pilotażu: wymowa, przykłady, licznik, ChatGPT oraz karta w oknie
+czatu) zrealizowałem 16.11.2026; ich wydanie jako rc.7 i wdrożenie czekają na
+Twoją zgodę.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1276,8 +1278,7 @@ Wnioski:
 ### Etap 8. Uwagi z pilotażu: wymowa, przykłady, licznik i ChatGPT
 
 Etap 8 dodałeś 16.11.2026 po uwagach pierwszej osoby z pilotażu, która uczy
-się angielskiego w ChatGPT. Stan: propozycja do Twojej akceptacji. Kod
-powstanie po akceptacji, przebiegi modelu po osobnej zgodzie z wyceną.
+się angielskiego w ChatGPT. Stan: zrealizowany 16.11.2026, wynik poniżej.
 
 #### Weryfikacja uwag (16.11.2026)
 
@@ -1336,6 +1337,38 @@ Zakres:
    i ChatGPT w przeglądarce i na telefonie. Wydanie `v1.0.0-rc.7`
    i wdrożenie na serwer, każde za osobną zgodą.
 
+#### Wynik Etapu 8 (16.11.2026)
+
+Etapy 8 i 9 zaakceptowałeś 16.11.2026 jednym poleceniem z prośbą o
+potwierdzenie działania, symulacje i przegląd kodu. Pełny przebieg zdań
+z modelem zatwierdziłeś z limitem 12 USD po wycenie z próbki.
+
+| Kryterium | Wynik |
+|---|---|
+| ChatGPT | ścieżka Ustawienia, Integracje, Wtyczki i własny serwer MCP w `docs/server.md`, `docs/server.pl.md`, na stronie głównej serwera i w zaproszeniu dla pilotażu |
+| licznik | `done` i `counter` w wynikach `next`, `answer`, `grade`, `regrade` i `today`, lista `learned_today` w `today`; przewodnik serwera i umiejętność `vocab-session` zaczynają każdą wiadomość licznikiem i kończą sesję listą nowych słów dnia |
+| wymowa | 23 368 haseł (81,5%) z nagraniem w Wikimedia Commons: angielski 98–99%, niemiecki 92–95%, francuski 86–94%, hiszpański 63–91%, włoski 27–79% według poziomu; czasownik zwrotny i słowo o dwóch wymowach nie dostają nagrania innej formy; nagrania z Wikisłownika, dla hiszpańskiego i włoskiego z list Lingua Libre (`audio.py`); IPA i nagranie z innej części mowy tego samego słowa o jednej wymowie dały IPA 196 kolejnym hasłom (razem 91,4% haseł) |
+| przykłady | 10 738 haseł bez zdania z Tatoeby; model napisał zdanie dla każdego, przegląd przykładów przyjął 10 380 zdań w pierwszym przebiegu i 222 z 358 po jednej poprawce; razem 10 602 zdania (`generated.jsonl`) i przykład w 99,5% haseł, na każdym poziomie co najmniej 99% |
+| próba jakości | w 40 losowych zdaniach próbki 38 poprawnych, w dwóch błąd czasu w tłumaczeniu (regañar) i znaczenie w złożeniu (sex education); przegląd odrzucił 356 zdań pierwszego przebiegu, najczęściej jako nienaturalne (137), z błędem tłumaczenia (76), znaczenia (46) albo części mowy (43) |
+| za niski poziom | `level_hint` w wyniku `grade` albo `answer`, gdy 8 z 10 ostatnich nowych słów na bieżących poziomach było znanych, z ustawieniem planu do zmiany, najwyżej raz dziennie dla tych samych poziomów; w terminalu jeden wiersz podpowiedzi |
+| poprawka silnika | zmiana poziomów w trakcie dnia nie dokłada już nowych słów ponad dzienny limit; błąd wykryła symulacja z modelem (licznik 10/35 zamiast 10/25 po dziesięciu „znałem” i zmianie poziomów) |
+| kursy | wersja 2026.11.6; względem wersji 2026.11.5 wyłącznie dopisane pola: nagranie w 23 368 hasłach, przykład w 10 602, IPA w 196; żadne istniejące zdanie ani IPA się nie zmieniło; kontrola kursów bez uwag |
+| symulacja bez modelu | dwoje uczących się przez 10 dni (angielski od A2 z 12 słowami „znałem” pierwszego dnia i zmianą na B1–B2; włoski, hiszpański i niemiecki od A1): 2496 sprawdzeń licznika, 804 odpowiedzi, 550 nowych słów (548 ze zdaniem, 537 z nagraniem, 531 z IPA), jedna podpowiedź poziomu, każdy dzień zakończony bez zaległych kart, zero naruszeń; nagrania wszystkich pięciu języków odpowiadają z Commons jako `audio/mpeg` |
+| symulacja z modelem | 9 tur Claude Code (model Sonnet) przez lokalny serwer z kontem syntetycznym, 1,84 USD: licznik w każdej wiadomości, nowe słowo z IPA i odnośnikiem do nagrania, podpowiedź poziomu raz, zmiana poziomów przez podgląd i „tak”, podsumowanie z listą słów dnia; w wyniku „nie wiem” model pominął odnośnik do nagrania, więc przykłady wyników w przewodniku i umiejętności pokazują go wprost; druga sesja po poprawkach z przeglądu kodu (6 tur, 1,02 USD) potwierdziła licznik 10/25 po zmianie poziomów, jedną podpowiedź poziomu bez przerwy w sesji i odnośnik do nagrania w wyniku „nie wiem” |
+| przegląd kodu | 15 potwierdzonych usterek, wszystkie poprawione: ponowny wybór nowych słów na zużytych generatorach i przestawianie przydziału między językami (zastąpione z góry policzonymi miejscami słów spoza planu w ich języku), lista słów dnia z odpowiedziami kart czekających w utrwalaniu, podpowiedź poziomu powtarzana lub nieobecna po wpisanej odpowiedzi (teraz najwyżej raz dziennie dla bieżących poziomów), licznik bez powtórek przed terminem, zgłoszona karta w utrwalaniu, odtwarzanie poprzedniego słowa przez syntezę w karcie, głos innej odmiany języka, powtórne zebranie partii i zdania przypisane do zmienionego hasła, ucięta lista Lingua Libre przy błędzie API, nagranie czasownika bez zaimka zwrotnego, kopia reguł w przewodniku serwera, zbędne przeliczenia dnia w terminalu; po poprawkach 139 haseł straciło błędne nagranie |
+| testy | 248 na Pythonie 3.15 i 220 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 z 7), `claude plugin validate --strict` i kontrola kursów bez uwag |
+| koszt | 8,32 USD za zdania (próbka 0,09, generowanie 4,82, przegląd 3,14, poprawka 0,27) z limitu 12 USD oraz 2,86 USD za dwie symulacje z modelem |
+
+Wnioski:
+
+1. Zdania z modelu z przeglądem uzupełniają kurs tanio: luka 37% haseł
+   kosztowała 8,32 USD, a przegląd przyjął 98,7% zdań.
+2. Wikisłownik daje nagrania dla angielskiego, niemieckiego i francuskiego;
+   dla hiszpańskiego i włoskiego pomaga Lingua Libre, a słowa bez nagrania
+   obsługuje synteza mowy w karcie z Etapu 9.
+3. Symulacja z prawdziwym modelem wykryła błąd silnika, którego nie
+   pokazały testy jednostkowe, więc warto ją powtarzać przed wydaniem.
+
 ### Etap 9 (warunkowy). Karta w oknie czatu
 
 MCP Apps pozwalają narzędziu pokazać w rozmowie interaktywną kartę w osobnej
@@ -1346,8 +1379,18 @@ zapis IPA i przycisk odtwarzania nagrania. Słowa i zdania bez nagrania
 odczytywałaby synteza mowy przeglądarki. Etap zaczyna się od próby: obsługa
 rozszerzenia w MCP Python SDK, zasady CSP dla plików z
 `upload.wikimedia.org` oraz odtwarzanie w Claude i ChatGPT na komputerze i na
-telefonie. O etapie decydujesz po wyniku Etapu 8 i kolejnych uwagach
-z pilotażu.
+telefonie. Etap zrealizowałem 16.11.2026 razem z Etapem 8 na Twoje
+polecenie, wynik poniżej.
+
+#### Wynik Etapu 9 (16.11.2026)
+
+| Kryterium | Wynik |
+|---|---|
+| SDK | MCP Python SDK 2.3.0 ma rozszerzenie `Apps`; serwer ogłasza `io.modelcontextprotocol/ui`, narzędzia `vocab_today`, `vocab_next`, `vocab_answer` i `vocab_grade` wskazują kartę w `_meta.ui.resourceUri` oraz w `openai/outputTemplate`, a zasób `ui://vocabbot/card.html` ma typ `text/html;profile=mcp-app` |
+| karta | `server/static/card.html` bez zależności zewnętrznych: `ui/initialize`, `tool-result`, zgłaszanie rozmiaru, motyw i zmienne gospodarza; etykiety z `pl.json`; obramowanie rysuje gospodarz (`prefersBorder`); pytanie nie pokazuje ani nie odtwarza słowa |
+| dźwięk | przycisk odtwarza MP3 z `upload.wikimedia.org`, jedynej domeny w CSP karty; słowa i zdania bez nagrania odczytuje synteza mowy przeglądarki, oznaczona przerywaną obwódką przycisku |
+| próba | host testowy w Edge z prawdziwymi wynikami narzędzi: karta przechodzi handshake i pokazuje nowe słowo, wynik z utrwalaniem i podsumowanie dnia w motywie jasnym i ciemnym, bez błędów JavaScriptu; test serwera sprawdza metadane narzędzi, zasób i CSP |
+| do sprawdzenia po wdrożeniu | wyświetlanie karty w Claude i ChatGPT na komputerze i na telefonie, bo te aplikacje łączą się tylko z serwerem publicznym |
 
 ---
 
@@ -1403,7 +1446,8 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 6, test sesji z modelem przez łącznik | 1,54 USD przy Claude Sonnet 5.5 (szacunek 1–3 USD) | zatwierdzony 15.11.2026 |
 | Etap 6, wdrożenie na VPS | brak kosztów modeli | zatwierdzone 15.11.2026 |
 | Etap 7, przegląd włoskich znaczeń i przykładów | 3,54 USD przy Claude Sonnet 5.5 (limit 7 USD) | zatwierdzony 15.11.2026 |
-| Etap 8, zdania przykładowe z modelu dla około 10 700 haseł | próbka około 0,3 USD; całość szacunkowo 10–15 USD przy Claude Sonnet 5.5 (szacunek z kosztu przeglądów Etapów 4 i 7) | osobna, po próbce |
+| Etap 8, zdania przykładowe z modelu dla 10 738 haseł | 8,32 USD przy Claude Sonnet 5.5 (próbka 0,09 USD, limit 12 USD) | zatwierdzony 16.11.2026 po próbce |
+| Etap 8, symulacje sesji z modelem przez lokalny serwer | 2,86 USD (9 i 6 tur, model Sonnet w Claude Code) | w ramach polecenia z 16.11.2026 |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie

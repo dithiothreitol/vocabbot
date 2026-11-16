@@ -108,12 +108,11 @@ Adres serwera jest dla każdej aplikacji taki sam: `https://<domena>/mcp`.
   Połącz uczący się loguje się na stronie serwera i wraca do Claude. Własne
   łączniki działają w każdym planie, a plan bezpłatny pozwala na jeden.
   Łącznik dodany w przeglądarce działa również w aplikacji na telefonie.
-- **ChatGPT**: Ustawienia, Aplikacje i łączniki, Ustawienia zaawansowane,
-  Tryb dewelopera, a następnie Utwórz z adresem serwera i uwierzytelnianiem
-  OAuth. Według centrum pomocy OpenAI narzędzia zapisujące dane (odpowiedzi,
-  zmiany planu) działają w trybie dewelopera w planach Business, Enterprise
-  i Edu; w planach Plus i Pro warto sprawdzić, czy odpowiedzi z sesji trafiają
-  do dziennika.
+- **ChatGPT** (plan płatny): Ustawienia, Integracje, Wtyczki, przycisk „+”
+  i własny serwer MCP z adresem serwera oraz uwierzytelnianiem OAuth. Tryb
+  dewelopera nie jest już potrzebny. Narzędzia zapisujące dane (odpowiedzi,
+  zmiany planu) działają, co potwierdziło konto pilotażowe, które 15.11.2026
+  zapisało w ChatGPT plan i odpowiedzi.
 - **Claude Code**: `claude mcp add --transport http vocabbot https://<domena>/mcp`,
   następnie `/mcp` i logowanie w przeglądarce.
 - **Codex**: `codex mcp add vocabbot --url https://<domena>/mcp`, następnie
@@ -122,6 +121,20 @@ Adres serwera jest dla każdej aplikacji taki sam: `https://<domena>/mcp`.
 Nową sesję otwiera w rozmowie słowo „sesja” albo prośba „zaczynamy naukę
 słówek”. Pierwsza rozmowa tworzy plan: języki, poziomy i liczbę nowych słów
 dziennie, z opcjonalnym testem poziomującym.
+
+## Karta w czacie
+
+Aplikacje czatu, które obsługują MCP Apps (Claude w przeglądarce
+i w aplikacji desktopowej, ChatGPT), pokazują przy wynikach `vocab_today`,
+`vocab_next`, `vocab_answer` i `vocab_grade` kartę VocabBota: licznik dnia,
+słowo z zapisem IPA i przyciskiem odtwarzania nagrania, pytanie oraz nowe
+słowa dnia. Nagrania pochodzą z Wikimedia Commons (Wikisłownik i Lingua
+Libre) i odtwarzają się bezpośrednio z `upload.wikimedia.org`, jedynego
+adresu, z którego karta może pobierać pliki. Słowo albo zdanie bez nagrania
+odczytuje synteza mowy przeglądarki. Pytanie na karcie nie pokazuje ani nie
+odtwarza słowa, o które pyta, więc karta zachowuje odpowiedź tak samo jak
+wiadomości. Aplikacje bez MCP Apps pokazują tę samą sesję jako tekst
+z odnośnikiem do nagrania obok zapisu IPA.
 
 ## Dane i prywatność
 

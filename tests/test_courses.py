@@ -86,3 +86,26 @@ def test_plural_and_bare_nouns(catalog: Catalog) -> None:
     assert courses.entry_problems(month) == []
     assert not courses.needs_article(month)
     assert courses.entry_problems({**month, "display": "el enero"})
+
+
+def test_a_recording_is_a_commons_file_played_as_mp3(catalog: Catalog) -> None:
+    entry = copy.deepcopy(entry_of(catalog, "de", 1))
+    assert "audio" not in courses.presentation(entry)
+    entry["audio"] = "De-Hund.ogg"
+    assert courses.entry_problems(entry) == []
+    assert courses.presentation(entry)["audio"] == (
+        "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/aa/De-Hund.ogg/De-Hund.ogg.mp3"
+    )
+    spanish = "LL-Q1321 (spa)-Noaius Paticus-(American Spanish) Ciudad de Cebú.wav"
+    assert courses.audio_url(spanish) == (
+        "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c3/"
+        "LL-Q1321_%28spa%29-Noaius_Paticus-%28American_Spanish%29_Ciudad_de_Ceb%C3%BA.wav/"
+        "LL-Q1321_%28spa%29-Noaius_Paticus-%28American_Spanish%29_Ciudad_de_Ceb%C3%BA.wav.mp3"
+    )
+    assert courses.audio_url("en-us-word.mp3").endswith("/En-us-word.mp3")
+    for wrong in ("../etc/passwd.ogg", "De-Hund.exe", "https://example.com/a.ogg", 7):
+        entry["audio"] = wrong
+        assert courses.entry_problems(entry) == [
+            "audio must be the file name of a recording on Wikimedia Commons"
+        ]
+        assert "audio" not in courses.presentation(entry)

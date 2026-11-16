@@ -2,7 +2,7 @@
   "lang": "de",
   "base": "pl",
   "title": "VocabBot A1–B2",
-  "version": "2026.11.5",
+  "version": "2026.11.6",
   "levels": {
     "a1": 1016,
     "a2": 1162,
@@ -42,6 +42,17 @@
       "id": "editor",
       "name": "VocabBot editors: basic words, meanings and the starting list (tools/courses/editor.jsonl)",
       "license": "CC BY-SA 4.0"
+    },
+    {
+      "id": "generated",
+      "name": "Example sentences written by Claude Sonnet 5.5 for entries without a Tatoeba sentence and accepted by the example review (tools/courses/generated.jsonl)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "id": "commons",
+      "name": "Pronunciation recordings on Wikimedia Commons, found through Wiktionary and Lingua Libre; the courses keep only the file names, and each file's page names its author and licence",
+      "license": "per file, mostly CC BY-SA",
+      "url": "https://commons.wikimedia.org"
     }
   ]
 }

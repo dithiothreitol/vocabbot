@@ -17,7 +17,8 @@ Claude and Codex that runs the same session in a chat.
   learner knows it. A drill answer leaves the due date unchanged.
 - **Cards.** A card shows the Polish meaning, the part of speech and an
   example sentence with a gap; the learner types the word. New words are
-  introduced first with their gender, forms, IPA and example.
+  introduced first with their gender, forms, IPA, a link to a recording and
+  an example. The day's counter starts every message of a session in a chat.
 - **Grades.** The engine compares the typed answer with the entry by the
   rules of the language: right gives "wiem", a small slip (a diacritic, one
   letter, the article, the case, another form of the word) gives "prawie",
@@ -50,8 +51,12 @@ Wiktionary (through kaikki.org), the order from wordfreq and the example
 sentences with Polish translations from Tatoeba. Claude Sonnet 5.5 reviewed
 the meanings and equivalents of all 6600 concepts, and the Italian
 equivalents of 6700 concepts when Italian joined the courses. In a sample of 1200
-entries, 1.2% had a wrong meaning, equivalent or gender. Learners add their
-own words from any text.
+entries, 1.2% had a wrong meaning, equivalent or gender. Where Tatoeba has no
+sentence for an entry, Claude Sonnet 5.5 wrote one and the example review
+checked it, so 99.5% of the entries have an example. 81.5% of the entries link
+a recording on Wikimedia Commons (Wiktionary, Lingua Libre), from 98–99% of
+the English entries to 27–79% of the Italian ones. Learners add their own
+words from any text.
 
 ## Install
 
@@ -81,8 +86,10 @@ walks through the first week.
 
 The server for chat applications, with accounts for many learners, runs on
 your own machine with Docker; Claude on the web and on the phone, ChatGPT,
-Claude Code and Codex connect to it as to a remote MCP server.
-[docs/server.md](docs/server.md) describes the setup and the connection.
+Claude Code and Codex connect to it as to a remote MCP server. In Claude
+and ChatGPT the session also shows a card with the day's counter and a button
+that plays the word's recording. [docs/server.md](docs/server.md) describes
+the setup and the connection.
 
 ## Documents
 

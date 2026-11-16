@@ -96,25 +96,41 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+MANIFEST = SOURCES / "manifest.json"
+
+
+def read_manifest() -> dict[str, dict[str, object]]:
+    if not MANIFEST.is_file():
+        return {}
+    manifest: dict[str, dict[str, object]] = json.loads(MANIFEST.read_text("utf-8"))
+    return manifest
+
+
+def write_manifest(manifest: dict[str, dict[str, object]]) -> None:
+    MANIFEST.write_bytes((json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+
+
+def described(path: Path, url: str) -> dict[str, object]:
+    """The manifest entry of a source file: where it came from, when, its size and hash."""
+    return {
+        "url": url,
+        "fetched": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "bytes": path.stat().st_size,
+        "sha256": sha256(path),
+    }
+
+
 def fetch(force: bool = False) -> dict[str, dict[str, object]]:
     """Download every source that is missing and write the manifest."""
     SOURCES.mkdir(parents=True, exist_ok=True)
     TATOEBA.mkdir(parents=True, exist_ok=True)
-    manifest_path = SOURCES / "manifest.json"
-    manifest = json.loads(manifest_path.read_text("utf-8")) if manifest_path.is_file() else {}
+    manifest = read_manifest()
     for path, url in DOWNLOADS.items():
         key = str(path.relative_to(SOURCES)).replace("\\", "/")
         if force or not path.is_file():
             subprocess.run(["curl", "-sfL", "--retry", "5", "-o", str(path), url], check=True)
             manifest.pop(key, None)
         if key not in manifest:
-            manifest[key] = {
-                "url": url,
-                "fetched": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                "bytes": path.stat().st_size,
-                "sha256": sha256(path),
-            }
-    manifest_path.write_bytes(
-        (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8")
-    )
+            manifest[key] = described(path, url)
+    write_manifest(manifest)
     return manifest

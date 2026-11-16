@@ -245,3 +245,124 @@ def test_one_card_at_a_time_unless_the_plan_says_otherwise(
     assert len(program.run("next", "--count", "2", *learner)["items"]) == 2
     refused = program.run("plan", "set", "batch=0", *learner, code=1)
     assert refused["error"]["code"] == "plan_invalid"
+
+
+def test_the_counter_adds_up_and_the_day_lists_its_new_words(
+    program: Program, tmp_path: Path, catalog: Catalog
+) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1-a2", "--new", "4")
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", DAY)
+    day = program.run("today", *learner)
+    assert day["done"] == {"reviews": 0, "new": 0}
+    assert day["counter"] == "Postęp: 0/4 · nowe 0/4"
+    first = program.run("next", *learner)
+    assert first["counter"] == day["counter"]
+    card = first["items"][0]["card"]
+    known = program.run("grade", "--card", card, "--grade", "known", *learner)
+    # a word known before the course brings one more new word, outside the daily limit
+    assert known["done"] == {"reviews": 0, "new": 1}
+    assert known["counter"] == "Postęp: 1/5 · nowe 1/5"
+    second = program.run("next", *learner)["items"][0]["card"]
+    line = json.dumps({"card": second, "answer": ""})
+    graded = program.run("answer", "--batch", "--stdin", *learner, stdin=line)
+    assert graded["done"]["new"] == 2 and graded["left"]["drill"] == 1
+    assert graded["counter"] == "Postęp: 2/5 · nowe 2/5 · do utrwalenia 1"
+    first_entry, second_entry = catalog.card(card), catalog.card(second)
+    assert first_entry is not None and second_entry is not None
+    # the word waiting in the drill stays out of the list until it is answered
+    waiting = program.run("today", *learner)["learned_today"]
+    assert [w["word"] for w in waiting] == [first_entry["display"]]
+    assert waiting[0]["known"] is True
+    line = json.dumps({"card": second, "answer": second_entry["display"]})
+    program.run("answer", "--batch", "--stdin", *learner, stdin=line)
+    words = program.run("today", *learner)["learned_today"]
+    assert [w["word"] for w in words] == [first_entry["display"], second_entry["display"]]
+    assert "known" not in words[1]
+
+
+def test_a_level_set_too_low_is_named_once(program: Program, tmp_path: Path) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1", "--new", "3")
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", DAY)
+    hints = []
+    for _ in range(11):
+        card = program.run("next", *learner)["items"][0]["card"]
+        hints.append(
+            program.run("grade", "--card", card, "--grade", "known", *learner).get("level_hint")
+        )
+    assert hints[:9] == [None] * 9 and hints[10] is None
+    assert hints[9] == {
+        "lang": "de",
+        "known": 10,
+        "of": 10,
+        "levels": "a1",
+        "suggested": "a2",
+        "setting": "lang.de.levels=a2",
+    }
+
+
+def test_a_change_of_levels_during_the_day_keeps_the_daily_limit(
+    program: Program, tmp_path: Path
+) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "en:a1-a2", "--new", "4")
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", DAY)
+    for _ in range(3):
+        card = program.run("next", *learner)["items"][0]["card"]
+        program.run("grade", "--card", card, "--grade", "known", *learner)
+    card = program.run("next", *learner)["items"][0]["card"]
+    line = json.dumps({"card": card, "answer": ""})
+    program.run("answer", "--batch", "--stdin", *learner, stdin=line)
+    before = program.run("today", *learner)
+    # three known words added three places; one answered word used one of the four
+    assert before["counter"] == "Postęp: 4/7 · nowe 4/7 · do utrwalenia 1"
+    change = program.run("plan", "set", "lang.en.levels=a2", *learner)
+    program.run("commit", "--confirm", change["token"], *learner)
+    after = program.run("today", *learner)
+    assert after["counter"] == before["counter"]
+    assert after["done"] == {"reviews": 0, "new": 4} and after["left"]["new"] == 3
+    # the answered word waits in the drill, so the list holds the three known words
+    assert len(after["learned_today"]) == 3
+
+
+def test_a_report_in_one_language_keeps_the_words_shown_in_another(
+    program: Program, tmp_path: Path, catalog: Catalog
+) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1", "--lang", "es:a1", "--new", "4")
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", "2026-11-18")
+    shown = []
+    for _ in range(3):
+        card = program.run("next", *learner)["items"][0]["card"]
+        entry = catalog.card(card)
+        assert entry is not None
+        line = json.dumps({"card": card, "answer": entry["display"]})
+        program.run("answer", "--batch", "--stdin", *learner, stdin=line)
+        shown.append(card)
+    waiting = program.run("next", *learner)["items"][0]["card"]
+    program.run("flag", "--card", shown[-1], "--stdin", *learner, stdin="zły przykład")
+    # the card on screen stays in the day and can be answered
+    entry = catalog.card(waiting)
+    assert entry is not None
+    line = json.dumps({"card": waiting, "answer": entry["display"]})
+    graded = program.run("answer", "--batch", "--stdin", *learner, stdin=line)
+    assert graded["results"][0]["grade"] == "know"
+
+
+def test_a_reported_card_leaves_the_drill_and_the_counter(program: Program, tmp_path: Path) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1", "--new", "2")
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", DAY)
+    card = program.run("next", *learner)["items"][0]["card"]
+    line = json.dumps({"card": card, "answer": ""})
+    program.run("answer", "--batch", "--stdin", *learner, stdin=line)
+    assert program.run("today", *learner)["left"]["drill"] == 1
+    program.run("flag", "--card", card, "--stdin", *learner, stdin="zły przykład")
+    day = program.run("today", *learner)
+    assert day["left"]["drill"] == 0 and "do utrwalenia" not in day["counter"]

@@ -320,8 +320,15 @@ class Drill:
 
     def save_known(self, item: Item, word: dict[str, Any]) -> None:
         try:
-            session.self_grade(
-                self.learner, self.catalog, self.day, self.clock(), item.card, "known", source="cli"
+            result = session.self_grade(
+                self.learner,
+                self.catalog,
+                self.day,
+                self.clock(),
+                item.card,
+                "known",
+                source="cli",
+                with_progress=False,
             )
         except VocabError as exc:
             self.screen.show(f"  {exc}", "red")
@@ -334,6 +341,9 @@ class Drill:
         self.screen.fold(
             self.line_for(item, "known", summary, assets.text("drill.known_saved")), plain_too=True
         )
+        hint = result.get("level_hint")
+        if hint:
+            self.screen.show("  " + assets.text("progress.level_hint", **hint), "dim")
 
     # ------------------------------------------------------------ questions
 
@@ -501,6 +511,7 @@ class Drill:
                 grade,
                 ahead=item.phase == "ahead",
                 source="cli",
+                with_progress=False,
             )
         except VocabError as exc:
             self.screen.show(f"  {exc}", "red")

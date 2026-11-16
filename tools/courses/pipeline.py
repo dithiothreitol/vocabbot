@@ -19,6 +19,7 @@ import sys
 import time
 from typing import Any
 
+import audio
 import build as builder
 import concepts
 import sources
@@ -80,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.step in ("fetch", "all"):
         manifest = sources.fetch()
         print(f"sources: {len(manifest)} files")
+        listings = audio.fetch()
+        print(f"recordings: {len(listings)} Lingua Libre listings")
     if args.step in ("extract", "all"):
         words = {c.headword for c in concepts.read()}
         counts = wiktionary.extract(words)

@@ -8,6 +8,7 @@ radio buttons.
 
 from __future__ import annotations
 
+import json
 from html import escape
 from importlib import resources
 
@@ -142,6 +143,33 @@ ALERT = (
 def font() -> bytes:
     """The Geist typeface (SIL Open Font License 1.1, see static/geist-OFL.txt)."""
     return (resources.files("vocabbot.server") / "static" / "geist.woff2").read_bytes()
+
+
+def card_title() -> str:
+    """The card's name, as the chat application lists it."""
+    texts = assets.read_json(assets.data_root() / "i18n" / "pl.json")
+    return str(texts["server"]["card"]["title"])
+
+
+def card() -> str:
+    """The card a chat application shows beside the session's results (MCP Apps).
+
+    The template (static/card.html) gets the labels from data/i18n/pl.json, so
+    every text a learner reads stays there.
+    """
+    texts = assets.read_json(assets.data_root() / "i18n" / "pl.json")
+    labels = {
+        "card": texts["server"]["card"],
+        "genders": texts["genders"],
+        "forms": texts["forms"],
+        "phases": texts["phases"],
+        "pos": texts["pos"],
+    }
+    blob = json.dumps(labels, ensure_ascii=False).replace("</", "<\\/")
+    template = (resources.files("vocabbot.server") / "static" / "card.html").read_text("utf-8")
+    return template.replace("/*VOCABBOT_LABELS*/{}", blob).replace(
+        "/*VOCABBOT_VERSION*/", __version__
+    )
 
 
 def _page(title: str, body: str, *, index: bool = False) -> str:

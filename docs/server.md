@@ -107,11 +107,11 @@ The server's address for every application is `https://<domain>/mcp`.
   signs in on the server's page and returns to Claude. Custom connectors are
   available on every plan; the free plan allows one. A connector added on the
   web is also available in the phone app.
-- **ChatGPT**: Settings, Apps & Connectors, Advanced settings, Developer
-  mode, then Create with the address and OAuth as the authentication.
-  According to OpenAI's help center, tools that save data (answers, plan
-  changes) are available in developer mode on the Business, Enterprise and
-  Edu plans; on Plus and Pro, check that the answers of a session are saved.
+- **ChatGPT** (a paid plan): Settings, Integrations, Plugins, the plus
+  button and a custom MCP server with the address and OAuth as the
+  authentication; developer mode is no longer needed. The tools that save
+  data (answers, plan changes) work: a pilot account in ChatGPT saved its plan
+  and answers on 15.11.2026.
 - **Claude Code**: `claude mcp add --transport http vocabbot https://<domain>/mcp`,
   then `/mcp` and the sign-in in the browser.
 - **Codex**: `codex mcp add vocabbot --url https://<domain>/mcp`, then
@@ -120,6 +120,20 @@ The server's address for every application is `https://<domain>/mcp`.
 A new conversation starts the session with "sesja" or "zaczynamy naukę
 słówek". The first conversation sets up the plan: languages, levels and new
 words a day, with an optional placement test.
+
+## The card in the chat
+
+Chat applications that support MCP Apps (Claude on the web and in the
+desktop application, ChatGPT) show VocabBot's card with the results of
+`vocab_today`, `vocab_next`, `vocab_answer` and `vocab_grade`: the day's
+counter, the word with its IPA and a button that plays its recording, the
+question, and the new words of the day. The recordings come from Wikimedia
+Commons (Wiktionary and Lingua Libre) and play straight from
+`upload.wikimedia.org`, the only address the card may load. A word or a
+sentence without a recording is read by the browser's speech synthesis. The
+card shows a question without its word and never plays it, so it keeps the
+answer back as the messages do. Applications without MCP Apps show the same
+session as text, with a link to the recording beside the IPA.
 
 ## Data and privacy
 

@@ -353,6 +353,8 @@ def render_answer(data: dict[str, Any]) -> list[str]:
         lines.append(f"  {data['word']['example']}  {data['word'].get('example_pl', '')}".rstrip())
     if data.get("next_due"):
         lines.append(assets.text("cli.next_due", due=data["next_due"]))
+    if data.get("level_hint"):
+        lines.append(assets.text("progress.level_hint", **data["level_hint"]))
     return lines
 
 
@@ -615,15 +617,14 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
                     given,
                     ahead=ctx.args.ahead,
                     source=source,
+                    with_progress=False,
                 )
             )
         except VocabError as exc:
             results.append({"card": card, "error": exc.as_dict()})
             refused += 1
-    left = session.next_items(learner, catalog, day, count=0)["left"]
-    return with_next(
-        ctx, {"ok": refused == 0, "results": results, "refused": refused, "left": left}
-    )
+    counts = session.day_progress(learner, catalog, day)
+    return with_next(ctx, {"ok": refused == 0, "results": results, "refused": refused, **counts})
 
 
 def with_next(ctx: Context, data: dict[str, Any]) -> dict[str, Any]:
@@ -859,9 +860,12 @@ def render_flag(data: dict[str, Any]) -> list[str]:
 
 
 def render_grade(data: dict[str, Any]) -> list[str]:
-    if data["grade"] == "known":
-        return [assets.text("cli.known", due=data.get("next_due", "-"))]
-    return render_answer(data)
+    if data["grade"] != "known":
+        return render_answer(data)
+    lines = [assets.text("cli.known", due=data.get("next_due", "-"))]
+    if data.get("level_hint"):
+        lines.append(assets.text("progress.level_hint", **data["level_hint"]))
+    return lines
 
 
 def render_regrade(data: dict[str, Any]) -> list[str]:

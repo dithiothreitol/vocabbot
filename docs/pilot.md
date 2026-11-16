@@ -22,10 +22,10 @@ on version 1.0.0-rc.4.
 | # | Scenario | Request or command | What to check |
 |---|---|---|---|
 | 1 | Setup with a test | "skonfiguruj VocabBota", a test for one language | the test shows questions without answers; one yes creates the plan; the forecast comes from the engine |
-| 2 | Session in the chat | "sesja" on three days | one card at a time (the plan's `batch`, 1 by default); no answer before its grade; the drill at the end |
+| 2 | Session in the chat | "sesja" on three days | one card at a time (the plan's `batch`, 1 by default); no answer before its grade; the drill at the end; the counter in every message; the recording link beside the IPA plays the word; in Claude and ChatGPT the card with its play button; the new words of the day in the summary |
 | 3 | Session in the terminal | `vocabbot drill` on three days | typing ä, ß, ñ, é, ç; a right answer saved at once; the marked difference after a mistake; the grade keys; `/cofnij`, `/znam`, `/koniec`; colours and symbols in your terminal |
 | 4 | Switching during a day | start in the chat, finish in the terminal | the same order, no card twice |
-| 5 | A word known before the course | "to słowo znałem" | "znałem" only at the first showing; the daily limit unchanged |
+| 5 | A word known before the course | "to słowo znałem" | "znałem" only at the first showing; the daily limit unchanged; after most of ten new words known, one offer of a higher level or the placement test |
 | 6 | A changed grade | "to była literówka, zalicz" | only that card changes; the row is marked in the log |
 | 7 | Own words | a text or a photo of a page | a preview split into own, moved and left-out words; written after the yes |
 | 8 | A mistake in an entry | "to tłumaczenie jest złe" | the card leaves the queue until the report is withdrawn |

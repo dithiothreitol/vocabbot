@@ -13,6 +13,7 @@ from collections.abc import Callable
 from typing import Annotated, Any, Literal, TypeVar
 
 import anyio.to_thread
+from mcp.server.apps import Apps, ResourceCsp
 from mcp.server.auth.handlers.metadata import MetadataHandler, ProtectedResourceMetadataHandler
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.routes import build_metadata, cors_middleware
@@ -46,7 +47,7 @@ Card = Annotated[
     str, Field(max_length=40, description="a card id from an earlier result, e.g. de-c00042#p")
 ]
 Lang = Annotated[
-    str, Field(pattern=r"^[a-z]{2}$", description="a course language: en, de, es or fr")
+    str, Field(pattern=r"^[a-z]{2}$", description="a course language: en, de, es, fr or it")
 ]
 Settings_ = Annotated[
     list[Annotated[str, Field(max_length=200)]],
@@ -64,6 +65,10 @@ class Answer(BaseModel):
 
 Answers = Annotated[list[Answer], Field(min_length=1, max_length=200)]
 F = TypeVar("F", bound=Callable[..., Any])
+# the card a chat application that supports MCP Apps shows with the session's results
+CARD = "ui://vocabbot/card.html"
+CARD_META: dict[str, Any] = {"ui": {"resourceUri": CARD}, "openai/outputTemplate": CARD}
+RECORDINGS = "https://upload.wikimedia.org"
 
 
 def _account() -> str:
@@ -97,13 +102,14 @@ class Tools:
 
 def register(server: MCPServer, tools: Tools) -> None:
     def tool(
-        name: str, title: str, description: str, annotations: ToolAnnotations
+        name: str, title: str, description: str, annotations: ToolAnnotations, card: bool = False
     ) -> Callable[[F], F]:
         return server.tool(
             name=name,
             title=title,
             description=description,
             annotations=annotations,
+            meta=CARD_META if card else None,
             structured_output=False,
         )
 
@@ -124,8 +130,10 @@ def register(server: MCPServer, tools: Tools) -> None:
         "vocab_today",
         "Plan dnia",
         "The learner's day: reviews due, new words and drill per language, the minutes it"
-        " takes, a day off, and what is left. Writes nothing.",
+        " takes, a day off, what is done and left with the counter line, and the words first"
+        " shown today. Writes nothing.",
         READ,
+        card=True,
     )
     async def vocab_today() -> str:
         return await tools.run(["today"])
@@ -148,6 +156,7 @@ def register(server: MCPServer, tools: Tools) -> None:
         " introduction. `ahead` brings that many reviews of later days, only when the learner"
         " chose to learn ahead. Calling it again returns the same cards until answers come in.",
         READ,
+        card=True,
     )
     async def vocab_next(
         count: Annotated[int | None, Field(ge=1, le=50)] = None,
@@ -167,6 +176,7 @@ def register(server: MCPServer, tools: Tools) -> None:
         " next cards (`next`), so the session needs one call per card. `ahead` is true for"
         " cards with phase ahead.",
         WRITE,
+        card=True,
     )
     async def vocab_answer(answers: Answers, ahead: bool = False, then_next: bool = False) -> str:
         text = "\n".join(
@@ -183,8 +193,10 @@ def register(server: MCPServer, tools: Tools) -> None:
         "Własna ocena",
         "The learner's own grade of a card: known (the learner knew the word before the"
         " course; only at its first showing), or know, almost, dont_know for a recognition"
-        " card after vocab_reveal.",
+        " card after vocab_reveal. After several known words in a row the result may hold"
+        " `level_hint`.",
         WRITE,
+        card=True,
     )
     async def vocab_grade(
         card: Card,
@@ -414,6 +426,17 @@ def build(settings: Settings) -> Starlette:
             "service_documentation_url": settings.url + "/",
         }
     )
+    apps = Apps()
+    apps.add_html_resource(
+        CARD,
+        pages.card(),
+        name="vocabbot-card",
+        title=pages.card_title(),
+        description="The session's card: the counter, the word with its recording, the question.",
+        # the recordings come from Wikimedia Commons; nothing else leaves the frame
+        csp=ResourceCsp(resource_domains=[RECORDINGS]),
+        prefers_border=True,
+    )
     server: MCPServer = MCPServer(
         name="vocabbot",
         title="VocabBot",
@@ -422,6 +445,7 @@ def build(settings: Settings) -> Starlette:
         version=__version__,
         auth_server_provider=provider,
         auth=auth,
+        extensions=[apps],
     )
     register(server, Tools(service, registry))
     sign_in = SignIn(registry, settings)
