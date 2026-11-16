@@ -11,7 +11,10 @@ na GitHubie i w PyPI oraz wdrożyłem na serwer. Etap 10 (etapy sesji jak
 w SuperMemo: wybór etapu, kolejne słowa, kolejne tury powtórek, nowe słowo
 jako pytanie, dwie oceny w utrwalaniu i kolejność powtórek) dodałeś
 16.11.2026; za Twoją zgodą wydałem go jako `v1.0.0-rc.8` na GitHubie
-i w PyPI oraz wdrożyłem na serwer.
+i w PyPI oraz wdrożyłem na serwer. Etap 11 (obsługa karty jak w aplikacji
+SuperMemo: samoocena, tłumaczenie zdania na żądanie, termin powtórki przy
+wyniku, wyłączenie słowa i notatka do słowa) jest propozycją z 16.11.2026
+na jedną sesję pracy i czeka na Twoją akceptację.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1463,6 +1466,146 @@ wydany jako `v1.0.0-rc.8` i wdrożony 16.11.2026, wynik poniżej.
 | wydanie i wdrożenie | za Twoją zgodą z 16.11.2026: tag `v1.0.0-rc.8`, wydanie przedpremierowe na GitHubie z kompletem 9 paczek, `vocabbot 1.0.0rc8` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.8; serwer 1.0.0rc8 pod `https://vocab.archxs.com`, test dymny z krótko ważnym tokenem konta testowego, unieważnionym po teście: 22 narzędzia, karta w pięciu narzędziach (z `vocab_add_today`), zasób karty z CSP i etykietami, licznik w `vocab_today`, nagranie i przykład w `vocab_lookup` |
 | do sprawdzenia | sesja z Twojego konta w Claude i ChatGPT: nowe słowo jako pytanie, hasła „nowe”, „powtórki”, „więcej słów” i „jeszcze powtórki”, karta z trzema etapami; plany kont na serwerze, także konta z pilotażu, mają teraz `new_words=ask` |
 
+### Etap 11 (propozycja). Obsługa karty jak w aplikacji SuperMemo
+
+Etap 11 zaproponowałem 16.11.2026 po Twoim pytaniu o różnice w obsłudze
+(bez algorytmów) między VocabBotem a aplikacją SuperMemo. Zakres obejmuje
+wyłącznie różnice potwierdzone: stan VocabBota sprawdzony w repozytorium,
+stan SuperMemo widoczny na Twoich zrzutach ekranu albo opisany dosłownie
+w FAQ SuperMemo. Etap mieści się w jednej sesji pracy, wymaga Twojej
+akceptacji przed rozpoczęciem i kończy się wersją `1.0.0-rc.9`.
+
+#### Podstawa zakresu
+
+| Różnica | SuperMemo | VocabBot w rc.8 | Pewność |
+|---|---|---|---|
+| samoocena | przycisk „Check” odsłania odpowiedź, potem uczący się wybiera jedną z trzech ocen; pole do wpisania odpowiedzi jest elementem włączanym w ustawieniach kursu | karta produkcji wymaga wpisanego słowa i ocenia ją silnik; własną ocenę mają tylko karty rozpoznawania | zrzuty ekranu, FAQ o konfiguracji kursów Extreme, kod |
+| tłumaczenie zdania | tłumaczenie zdania przykładowego otwiera ikona pod zdaniem | pytanie pokazuje tłumaczenie od razu | zrzuty ekranu, przewodnik sesji |
+| termin następnej powtórki | przełącznik „Show the number of days until the next repetition” | terminal pokazuje termin przy każdej odpowiedzi, czat podaje go na prośbę | FAQ, kod |
+| wyłączenie słowa | „Disable repetitions” i „Enable repetitions” dla karty | słowo opuszcza kolejkę tylko przez zgłoszenie błędu w haśle | FAQ, kod |
+| notatka do słowa | ikona edycji na karcie (jej działania nie sprawdziłem) | skojarzenia od trenera żyją tylko w rozmowie; folder nauki nie ma notatek | kod; po stronie SuperMemo sama obecność ikony |
+
+#### Zakres
+
+1. **Samoocena obok pisania.** Ustawienie planu `answer_mode` przyjmuje
+   `type` (wartość domyślna, obecne zachowanie) albo `self`.
+   - Silnik: w trybie `self` polecenie `reveal` przyjmuje kartę produkcji
+     z dzisiejszej listy, a `grade` przyjmuje dla niej `know`, `almost`
+     i `dont_know`. W trybie `type` oba polecenia odmawiają jak dotąd,
+     z komunikatem wskazującym ustawienie. Wpisana odpowiedź zachowuje
+     ocenę silnika w obu trybach. Wiersz dziennika z własną oceną nie ma
+     pola `auto`, tak jak wiersze kart rozpoznawania.
+   - Reguły wspólne z rc.8 obowiązują bez zmian: pierwsza ocena „wiem”
+     nowego słowa daje `known`, utrwalanie ma dwie oceny.
+   - Czat: hasło „pokaż” albo „sprawdź” wywołuje `vocab_reveal`, wiadomość
+     pokazuje słowo w całości i pyta o ocenę, a odpowiedź uczącego się
+     trafia do `vocab_grade` z `then_next`. Model przekazuje ocenę dokładnie
+     tak, jak ją podał uczący się, i sam żadnej nie proponuje (reguła
+     `03-engine-grades`).
+   - Terminal: w trybie `self` pusty Enter pokazuje odpowiedź i prosi o ocenę
+     klawiszami 1, 2, 3; wpisane słowo ocenia silnik. W trybie `type` pusty
+     Enter oznacza „nie wiem” jak dotąd.
+   - Karta w oknie czatu: wynik `vocab_reveal` pokazuje słowo z nagraniem
+     i wiersz z trzema ocenami do wpisania.
+2. **Tłumaczenie zdania na żądanie.** Ustawienie planu
+   `sentence_translation` przyjmuje `shown` (wartość domyślna) albo `hidden`.
+   - Silnik zwraca `sentence_pl` jak dotąd, a `today` podaje ustawienie.
+   - Karta: przy `hidden` tłumaczenie otwiera przycisk pod zdaniem, bez
+     udziału modelu i serwera.
+   - Czat: przy `hidden` pytanie pomija tłumaczenie, a hasło „tłumaczenie”
+     dopisuje je z danych, które model już ma.
+   - Terminal: przy `hidden` polecenie `/t` pokazuje tłumaczenie.
+   - Wartość domyślna zostaje `shown`, ponieważ w czacie prośba
+     o tłumaczenie kosztuje dodatkową turę modelu. Zmiana wartości domyślnej
+     na `hidden` jest Twoją decyzją przy akceptacji etapu.
+3. **Termin następnej powtórki przy wyniku.** Ustawienie planu `next_review`
+   przyjmuje `shown` (wartość domyślna) albo `hidden`.
+   - Silnik dodaje do wyniku odpowiedzi pole `back` z gotowym tekstem
+     („wróci jutro”, „wróci za 4 dni”, „wróci dziś w utrwalaniu”). Teksty
+     przechodzą z sekcji terminala do wspólnej sekcji `pl.json`, więc czat,
+     karta i terminal pokazują to samo.
+   - Czat i karta kończą wiersz wyniku tekstem `back`.
+4. **Wyłączenie słowa.** Polecenie `flag --card ID --skip` odkłada słowo bez
+   zgłaszania błędu, a `flag --card ID --clear` je przywraca.
+   - Silnik: wiersz w `log/flags.jsonl` dostaje znacznik `skip`; słowo
+     opuszcza kolejkę, utrwalanie i wybór nowych słów tak jak słowo
+     zgłoszone. `status` podaje listę `skipped` osobno od zgłoszeń.
+   - Serwer: `vocab_flag` dostaje parametr `skip`.
+   - Czat: hasła „nie chcę tego słowa” i „pomiń to słowo” odkładają słowo,
+     „przywróć słowo …” je przywraca (kartę znajduje `vocab_lookup`).
+   - Terminal: polecenie `/pomin` przy odpowiedzi.
+5. **Notatka do słowa.** Polecenie `note --card ID --stdin` zapisuje własną
+   notatkę uczącego się (do 500 znaków), a `note --card ID --clear` ją usuwa.
+   - Silnik: plik `log/notes.jsonl` tylko rośnie i obowiązuje ostatni wiersz
+     dla hasła. Notatka wraca jako `word.note` w wyniku odpowiedzi,
+     w `reveal` i w `lookup`. Pytanie nigdy jej nie zawiera, ponieważ
+     notatka może zdradzać odpowiedź.
+   - Serwer: nowe narzędzie `vocab_note` (23 narzędzia zamiast 22).
+   - Czat: hasło „zapisz notatkę: …” zapisuje tekst uczącego się. Trener po
+     podaniu skojarzenia proponuje jego zapis i zapisuje je wyłącznie po
+     odpowiedzi „tak”.
+   - Terminal: polecenie `/notatka tekst` zapisuje notatkę do poprzedniej
+     karty.
+   - `doctor --merge` scala kopie konfliktowe pliku notatek tak jak
+     dziennik, a `PRIVACY` wymienia notatki wśród danych w folderze nauki.
+
+#### Pliki
+
+| Warstwa | Pliki |
+|---|---|
+| silnik | `store.py` (ustawienia planu, plik notatek, znacznik `skip`), `session.py` (`reveal`, `self_grade`, pole `back`, notatka w wynikach), `plans.py`, `progress.py` (`skipped` w `status`), `doctor.py`, `cli.py` (`note`, `flag --skip`), `data/i18n/pl.json` |
+| terminal | `drill.py` (pusty Enter w trybie `self`, `/t`, `/pomin`, `/notatka`) |
+| serwer | `server/app.py` (`vocab_note`, `vocab_flag` ze `skip`, karta przy `vocab_reveal`), `server/static/card.html`, `server/guides/session.md`, `coach.md`, `start.md`, `rules.md` |
+| wtyczka | `rules/02-answer-after-grade.md`, `rules/03-engine-grades.md`, `vocab-session` (`SKILL.md`, `reference/`), `vocab-coach`, `vocab-start/reference/plan-keys.md`, pliki generowane przez `scripts/build.py skills` |
+| dokumenty | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/PRIVACY`, `CHANGELOG`, ten plan; każdy dokument po angielsku i po polsku |
+| testy | `tests/test_engine.py`, `test_cli.py`, `test_drill.py`, `test_server.py`, sesja `sessions/session-self-assessment.json` dla `session_test.py --check` |
+
+#### Kolejność pracy w sesji
+
+1. Silnik i polecenia dla pięciu punktów, z testami każdego punktu.
+2. Terminal.
+3. Serwer, karta, przewodniki, reguły i umiejętności; `build.py skills`
+   i walidacje.
+4. Symulacja przez polecenia na pełnych kursach oraz podgląd karty w hoście
+   testowym w motywie jasnym i ciemnym.
+5. Dokumenty, plan, pamięć projektu i lokalny commit.
+6. Za Twoją osobną zgodą: symulacja z modelem, wydanie `v1.0.0-rc.9`
+   i wdrożenie.
+
+#### Kryteria ukończenia
+
+| Kryterium | Sprawdzenie |
+|---|---|
+| tryb `type` zachowuje obecne gwarancje | testy odmów `reveal_production` i `production_needs_answer`; test sesyjny kontroli przecieku odpowiedzi bez zmian |
+| tryb `self` zapisuje ocenę uczącego się | test: `reveal`, potem `grade`, wiersz bez pola `auto`, termin jak dla tej samej oceny silnika |
+| odpowiedź pojawia się tylko po ocenie albo po `reveal` | symulacja: żadne `next` nie zawiera słowa ani notatki |
+| słowo odłożone i przywrócone | test: karta opuszcza kolejkę i utrwalanie, `status` ją wymienia, `--clear` przywraca ją z dotychczasowym terminem |
+| notatka | test: zapis, zmiana, usunięcie, obecność w wyniku i w `lookup`, brak w pytaniu, scalenie kopii konfliktowej |
+| pole `back` | test: te same teksty w wyniku polecenia, w terminalu i w karcie |
+| kontrole repozytorium | `ruff`, `mypy`, `pytest` na Pythonie 3.15 i 3.10, `validate.py`, `session_test.py --check`, `claude plugin validate --strict` |
+
+#### Koszty i decyzje
+
+| Pozycja | Koszt | Zgoda |
+|---|---|---|
+| implementacja, testy, symulacja przez polecenia | brak kosztów modeli | akceptacja etapu |
+| symulacja sesji z modelem przez lokalny serwer | szacunkowo 1–2 USD (Sonnet w Claude Code, limit 2 USD) | osobna |
+| push, tag, wydanie na GitHubie, PyPI, wdrożenie | brak | osobna dla każdej czynności |
+
+Decyzje przy akceptacji: wartość domyślna `sentence_translation` (`shown`
+według propozycji) oraz wartość domyślna `answer_mode` (`type` według
+propozycji).
+
+#### Poza zakresem do czasu prób
+
+| Temat | Brakujące potwierdzenie |
+|---|---|
+| interaktywna karta (pole odpowiedzi i przyciski wołające serwer bez modelu) | Twoje sprawdzenie, że obecna karta wyświetla się w Claude i ChatGPT na komputerze i na telefonie; próba, czy te aplikacje pozwalają karcie wołać narzędzia serwera |
+| drugie zdanie, kolokacje, nagrania zdań | policzenie pokrycia w źródłach (Wikisłownik, Tatoeba) i licencji nagrań; wycena przebiegu modelu przed uruchomieniem |
+| obrazy przy hasłach | próba trafności doboru na próbce haseł |
+| podsumowanie tygodnia i kalendarz powtórek jako ekrany | wygląd tych ekranów w aplikacji SuperMemo znam tylko z opisów |
+| własna strona sesji pod `vocab.archxs.com` | wynik prób karty; osobny, większy etap |
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -1520,6 +1663,7 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 8, zdania przykładowe z modelu dla 10 738 haseł | 8,32 USD przy Claude Sonnet 5.5 (próbka 0,09 USD, limit 12 USD) | zatwierdzony 16.11.2026 po próbce |
 | Etap 8, symulacje sesji z modelem przez lokalny serwer | 2,86 USD (9 i 6 tur, model Sonnet w Claude Code) | w ramach polecenia z 16.11.2026 |
 | Etap 10, symulacja sesji z modelem przez lokalny serwer | 1,79 USD (10 tur, model Sonnet w Claude Code; szacunek 1–2 USD) | zatwierdzona 16.11.2026 |
+| Etap 11, symulacja sesji z modelem przez lokalny serwer | szacunkowo 1–2 USD (limit 2 USD) | osobna |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie

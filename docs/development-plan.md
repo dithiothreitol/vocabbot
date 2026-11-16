@@ -15,7 +15,11 @@ deployed them on the server. You added Stage 10 (the session's stages as in
 SuperMemo: the choice of stage, more words, more rounds of reviews, a new
 word as a question, two grades in the drill and the order of reviews) on
 16.11.2026; with your approval I released it as `v1.0.0-rc.8` on GitHub and
-PyPI and deployed it on the server. The engine, the `vocabbot` program with its new terminal session,
+PyPI and deployed it on the server. Stage 11 (handling a card as in the
+SuperMemo application: self-assessment, the sentence's translation on
+request, the review date with the result, switching a word off and a note
+for a word) is a proposal of 16.11.2026 for one working session and awaits
+your acceptance. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1482,6 +1486,151 @@ out, released as `v1.0.0-rc.8` and deployed on 16.11.2026, result below.
 | release and deployment | with your approval of 16.11.2026: the tag `v1.0.0-rc.8`, a pre-release on GitHub with all 9 packages, `vocabbot 1.0.0rc8` on PyPI through trusted publishing with sums matching GitHub, CI green, the plugin in your Codex refreshed to rc.8; server 1.0.0rc8 at `https://vocab.archxs.com`, a smoke test with a short-lived token of the test account, revoked after the test: 22 tools, the card on five tools (with `vocab_add_today`), the card resource with its CSP and labels, the counter in `vocab_today`, a recording and an example in `vocab_lookup` |
 | to check | a session from your account in Claude and ChatGPT: a new word as a question, the words "nowe", "powtórki", "więcej słów" and "jeszcze powtórki", the card with three stages; the plans of the accounts on the server, the pilot's account too, now have `new_words=ask` |
 
+### Stage 11 (proposal). Handling a card as in the SuperMemo application
+
+I proposed Stage 11 on 16.11.2026 after your question about the differences
+in handling (apart from the algorithms) between VocabBot and the SuperMemo
+application. The scope holds only confirmed differences: the state of
+VocabBot checked in the repository, the state of SuperMemo seen on your
+screenshots or described literally in the SuperMemo FAQ. The stage fits one
+working session, needs your approval before it starts and ends with version
+`1.0.0-rc.9`.
+
+#### Basis of the scope
+
+| Difference | SuperMemo | VocabBot in rc.8 | Certainty |
+|---|---|---|---|
+| self-assessment | the "Check" button shows the answer, then the learner picks one of three grades; the input field for answers is an element switched on in the course settings | a production card needs a typed word and the engine grades it; only recognition cards take the learner's own grade | screenshots, the FAQ on the configuration of the Extreme courses, the code |
+| the sentence's translation | an icon under the example sentence opens its translation | a question shows the translation at once | screenshots, the session guide |
+| the next review date | the switch "Show the number of days until the next repetition" | the terminal shows the date with every answer, the chat gives it on request | FAQ, the code |
+| switching a word off | "Disable repetitions" and "Enable repetitions" for a card | a word leaves the queue only through a report of a mistake in the entry | FAQ, the code |
+| a note for a word | an edit icon on the card (I have not checked what it does) | the coach's mnemonics live only in the conversation; the learner's folder has no notes | the code; on SuperMemo's side only the presence of the icon |
+
+#### Scope
+
+1. **Self-assessment beside typing.** The plan setting `answer_mode` takes
+   `type` (the default, today's behaviour) or `self`.
+   - The engine: in the mode `self` the command `reveal` accepts a production
+     card of today's list, and `grade` accepts `know`, `almost` and
+     `dont_know` for it. In the mode `type` both commands refuse as before,
+     with a message that names the setting. A typed answer keeps the
+     engine's grade in both modes. A log row with the learner's own grade
+     has no `auto` field, like the rows of recognition cards.
+   - The common rules of rc.8 hold unchanged: a first grade "wiem" of a new
+     word gives `known`, the drill has two grades.
+   - The chat: "pokaż" or "sprawdź" calls `vocab_reveal`, the message shows
+     the word in full and asks for the grade, and the learner's reply goes to
+     `vocab_grade` with `then_next`. The model passes the grade exactly as
+     the learner gave it and proposes none itself (the rule
+     `03-engine-grades`).
+   - The terminal: in the mode `self` an empty Enter shows the answer and
+     asks for the grade with the keys 1, 2, 3; a typed word is graded by the
+     engine. In the mode `type` an empty Enter means "nie wiem" as before.
+   - The card in the chat window: the result of `vocab_reveal` shows the
+     word with its recording and a line with the three grades to type.
+2. **The sentence's translation on request.** The plan setting
+   `sentence_translation` takes `shown` (the default) or `hidden`.
+   - The engine returns `sentence_pl` as before, and `today` names the
+     setting.
+   - The card: with `hidden` a button under the sentence opens the
+     translation, without the model and the server.
+   - The chat: with `hidden` a question leaves the translation out, and
+     "tłumaczenie" adds it from the data the model already holds.
+   - The terminal: with `hidden` the command `/t` shows the translation.
+   - The default stays `shown`, since in the chat a request for the
+     translation costs one more turn of the model. A change of the default
+     to `hidden` is your decision when you accept the stage.
+3. **The next review date with the result.** The plan setting `next_review`
+   takes `shown` (the default) or `hidden`.
+   - The engine adds the field `back` to the result of an answer, with a
+     ready text ("wróci jutro", "wróci za 4 dni", "wróci dziś
+     w utrwalaniu"). The texts move from the terminal's section to a common
+     section of `pl.json`, so the chat, the card and the terminal show the
+     same.
+   - The chat and the card end the result line with `back`.
+4. **Switching a word off.** The command `flag --card ID --skip` puts a word
+   aside without reporting a mistake, and `flag --card ID --clear` brings it
+   back.
+   - The engine: the row in `log/flags.jsonl` gets the mark `skip`; the word
+     leaves the queue, the drill and the choice of new words as a reported
+     word does. `status` gives the list `skipped` apart from the reports.
+   - The server: `vocab_flag` gets the parameter `skip`.
+   - The chat: "nie chcę tego słowa" and "pomiń to słowo" put the word
+     aside, "przywróć słowo …" brings it back (`vocab_lookup` finds the
+     card).
+   - The terminal: the command `/pomin` at the answer prompt.
+5. **A note for a word.** The command `note --card ID --stdin` saves the
+   learner's own note (up to 500 characters), and `note --card ID --clear`
+   removes it.
+   - The engine: the file `log/notes.jsonl` only grows and the last row of
+     an entry holds. The note comes back as `word.note` in the result of an
+     answer, in `reveal` and in `lookup`. A question never holds it, since a
+     note may give the answer away.
+   - The server: a new tool `vocab_note` (23 tools instead of 22).
+   - The chat: "zapisz notatkę: …" saves the learner's text. After a
+     mnemonic the coach offers to save it and saves it only after "tak".
+   - The terminal: the command `/notatka text` saves a note for the previous
+     card.
+   - `doctor --merge` joins conflict copies of the notes file as it does
+     for the log, and `PRIVACY` names the notes among the data in the
+     learner's folder.
+
+#### Files
+
+| Layer | Files |
+|---|---|
+| engine | `store.py` (plan settings, the notes file, the mark `skip`), `session.py` (`reveal`, `self_grade`, the field `back`, the note in results), `plans.py`, `progress.py` (`skipped` in `status`), `doctor.py`, `cli.py` (`note`, `flag --skip`), `data/i18n/pl.json` |
+| terminal | `drill.py` (an empty Enter in the mode `self`, `/t`, `/pomin`, `/notatka`) |
+| server | `server/app.py` (`vocab_note`, `vocab_flag` with `skip`, the card with `vocab_reveal`), `server/static/card.html`, `server/guides/session.md`, `coach.md`, `start.md`, `rules.md` |
+| plugin | `rules/02-answer-after-grade.md`, `rules/03-engine-grades.md`, `vocab-session` (`SKILL.md`, `reference/`), `vocab-coach`, `vocab-start/reference/plan-keys.md`, the files generated by `scripts/build.py skills` |
+| documents | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/PRIVACY`, `CHANGELOG`, this plan; every document in English and in Polish |
+| tests | `tests/test_engine.py`, `test_cli.py`, `test_drill.py`, `test_server.py`, the session `sessions/session-self-assessment.json` for `session_test.py --check` |
+
+#### Order of work in the session
+
+1. The engine and the commands for the five points, with tests of each.
+2. The terminal.
+3. The server, the card, the guides, the rules and the skills;
+   `build.py skills` and the validations.
+4. A simulation through the commands on the full courses, and a preview of
+   the card in the test host in the light and the dark theme.
+5. The documents, the plan, the project memory and a local commit.
+6. With your separate approval: a simulation with a model, the release
+   `v1.0.0-rc.9` and the deployment.
+
+#### Completion criteria
+
+| Criterion | Check |
+|---|---|
+| the mode `type` keeps today's guarantees | tests of the refusals `reveal_production` and `production_needs_answer`; the session test of the answer leak unchanged |
+| the mode `self` saves the learner's grade | a test: `reveal`, then `grade`, a row without `auto`, the date as for the same grade of the engine |
+| an answer appears only after a grade or after `reveal` | the simulation: no `next` holds a word or a note |
+| a word put aside and brought back | a test: the card leaves the queue and the drill, `status` lists it, `--clear` brings it back with its date |
+| a note | a test: saving, changing, removing, present in the result and in `lookup`, absent from the question, a conflict copy joined |
+| the field `back` | a test: the same texts in the command's result, in the terminal and in the card |
+| checks of the repository | `ruff`, `mypy`, `pytest` on Python 3.15 and 3.10, `validate.py`, `session_test.py --check`, `claude plugin validate --strict` |
+
+#### Costs and decisions
+
+| Item | Cost | Approval |
+|---|---|---|
+| implementation, tests, the simulation through the commands | no model costs | acceptance of the stage |
+| a simulation of the session with a model through a local server | an estimate of 1–2 USD (Sonnet in Claude Code, a limit of 2 USD) | separate |
+| push, tag, release on GitHub, PyPI, deployment | none | separate for every step |
+
+Decisions at acceptance: the default of `sentence_translation` (`shown` as
+proposed) and the default of `answer_mode` (`type` as proposed).
+
+#### Out of scope until trials
+
+| Topic | Confirmation missing |
+|---|---|
+| an interactive card (an answer field and buttons that call the server without the model) | your check that today's card shows in Claude and ChatGPT on a computer and on a phone; a trial whether these applications let a card call the server's tools |
+| a second sentence, collocations, recordings of sentences | a count of the coverage in the sources (Wiktionary, Tatoeba) and of the recordings' licences; an estimate of a model run before it starts |
+| images with the entries | a trial of how well images match on a sample of entries |
+| a week's summary and a calendar of reviews as screens | I know these screens of the SuperMemo application only from descriptions |
+| an own session page at `vocab.archxs.com` | the result of the card trials; a separate, larger stage |
+
 ---
 
 ## 11. Completeness check
@@ -1539,6 +1688,7 @@ of words confused between languages, own words from any text.
 | Stage 8, example sentences from the model for 10,738 entries | 8.32 USD with Claude Sonnet 5.5 (sample 0.09 USD, limit 12 USD) | approved on 16.11.2026 after the sample |
 | Stage 8, simulated sessions with the model through a local server | 2.86 USD (9 and 6 turns, the Sonnet model in Claude Code) | within the request of 16.11.2026 |
 | Stage 10, a simulation of the session with a model through a local server | 1.79 USD (10 turns, the Sonnet model in Claude Code; estimate 1–2 USD) | approved 16.11.2026 |
+| Stage 11, a simulation of the session with a model through a local server | an estimate of 1–2 USD (a limit of 2 USD) | separate |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub
