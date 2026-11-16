@@ -6,8 +6,8 @@ Stan: 2026-11-16, po Etapie 7 (wersja 1.0.0-rc.6, w pakiecie Pythona
 1.0.0rc6). Plan zaakceptowałeś 14.11.2026, a Etapy 4, 5, 6 i 7 dodałeś
 15.11.2026. Etap 7 dał kurs włoski i sesję po jednej karcie. Etapy 8 i 9
 (uwagi z pilotażu: wymowa, przykłady, licznik, ChatGPT oraz karta w oknie
-czatu) zrealizowałem 16.11.2026; ich wydanie jako rc.7 i wdrożenie czekają na
-Twoją zgodę.
+czatu) zrealizowałem 16.11.2026 i za Twoją zgodą wydałem jako `v1.0.0-rc.7`
+na GitHubie i w PyPI oraz wdrożyłem na serwer.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1357,6 +1357,7 @@ z modelem zatwierdziłeś z limitem 12 USD po wycenie z próbki.
 | symulacja z modelem | 9 tur Claude Code (model Sonnet) przez lokalny serwer z kontem syntetycznym, 1,84 USD: licznik w każdej wiadomości, nowe słowo z IPA i odnośnikiem do nagrania, podpowiedź poziomu raz, zmiana poziomów przez podgląd i „tak”, podsumowanie z listą słów dnia; w wyniku „nie wiem” model pominął odnośnik do nagrania, więc przykłady wyników w przewodniku i umiejętności pokazują go wprost; druga sesja po poprawkach z przeglądu kodu (6 tur, 1,02 USD) potwierdziła licznik 10/25 po zmianie poziomów, jedną podpowiedź poziomu bez przerwy w sesji i odnośnik do nagrania w wyniku „nie wiem” |
 | przegląd kodu | 15 potwierdzonych usterek, wszystkie poprawione: ponowny wybór nowych słów na zużytych generatorach i przestawianie przydziału między językami (zastąpione z góry policzonymi miejscami słów spoza planu w ich języku), lista słów dnia z odpowiedziami kart czekających w utrwalaniu, podpowiedź poziomu powtarzana lub nieobecna po wpisanej odpowiedzi (teraz najwyżej raz dziennie dla bieżących poziomów), licznik bez powtórek przed terminem, zgłoszona karta w utrwalaniu, odtwarzanie poprzedniego słowa przez syntezę w karcie, głos innej odmiany języka, powtórne zebranie partii i zdania przypisane do zmienionego hasła, ucięta lista Lingua Libre przy błędzie API, nagranie czasownika bez zaimka zwrotnego, kopia reguł w przewodniku serwera, zbędne przeliczenia dnia w terminalu; po poprawkach 139 haseł straciło błędne nagranie |
 | testy | 248 na Pythonie 3.15 i 220 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 z 7), `claude plugin validate --strict` i kontrola kursów bez uwag |
+| wydanie | za Twoją zgodą z 16.11.2026: tag `v1.0.0-rc.7`, wydanie przedpremierowe na GitHubie z kompletem paczek, `vocabbot 1.0.0rc7` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.7 |
 | koszt | 8,32 USD za zdania (próbka 0,09, generowanie 4,82, przegląd 3,14, poprawka 0,27) z limitu 12 USD oraz 2,86 USD za dwie symulacje z modelem |
 
 Wnioski:
@@ -1390,7 +1391,8 @@ polecenie, wynik poniżej.
 | karta | `server/static/card.html` bez zależności zewnętrznych: `ui/initialize`, `tool-result`, zgłaszanie rozmiaru, motyw i zmienne gospodarza; etykiety z `pl.json`; obramowanie rysuje gospodarz (`prefersBorder`); pytanie nie pokazuje ani nie odtwarza słowa |
 | dźwięk | przycisk odtwarza MP3 z `upload.wikimedia.org`, jedynej domeny w CSP karty; słowa i zdania bez nagrania odczytuje synteza mowy przeglądarki, oznaczona przerywaną obwódką przycisku |
 | próba | host testowy w Edge z prawdziwymi wynikami narzędzi: karta przechodzi handshake i pokazuje nowe słowo, wynik z utrwalaniem i podsumowanie dnia w motywie jasnym i ciemnym, bez błędów JavaScriptu; test serwera sprawdza metadane narzędzi, zasób i CSP |
-| do sprawdzenia po wdrożeniu | wyświetlanie karty w Claude i ChatGPT na komputerze i na telefonie, bo te aplikacje łączą się tylko z serwerem publicznym |
+| wdrożenie | serwer 1.0.0rc7 pod `https://vocab.archxs.com` od 16.11.2026; test dymny z krótko ważnym tokenem konta testowego, unieważnionym po teście: 22 narzędzia, karta w czterech narzędziach, zasób karty z CSP i etykietami, licznik w `vocab_today`, nagranie i przykład w `vocab_lookup` |
+| do sprawdzenia | wyświetlanie karty w Claude i ChatGPT na komputerze i na telefonie z Twojego konta |
 
 ---
 

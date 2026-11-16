@@ -10,7 +10,8 @@ package). You accepted the plan on 14.11.2026 and added Stages 4, 5, 6 and 7 on
 15.11.2026. Stage 7 gave the Italian course and the session one card at a
 time. I carried out Stages 8 and 9 (pilot feedback: pronunciation,
 examples, a counter, ChatGPT and a card in the chat window) on 16.11.2026;
-their release as rc.7 and the deployment await your approval. The engine, the `vocabbot` program with its new terminal session,
+with your approval I released them as `v1.0.0-rc.7` on GitHub and PyPI and
+deployed them on the server. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1373,6 +1374,7 @@ the estimate from the sample.
 | simulation with a model | 9 turns of Claude Code (the Sonnet model) through a local server with a synthetic account, 1.84 USD: the counter in every message, a new word with its IPA and recording link, the level hint once, the change of the levels through a preview and "tak", the summary with the day's words; in the result "nie wiem" the model left out the recording link, so the result examples of the guide and the skill now show it; a second session after the fixes of the code review (6 turns, 1.02 USD) confirmed the counter of 10/25 after the change of the levels, one level hint without a break in the session and the recording link in the result "nie wiem" |
 | code review | 15 confirmed faults, all fixed: a second choice of new words on spent generators that also moved shares between languages (replaced by places counted beforehand for the words outside the plan, in their language), the day's list with the answers of cards waiting in the drill, a level hint repeated or missing after a typed answer (now at most once a day for the present levels), a counter without reviews ahead, a reported card in the drill, the card's speech of the previous word, a voice of another variety, a batch collected twice and sentences kept for a changed entry, a Lingua Libre listing cut by an API error, a reflexive verb's recording without its pronoun, the copy of the rules in the server's guide, needless recounts of the day in the terminal; after the fixes 139 entries lost a wrong recording |
 | tests | 248 on Python 3.15 and 220 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 of 7), `claude plugin validate --strict` and the course check without remarks |
+| release | with your approval of 16.11.2026: the tag `v1.0.0-rc.7`, a pre-release on GitHub with every package, `vocabbot 1.0.0rc7` on PyPI through trusted publishing with sums matching GitHub, CI green, the plugin in your Codex refreshed to rc.7 |
 | cost | 8.32 USD for the sentences (sample 0.09, writing 4.82, review 3.14, retry 0.27) of the 12 USD limit, and 2.86 USD for two simulations with the model |
 
 Conclusions:
@@ -1408,7 +1410,8 @@ your request, the result below.
 | the card | `server/static/card.html` without outside dependencies: `ui/initialize`, `tool-result`, the size reports, the host's theme and variables; the labels from `pl.json`; the host draws the border (`prefersBorder`); a question neither shows nor plays its word |
 | sound | the button plays the MP3 from `upload.wikimedia.org`, the only domain in the card's CSP; the browser's speech synthesis reads the words and sentences without a recording, marked by a dashed outline of the button |
 | trial | a test host in Edge with real tool results: the card completes the handshake and shows a new word, a result with the drill and the day's summary in the light and dark theme, without JavaScript errors; the server test checks the tools' metadata, the resource and the CSP |
-| to check after the deployment | the card in Claude and ChatGPT on a computer and on a phone, since these applications connect only to a public server |
+| deployment | server 1.0.0rc7 at `https://vocab.archxs.com` since 16.11.2026; a smoke test with a short-lived token of the test account, revoked after the test: 22 tools, the card on four tools, the card resource with its CSP and labels, the counter in `vocab_today`, a recording and an example in `vocab_lookup` |
+| to check | the card in Claude and ChatGPT on a computer and on a phone from your account |
 
 ---
 
