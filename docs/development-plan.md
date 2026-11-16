@@ -20,7 +20,9 @@ SuperMemo application: self-assessment, the sentence's translation on
 request, the review date with the result, switching a word off and a note
 for a word) you accepted, and I carried it out on 16.11.2026; with your
 approval I released it as `v1.0.0-rc.9` on GitHub and PyPI and deployed it
-on the server. The engine, the `vocabbot` program with its new terminal session,
+on the server. At your suggestion self-assessment and the translation on
+request are the defaults since the same day in the local repository; their
+release awaits your approval. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1643,6 +1645,22 @@ proposed) and the default of `answer_mode` (`type` as proposed).
 | simulation with a model | a local server and Claude Code with the Sonnet model, a plan with `answer_mode=self` and `sentence_translation=hidden`, 8 turns for 1.32 USD (a limit of 2 USD): a question without its translation and with the hint "pokaż", "tłumaczenie" given from the same result without a tool call, "pokaż" (`vocab_reveal`) with the full answer and the question about the grade, "prawie" passed as given to `vocab_grade` (a row without `auto`) with "wróci dziś w utrwalaniu", a note through `vocab_note`, a typed answer through `vocab_answer` with "wróci za 2 dni", "nie chcę tego słowa" (`vocab_flag` with `skip`) without showing the answer, and the word brought back named by its Polish meaning; the one fault: after bringing the word back the model showed the counter from before the change, since the result of `vocab_flag` had no counter; the result of `flag` now holds the day's counter after the change |
 | release and deployment | with your approval of 16.11.2026: the tag `v1.0.0-rc.9`, a pre-release on GitHub with all 9 packages, `vocabbot 1.0.0rc9` on PyPI through trusted publishing with sums matching GitHub, CI green, the plugin in your Codex refreshed to rc.9; server 1.0.0rc9 at `https://vocab.archxs.com`, a read-only smoke test with a short-lived token of the test account, revoked after the test: 23 tools with `vocab_note`, the card on six tools (with `vocab_reveal`), `view` in `vocab_today`, the refusal `reveal_production` with `answer_mode=type`, a recording and an example in `vocab_lookup` |
 | to check | a session from your account in Claude and ChatGPT after changing the plan to `answer_mode=self` and `sentence_translation=hidden`: "pokaż", the "Tłumaczenie" button in the card, "nie chcę tego słowa", "zapisz notatkę: …" |
+
+#### A change of the defaults (16.11.2026, at your suggestion)
+
+After the release of rc.9 you suggested turning the new possibilities on by
+default. The defaults are now `answer_mode=self` and
+`sentence_translation=hidden`, as in the SuperMemo course of your screenshot,
+which has the "Check" button and three grades without an input field. Typing
+stays, and the engine still grades a typed word. "pokaż" takes two messages
+a card in a text chat instead of one, and a request for the translation one
+message more; the card in the chat window shows the translation with a button
+without the model. At the start of a session the model names "pokaż" and
+"tłumaczenie", since nothing else tells about them in a text chat. A plan
+saved before rc.9 gets the new defaults; on the server this covers both
+accounts, since no plan saved these settings under rc.9. The tests that
+assume typing now set it explicitly, and the tests of the default plan check
+the new behaviour.
 
 #### Out of scope until trials
 

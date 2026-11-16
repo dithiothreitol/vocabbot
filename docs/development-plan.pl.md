@@ -15,7 +15,9 @@ i w PyPI oraz wdrożyłem na serwer. Etap 11 (obsługa karty jak w aplikacji
 SuperMemo: samoocena, tłumaczenie zdania na żądanie, termin powtórki przy
 wyniku, wyłączenie słowa i notatka do słowa) zaakceptowałeś i zrealizowałem
 16.11.2026, a za Twoją zgodą wydałem go jako `v1.0.0-rc.9` na GitHubie
-i w PyPI oraz wdrożyłem na serwer.
+i w PyPI oraz wdrożyłem na serwer. Na Twoją propozycję samoocena
+i tłumaczenie na żądanie są od tego samego dnia wartościami domyślnymi
+w repozytorium lokalnym; ich wydanie czeka na Twoją zgodę.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1619,6 +1621,21 @@ propozycji).
 | symulacja z modelem | lokalny serwer i Claude Code z modelem Sonnet, plan z `answer_mode=self` i `sentence_translation=hidden`, 8 tur za 1,32 USD (limit 2 USD): pytanie bez tłumaczenia z podpowiedzią „pokaż”, „tłumaczenie” podane z tego samego wyniku bez wywołania narzędzia, „pokaż” (`vocab_reveal`) z pełną odpowiedzią i pytaniem o ocenę, „prawie” przekazane dosłownie do `vocab_grade` (wiersz bez `auto`) z terminem „wróci dziś w utrwalaniu”, notatka przez `vocab_note`, wpisana odpowiedź przez `vocab_answer` z terminem „wróci za 2 dni”, „nie chcę tego słowa” (`vocab_flag` ze `skip`) bez pokazania odpowiedzi i przywrócenie słowa nazwanego polskim znaczeniem; jedyna usterka: po przywróceniu słowa model pokazał licznik sprzed zmiany, ponieważ wynik `vocab_flag` nie miał licznika; wynik `flag` zawiera teraz licznik dnia po zmianie |
 | wydanie i wdrożenie | za Twoją zgodą z 16.11.2026: tag `v1.0.0-rc.9`, wydanie przedpremierowe na GitHubie z kompletem 9 paczek, `vocabbot 1.0.0rc9` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.9; serwer 1.0.0rc9 pod `https://vocab.archxs.com`, test dymny tylko do odczytu z krótko ważnym tokenem konta testowego, unieważnionym po teście: 23 narzędzia z `vocab_note`, karta w sześciu narzędziach (z `vocab_reveal`), `view` w `vocab_today`, odmowa `reveal_production` przy `answer_mode=type`, nagranie i przykład w `vocab_lookup` |
 | do sprawdzenia | sesja z Twojego konta w Claude i ChatGPT po zmianie planu na `answer_mode=self` i `sentence_translation=hidden`: „pokaż”, przycisk „Tłumaczenie” w karcie, „nie chcę tego słowa”, „zapisz notatkę: …” |
+
+#### Zmiana wartości domyślnych (16.11.2026, na Twoją propozycję)
+
+Po wydaniu rc.9 zaproponowałeś włączenie nowych możliwości domyślnie.
+Domyślne są teraz `answer_mode=self` i `sentence_translation=hidden`, tak jak
+w kursie SuperMemo z Twojego zrzutu ekranu, który ma przycisk „Check” i trzy
+oceny bez pola do wpisywania. Wpisywanie zostaje, a wpisane słowo nadal
+ocenia silnik. Hasło „pokaż” kosztuje w czacie tekstowym dwie wiadomości na
+kartę zamiast jednej, a prośba o tłumaczenie jedną wiadomość więcej; karta
+w oknie czatu pokazuje tłumaczenie przyciskiem bez udziału modelu. Na starcie
+sesji model wymienia hasła „pokaż” i „tłumaczenie”, ponieważ w czacie
+tekstowym nic innego o nich nie informuje. Plan zapisany przed rc.9 dostaje
+nowe wartości domyślne; na serwerze dotyczy to obu kont, ponieważ żaden plan
+nie zapisał tych ustawień pod rc.9. Testy zakładające tryb wpisywania mają go
+teraz jawnie, a testy planu domyślnego sprawdzają nowe zachowanie.
 
 #### Poza zakresem do czasu prób
 

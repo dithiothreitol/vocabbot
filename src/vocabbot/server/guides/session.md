@@ -28,7 +28,9 @@ Show the day in two or three lines from `languages` (reviews, new words,
 drill per language) and `minutes`. Then start with the stage the learner
 named ("nowe słówka", "tylko powtórki"), or with the reviews, and say once in
 one line that the learner chooses: „nowe” moves to the new words, „powtórki”
-back to the reviews, „więcej słów” adds new words.
+back to the reviews, „więcej słów” adds new words; with
+`view.answer_mode: self` also „pokaż” (the answer for the learner's own
+grade), and with `view.sentence_translation: hidden` also „tłumaczenie”.
 
 ## Step 1: the cards
 

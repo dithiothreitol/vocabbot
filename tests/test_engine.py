@@ -177,7 +177,7 @@ def test_drill_leaves_the_schedule_alone(tmp_path: Path, catalog: Catalog) -> No
 
 
 def test_refusals(tmp_path: Path, catalog: Catalog) -> None:
-    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=2)
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=2, answer_mode="type")
     card = compute(learner, catalog, MONDAY).new[0]
     session.answer(learner, catalog, MONDAY, moment(MONDAY), card, correct(catalog, card))
     tomorrow = MONDAY + timedelta(days=1)
@@ -631,7 +631,7 @@ def test_reviews_come_in_the_order_the_plan_names(tmp_path: Path, catalog: Catal
 def test_self_assessment_shows_the_answer_and_keeps_the_learners_grade(
     tmp_path: Path, catalog: Catalog
 ) -> None:
-    typing = make_learner(tmp_path / "type", ["de:a1-a2"], new_per_day=3)
+    typing = make_learner(tmp_path / "type", ["de:a1-a2"], new_per_day=3, answer_mode="type")
     card = compute(typing, catalog, MONDAY).new[0]
     for call, code in (
         (lambda: session.reveal(catalog, card, typing, MONDAY), "reveal_production"),

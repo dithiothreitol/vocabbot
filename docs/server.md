@@ -129,9 +129,9 @@ desktop application, ChatGPT) show VocabBot's card with the results of
 and `vocab_add_today`: the day's counter, the three stages (reviews, new
 words, drill) with the cards left in each, the word with its IPA and a
 button that plays its recording, the learner's note, the question, the
-grades to choose after "pokaż", and the new words of the day. With the
-plan's `sentence_translation=hidden` a button under a sentence shows its
-translation. The recordings come from Wikimedia
+grades to choose after "pokaż", and the new words of the day. A button
+under a sentence shows its translation, or the translation stands under it
+with the plan's `sentence_translation=shown`. The recordings come from Wikimedia
 Commons (Wiktionary and Lingua Libre) and play straight from
 `upload.wikimedia.org`, the only address the card may load. A word or a
 sentence without a recording is read by the browser's speech synthesis. The

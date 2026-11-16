@@ -482,12 +482,14 @@ def test_the_card_as_in_supermemo_through_the_commands(
     folder = tmp_path / "nauka"
     preview = program.run("init", str(folder), "--lang", "de:a1", "--new", "3")
     assert any(
-        "Odpowiedź na kartę: wpisanie słowa, ocena silnika" in line for line in preview["preview"]
+        "Odpowiedź na kartę: wpisanie słowa albo pokazanie odpowiedzi i własna ocena, tak jak w"
+        " SuperMemo" in line
+        for line in preview["preview"]
     )
     program.run("commit", "--confirm", preview["token"])
     learner = ("--learner", str(folder), "--today", DAY)
-    settings = ("answer_mode=self", "sentence_translation=hidden", "next_review=hidden")
-    change = program.run("plan", "set", *settings, *learner)
+    # self-assessment and the translation on request are the defaults; the date is kept back
+    change = program.run("plan", "set", "next_review=hidden", *learner)
     program.run("commit", "--confirm", change["token"], *learner)
     text = program.text("plan", "show", *learner)
     assert "Tłumaczenie zdania: na żądanie, tak jak w SuperMemo" in text

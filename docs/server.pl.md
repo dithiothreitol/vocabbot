@@ -130,9 +130,9 @@ i w aplikacji desktopowej, ChatGPT), pokazują przy wynikach `vocab_today`,
 i `vocab_add_today` kartę VocabBota: licznik dnia, trzy etapy (powtórki,
 nowe słowa, utrwalanie) z liczbą pozostałych kart, słowo z zapisem IPA
 i przyciskiem odtwarzania nagrania, notatkę uczącego się, pytanie, oceny do
-wyboru po haśle „pokaż” oraz nowe słowa dnia. Przy ustawieniu planu
-`sentence_translation=hidden` tłumaczenie zdania pokazuje przycisk pod
-zdaniem. Nagrania pochodzą z Wikimedia Commons (Wikisłownik i Lingua
+wyboru po haśle „pokaż” oraz nowe słowa dnia. Tłumaczenie zdania
+pokazuje przycisk pod zdaniem, a przy ustawieniu planu
+`sentence_translation=shown` tłumaczenie stoi od razu pod zdaniem. Nagrania pochodzą z Wikimedia Commons (Wikisłownik i Lingua
 Libre) i odtwarzają się bezpośrednio z `upload.wikimedia.org`, jedynego
 adresu, z którego karta może pobierać pliki. Słowo albo zdanie bez nagrania
 odczytuje synteza mowy przeglądarki. Pytanie na karcie nie pokazuje ani nie

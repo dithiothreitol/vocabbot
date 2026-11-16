@@ -40,12 +40,13 @@ samą sesję w czacie.
 - **Kolejność powtórek.** Sesja podaje najpierw karty najbardziej zaległe.
   Ustawienie planu `review_order` zmienia kolejność na kolejność kursu,
   rosnące odstępy albo kolejność losową.
-- **Obsługa karty.** Ustawienie planu `answer_mode=self` pozwala zamiast
-  wpisywania napisać „pokaż”, zobaczyć odpowiedź i samemu ocenić
-  przypomnienie, tak jak przyciskiem „Check” w SuperMemo. Ustawienie
-  `sentence_translation=hidden` pokazuje tłumaczenie zdania dopiero na
-  prośbę. Każdy wynik podaje termin powrotu karty („wróci za 4 dni”), chyba
-  że plan ma `next_review=hidden`. Słowo, którego uczący się nie chce,
+- **Obsługa karty.** Tak jak przyciskiem „Check” w SuperMemo, uczący się
+  może zamiast wpisywania napisać „pokaż”, zobaczyć odpowiedź i samemu
+  ocenić przypomnienie. Wpisane słowo nadal ocenia silnik, a ustawienie
+  planu `answer_mode=type` zostawia samo wpisywanie. Tłumaczenie zdania
+  pojawia się na prośbę uczącego się albo od razu przy ustawieniu
+  `sentence_translation=shown`. Każdy wynik podaje termin powrotu karty
+  („wróci za 4 dni”), chyba że plan ma `next_review=hidden`. Słowo, którego uczący się nie chce,
   trafia na bok i wraca na prośbę, a własna notatka do słowa pojawia się
   przy jego odpowiedzi.
 - **Harmonogram.** FSRS-6 wyznacza kolejną powtórkę dla trwałości 90%, czyli

@@ -63,8 +63,10 @@ in one and end in the other.
   and the word comes back the same day in the drill. `new_words=show` in the
   plan shows every new word before its question.
 - Questions show the Polish meaning and a sentence with a gap. Type the word
-  with its article for nouns of German, Spanish, French and Italian. "?" or an empty
-  answer means you do not know.
+  with its article for nouns of German, Spanish, French and Italian, or say
+  "pokaż" to see the answer and grade yourself: wiem, prawie or nie wiem.
+  "?" means you do not know. In the terminal an empty Enter shows the
+  answer for your own grade.
 - Every answer is graded at once: wiem, prawie (with what was off) or nie
   wiem. Words that went wrong come back at the end of the session.
 - In the terminal a right answer is saved at once and folds into one line.
@@ -81,11 +83,12 @@ in one and end in the other.
   `/utrwalanie` and `/wiecej`, and after the day's list the session offers n
   (5 more new words), p (the next round of 10 reviews) and Enter (the end).
   Reviews you leave for later stay due and come first on the next day.
-- More controls of a card, as in SuperMemo. With `answer_mode=self` in the
-  plan say "pokaż" (in the terminal press Enter) to see the answer and grade
-  yourself: wiem, prawie or nie wiem. With `sentence_translation=hidden`
-  ask for "tłumaczenie" (in the terminal `/t`). "Nie chcę tego słowa" (in the
-  terminal `/pomin`) puts a word aside; "przywróć słowo …" brings it back.
+- More controls of a card, as in SuperMemo. A sentence's translation comes
+  when you ask for "tłumaczenie" (in the terminal `/t`, in the card a
+  button). `answer_mode=type` in the plan leaves typing only, and
+  `sentence_translation=shown` shows every translation at once. "Nie chcę
+  tego słowa" (in the terminal `/pomin`) puts a word aside; "przywróć słowo
+  …" brings it back.
   "Zapisz notatkę: …" (in the terminal `/notatka …` after the answer) keeps
   your note, shown with the word's answer from then on.
 - `vocabbot` without a command shows the plan of the day; Enter starts the

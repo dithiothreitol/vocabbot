@@ -65,11 +65,11 @@ DEFAULT_PLAN: dict[str, Any] = {
     # the order of the day's reviews: most overdue first, course order, shortest
     # interval first, or random
     "review_order": "due",
-    # a production card: the learner types the word (the engine grades it), or may also
-    # show the answer and grade the recall, as SuperMemo's "Check" does
-    "answer_mode": "type",
-    # the Polish translation of a sentence: shown with it, or on request
-    "sentence_translation": "shown",
+    # a production card: the learner types the word (the engine grades it) or shows the
+    # answer and grades the recall, as SuperMemo's "Check" does; "type" allows typing only
+    "answer_mode": "self",
+    # the Polish translation of a sentence: on request, as in SuperMemo, or shown with it
+    "sentence_translation": "hidden",
     # the day a card comes back, with the result of an answer
     "next_review": "shown",
     "parameters": {},

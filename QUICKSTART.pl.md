@@ -65,8 +65,10 @@ w drugim.
   i przykładem, a słowo wraca tego samego dnia w utrwalaniu. Ustawienie
   planu `new_words=show` pokazuje każde nowe słowo przed pytaniem.
 - Pytanie pokazuje polskie znaczenie i zdanie z luką. Rzeczowniki
-  niemieckie, hiszpańskie, francuskie i włoskie wymagają rodzajnika. Znak „?” albo
-  pusta odpowiedź oznacza „nie wiem”.
+  niemieckie, hiszpańskie, francuskie i włoskie wymagają rodzajnika. Zamiast
+  wpisywania możesz napisać „pokaż”, zobaczyć odpowiedź i ocenić się: wiem,
+  prawie albo nie wiem. Znak „?” oznacza „nie wiem”. W terminalu sam Enter
+  pokazuje odpowiedź do własnej oceny.
 - Silnik ocenia każdą odpowiedź od razu: wiem, prawie (z opisem potknięcia)
   albo nie wiem. Słowa z błędną odpowiedzią wracają pod koniec sesji.
 - W terminalu poprawna odpowiedź zapisuje się od razu i zwija się do
@@ -84,11 +86,10 @@ w drugim.
   proponuje klawisze n (5 kolejnych nowych słów), p (następna tura 10
   powtórek) i Enter (koniec). Powtórki odłożone na później zachowują termin
   i otwierają następny dzień.
-- Karta ma więcej możliwości, tak jak w SuperMemo. Przy ustawieniu planu
-  `answer_mode=self` hasło „pokaż” (w terminalu sam Enter) pokazuje
-  odpowiedź, a Ty oceniasz się: wiem, prawie albo nie wiem. Przy ustawieniu
-  `sentence_translation=hidden` tłumaczenie zdania podaje hasło
-  „tłumaczenie” (w terminalu `/t`). Hasło „nie chcę tego słowa” (w terminalu
+- Karta ma więcej możliwości, tak jak w SuperMemo. Tłumaczenie zdania podaje
+  hasło „tłumaczenie” (w terminalu `/t`, na karcie przycisk). Ustawienie
+  planu `answer_mode=type` zostawia samo wpisywanie, a
+  `sentence_translation=shown` pokazuje każde tłumaczenie od razu. Hasło „nie chcę tego słowa” (w terminalu
   `/pomin`) odkłada słowo, a „przywróć słowo …” je przywraca. Hasło „zapisz
   notatkę: …” (w terminalu `/notatka …` po odpowiedzi) zapisuje Twoją
   notatkę, którą odtąd widać przy odpowiedzi na to słowo.

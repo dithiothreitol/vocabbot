@@ -23,8 +23,8 @@ and give one preview.
 | `batch` | 1 to 20, the cards in one message of the chat session; 1 (default) asks one card at a time, as SuperMemo does | `batch=5` |
 | `new_words` | `ask` (default): a new word comes at once as a question, as in SuperMemo, and a right first answer marks it as known before the course; `show`: the word is shown first and asked afterwards | `new_words=show` |
 | `review_order` | the order of the day's reviews: `due` (most overdue first, default), `course` (the order of the course), `interval` (shortest intervals first) or `random` | `review_order=course` |
-| `answer_mode` | `type` (default): the learner types the word of a production card and the engine grades it; `self`: the learner may also say "pokaż", see the answer and grade the recall, as SuperMemo's "Check" does | `answer_mode=self` |
-| `sentence_translation` | `shown` (default): a sentence comes with its Polish translation; `hidden`: the translation comes on request, as in SuperMemo | `sentence_translation=hidden` |
+| `answer_mode` | `self` (default): the learner types the word of a production card, which the engine grades, or says "pokaż", sees the answer and grades the recall, as SuperMemo's "Check" does; `type`: typing only | `answer_mode=type` |
+| `sentence_translation` | `hidden` (default): a sentence's Polish translation comes on request, as in SuperMemo; `shown`: with the sentence | `sentence_translation=shown` |
 | `next_review` | `shown` (default): the result of an answer says when the card comes back ("wróci za 4 dni"); `hidden`: it does not | `next_review=hidden` |
 | `presence` | `on` (default): due dates avoid the weekdays the learner usually skips, new words stay within the usual minutes, and a day before a skipped day offers reviews ahead; `off`: none of this | `presence=off` |
 | `parameters` | `default` removes the FSRS-6 parameters fitted by `plan fit` | `parameters=default` |

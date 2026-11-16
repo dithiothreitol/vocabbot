@@ -39,11 +39,12 @@ Claude and Codex that runs the same session in a chat.
 - **Order of reviews.** The most overdue cards come first; the plan's
   `review_order` changes it to the order of the course, the shortest
   intervals first or a random order.
-- **The card's controls.** With the plan's `answer_mode=self` the learner may
-  say "pokaż" instead of typing, see the answer and grade the recall, as
-  with SuperMemo's "Check". `sentence_translation=hidden` keeps a sentence's
-  translation back until the learner asks for it. Every result says when
-  the card comes back ("wróci za 4 dni"), unless `next_review=hidden`. A
+- **The card's controls.** As with SuperMemo's "Check", the learner may say
+  "pokaż" instead of typing, see the answer and grade the recall; a typed
+  word is still graded by the engine, and the plan's `answer_mode=type`
+  leaves typing only. A sentence's translation comes when the learner asks
+  for it, or at once with `sentence_translation=shown`. Every result says
+  when the card comes back ("wróci za 4 dni"), unless `next_review=hidden`. A
   word the learner does not want goes aside and comes back on request, and
   the learner's own note for a word appears with its answer.
 - **Schedule.** FSRS-6 sets the next review for a recall of 90% by default,

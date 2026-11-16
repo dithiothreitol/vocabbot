@@ -3,6 +3,19 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Changed
+
+- Self-assessment and the translation on request are the defaults, as in
+  SuperMemo: `answer_mode=self` (typing stays, and the engine grades a typed
+  word) and `sentence_translation=hidden`. `answer_mode=type` and
+  `sentence_translation=shown` bring back the previous behaviour. A plan
+  saved before 1.0.0-rc.9 gets the new defaults; a plan saved by
+  1.0.0-rc.9 keeps the values it holds.
+- At the start of a session the chat names „pokaż” and „tłumaczenie” beside
+  the words that change the stage, when the plan allows them.
+
 ## 1.0.0-rc.9 - 2026-11-16
 
 ### Added

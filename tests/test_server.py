@@ -472,8 +472,14 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             status = await _call(client, "vocab_status")
             assert [w["card"].split("#")[0] for w in status["skipped"]] == [card.split("#")[0]]
             assert (await _call(client, "vocab_flag", card=card, clear=True))["cleared"]
+            # self-assessment is the default: a card waiting today shows its answer, and
+            # a card answered already does not
             refused = await _call(client, "vocab_reveal", card=card)
-            assert refused["error"]["code"] == "reveal_production"
+            assert refused["error"]["code"] == "reveal_not_waiting"
+            waiting = (await _call(client, "vocab_next"))["items"][0]["card"]
+            shown = await _call(client, "vocab_reveal", card=waiting)
+            assert shown["word"]["word"] and shown["grades"]
+            assert shown["view"]["sentence_translation"] == "hidden"
             refused = await client.call_tool("vocab_plan_change", {"settings": ["--x=1"]})
             assert refused.is_error
             status = await _call(client, "vocab_status")
