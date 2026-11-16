@@ -22,7 +22,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.shared.auth import ProtectedResourceMetadata
-from mcp.types import ToolAnnotations
+from mcp.types import Icon, ToolAnnotations
 from pydantic import BaseModel, Field
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -485,6 +485,8 @@ def build(settings: Settings) -> Starlette:
         title="VocabBot",
         instructions=guides.INSTRUCTIONS,
         website_url=settings.url,
+        # the avatar the chat application may show beside the server's name
+        icons=[Icon(src=f"{settings.url}{pages.ICON}", mime_type="image/png", sizes=["512x512"])],
         version=__version__,
         auth_server_provider=provider,
         auth=auth,
@@ -524,6 +526,16 @@ def build(settings: Settings) -> Starlette:
         )
 
     server.custom_route(pages.FONT, methods=["GET"])(font)
+    picture = pages.icon()
+
+    async def icon(request: Request) -> Response:
+        return Response(
+            picture, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"}
+        )
+
+    # browsers and favicon services ask for /favicon.ico without reading the page
+    server.custom_route(pages.ICON, methods=["GET"])(icon)
+    server.custom_route("/favicon.ico", methods=["GET"])(icon)
     app = server.streamable_http_app(
         stateless_http=True,
         json_response=True,

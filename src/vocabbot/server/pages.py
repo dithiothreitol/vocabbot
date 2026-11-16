@@ -9,12 +9,14 @@ radio buttons.
 from __future__ import annotations
 
 import json
+from functools import cache
 from html import escape
 from importlib import resources
 
 from vocabbot import __version__, assets
 
 FONT = "/static/geist.woff2"
+ICON = "/static/vocabbot.png"
 
 STYLE = """
 @font-face { font-family: "Geist"; src: url("/static/geist.woff2") format("woff2");
@@ -59,8 +61,8 @@ body {
 .mark { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
   font-weight: 600; font-size: 18px; letter-spacing: -0.02em; }
 .mark.app { background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow); }
-.mark.vb { background: var(--primary); color: var(--primary-foreground);
-  box-shadow: var(--shadow); }
+.mark.vb { overflow: hidden; box-shadow: var(--shadow); }
+.mark.vb svg { display: block; width: 100%; height: 100%; }
 .wire { width: 36px; height: 1px; border-top: 1px dashed var(--muted-foreground); opacity: .6; }
 h1 { margin: 0; font-size: 22px; line-height: 1.25; font-weight: 600; letter-spacing: -0.025em;
   text-wrap: balance; }
@@ -132,7 +134,6 @@ HEADERS = {
     "X-Frame-Options": "DENY",
 }
 
-LOGO = "V"
 ALERT = (
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
     ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -143,6 +144,17 @@ ALERT = (
 def font() -> bytes:
     """The Geist typeface (SIL Open Font License 1.1, see static/geist-OFL.txt)."""
     return (resources.files("vocabbot.server") / "static" / "geist.woff2").read_bytes()
+
+
+def icon() -> bytes:
+    """VocabBot's avatar as a rounded tile: the favicon and the icon MCP clients show."""
+    return (resources.files("vocabbot.server") / "static" / "vocabbot.png").read_bytes()
+
+
+@cache
+def mark() -> str:
+    """The avatar as inline SVG for the pages (scripts/make_icon.py draws it)."""
+    return (resources.files("vocabbot.server") / "static" / "vocabbot.svg").read_text("utf-8")
 
 
 def card_title() -> str:
@@ -179,7 +191,8 @@ def _page(title: str, body: str, *, index: bool = False) -> str:
         '<!doctype html><html lang="pl"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         '<meta name="color-scheme" content="light dark">'
-        f'{robots}<link rel="preload" href="{FONT}" as="font" type="font/woff2" crossorigin>'
+        f'{robots}<link rel="icon" href="{ICON}" type="image/png">'
+        f'<link rel="preload" href="{FONT}" as="font" type="font/woff2" crossorigin>'
         f"<title>{escape(title)}</title><style>{STYLE}</style></head>"
         f'<body><div class="grid" aria-hidden="true"></div><main class="shell">{body}</main>'
         "</body></html>"
@@ -191,7 +204,7 @@ def _t(name: str, **values: str) -> str:
 
 
 def _brand(title: str, lead: str, app: str | None = None) -> str:
-    marks = f'<span class="mark vb">{LOGO}</span>'
+    marks = f'<span class="mark vb" aria-hidden="true">{mark().strip()}</span>'
     if app is not None:
         initial = escape((app.strip()[:1] or "?").upper())
         marks = (

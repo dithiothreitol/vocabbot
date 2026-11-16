@@ -20,6 +20,7 @@ korzysta z żadnego modelu.
 | `/register`, `/authorize`, `/token`, `/revoke` | OAuth 2.1: dynamiczna rejestracja klientów, PKCE z S256, tokeny odświeżania wymieniane przy każdym użyciu, wskaźnik zasobu (RFC 8707) i wystawca w odpowiedzi logowania (RFC 9207) |
 | `/login` | strona logowania i zakładania konta z kodem zaproszenia |
 | `/`, `/privacy`, `/health` | strona startowa, informacja o prywatności i kontrola działania |
+| `/static/vocabbot.png`, `/favicon.ico` | awatar VocabBota: ikona stron w przeglądarce i ikona, którą serwer podaje w informacjach MCP (`icons`) |
 
 - Narzędzia uruchamiają polecenia programu `vocabbot` na folderze konta
   (`learners/<konto>/`) i zwracają ten sam JSON, który czytają umiejętności

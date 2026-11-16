@@ -3,6 +3,26 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Added
+
+- VocabBot has an avatar in the common form of assistants' avatars, a flat
+  tile with a face of two upright eyes. The face is the front card of the
+  course with the orange dot of the day's card, and a light blue card stands
+  behind it. `scripts/make_icon.py` draws it with the standard library as the
+  plugin's icon and as `docs/assets/avatar.png` and `avatar.svg` for
+  profiles; the logo and the social preview show it.
+- The server shows the avatar on its pages, serves it as their favicon
+  (`/static/vocabbot.png`, `/favicon.ico`) and names it in its MCP
+  information (`icons`, MCP 2025-11-25), so a chat application can show it
+  beside the server's name.
+
+### Changed
+
+- The social preview names the five languages and the 28 671 entries of the
+  courses.
+
 ## 1.0.0-rc.10 - 2026-11-16
 
 ### Changed

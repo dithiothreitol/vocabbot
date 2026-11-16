@@ -382,6 +382,10 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             listed = {tool.name: tool for tool in (await client.list_tools()).tools}
             tools = set(listed)
             assert "vocab_next" in tools and len(tools) == 23
+            icons = client.server_info.icons or []
+            assert [(icon.src, icon.mime_type) for icon in icons] == [
+                (f"{live.url}/static/vocabbot.png", "image/png")
+            ]
             # the card of MCP Apps: the session's tools name it, the server serves it
             with_card = {name for name, tool in listed.items() if (tool.meta or {}).get("ui")}
             assert with_card == {
@@ -590,6 +594,14 @@ def test_the_endpoints_describe_the_server_and_refuse_strangers(live: Settings) 
         typeface = web.get("/static/geist.woff2")
         assert typeface.content[:4] == b"wOF2"
         assert typeface.headers["content-type"] == "font/woff2"
+        # the avatar: the favicon of the pages and the icon in the server's information
+        picture = web.get("/static/vocabbot.png")
+        assert picture.content[:8] == b"\x89PNG\r\n\x1a\n"
+        assert picture.headers["content-type"] == "image/png"
+        assert web.get("/favicon.ico").content == picture.content
+        home = web.get("/").text
+        assert '<link rel="icon" href="/static/vocabbot.png"' in home
+        assert '<span class="mark vb" aria-hidden="true"><svg' in home
 
 
 def test_a_wrong_password_keeps_the_sign_in_open(live: Settings) -> None:

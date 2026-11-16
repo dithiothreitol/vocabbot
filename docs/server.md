@@ -20,6 +20,7 @@ server itself uses no model.
 | `/register`, `/authorize`, `/token`, `/revoke` | OAuth 2.1: dynamic client registration, PKCE with S256, refresh tokens that change at every use, the resource indicator (RFC 8707) and the issuer in the sign-in response (RFC 9207) |
 | `/login` | the page where the learner signs in or opens an account with an invitation code |
 | `/`, `/privacy`, `/health` | the start page, the privacy note and the health check |
+| `/static/vocabbot.png`, `/favicon.ico` | VocabBot's avatar: the favicon of the pages and the icon the server names in its MCP information (`icons`) |
 
 - The tools run the commands of the `vocabbot` program on the account's
   folder (`learners/<account>/`) and return the same JSON as the plugin's
