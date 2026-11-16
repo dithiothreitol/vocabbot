@@ -2,9 +2,10 @@
 
 [English](development-plan.md) · **Polski**
 
-Stan: 2026-11-15, po Etapie 6 (wersja 1.0.0-rc.5, w pakiecie Pythona
-1.0.0rc5). Plan zaakceptowałeś 14.11.2026, a Etapy 4, 5, 6 i 7 dodałeś
-15.11.2026. Etap 7 dał kurs włoski i sesję po jednej karcie.
+Stan: 2026-11-16, po Etapie 7 (wersja 1.0.0-rc.6, w pakiecie Pythona
+1.0.0rc6). Plan zaakceptowałeś 14.11.2026, a Etapy 4, 5, 6 i 7 dodałeś
+15.11.2026. Etap 7 dał kurs włoski i sesję po jednej karcie. Etap 8 (uwagi
+z pilotażu: wymowa, przykłady, licznik i ChatGPT) czeka na Twoją akceptację.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1272,6 +1273,82 @@ Wnioski:
    pozostałych języków, bo Tatoeba ma niewiele bezpośrednich tłumaczeń
    włosko-polskich.
 
+### Etap 8. Uwagi z pilotażu: wymowa, przykłady, licznik i ChatGPT
+
+Etap 8 dodałeś 16.11.2026 po uwagach pierwszej osoby z pilotażu, która uczy
+się angielskiego w ChatGPT. Stan: propozycja do Twojej akceptacji. Kod
+powstanie po akceptacji, przebiegi modelu po osobnej zgodzie z wyceną.
+
+#### Weryfikacja uwag (16.11.2026)
+
+| Uwaga | Stan faktyczny | Zmiana |
+|---|---|---|
+| podłączenie w ChatGPT wygląda inaczej niż w instrukcji | centrum pomocy OpenAI opisuje dodanie serwera we Wtyczkach (przycisk plus, własny serwer MCP) bez trybu dewelopera; dziennik konta na serwerze potwierdza zapis planu i 18 odpowiedzi z ChatGPT | punkt 1 |
+| brak odsłuchu słowa | kursy nie zawierają nagrań; aplikacja czatu pokazuje tekst i odnośniki | punkt 3 |
+| brak czytania słowa | zapis IPA ma od 74% do 98% haseł zależnie od języka i poziomu; `vocab_next` zwraca go przy nowym słowie i przewodnik każe go pokazać, wynik odpowiedzi go nie powtarza; uwaga może dotyczyć zapisu wymowy albo czytania na głos, co rozstrzyga pytanie do pilotażysty | punkt 3 |
+| nie każde nowe słowo ma przykład | 10 738 z 28 671 haseł nie ma zdania: od 7% do 11% haseł A1 i od 45% do 71% haseł B2; wśród 18 kart pilotażysty bez zdania było 6 (for, all, one, over, take, IT); zdania pochodzą wyłącznie z Tatoeby i reguły zabraniają modelowi czatu dopisywania danych kursu | punkt 4 |
+| licznik przerobionych słów | `vocab_today` podaje wykonane powtórki i nowe słowa każdego języka; `vocab_answer` i `vocab_next` podają tylko pozostałe karty i przewodnik nie każe pokazywać licznika; sesja w terminalu ma licznik z paskiem postępu | punkt 2 |
+
+Dziennik pokazuje też 14 odpowiedzi „znałem” wśród 15 pierwszych nowych słów
+A2, po których pilotażysta zmienił poziomy na B1–B2 (punkt 5).
+
+Zakres:
+
+1. **ChatGPT.** Ścieżka Ustawienia, Integracje, Wtyczki, przycisk plus
+   i własny serwer MCP z uwierzytelnianiem OAuth w `docs/server.md`,
+   `docs/server.pl.md`, na stronie głównej serwera (`server.home_chatgpt`)
+   i w zaproszeniu dla pilotażu. Wiersz ryzyka o odczycie w ChatGPT podaje
+   wynik z 16.11.2026.
+2. **Licznik.** Wyniki `answer`, `grade`, `regrade` i `next` podają obok
+   `left` także `done`, czyli powtórki, nowe słowa i utrwalanie wykonane
+   danego dnia. Przewodnik serwera i umiejętność `vocab-session` zaczynają
+   każdą wiadomość sesji linią licznika, na przykład „7 z 25 · nowe 3/15 ·
+   powtórki 4/10”. `today` podaje nowe słowa dnia, więc podsumowanie na
+   koniec sesji zawiera ich liczbę i listę.
+3. **Wymowa.** Potok zapisuje w haśle nazwę pliku nagrania z Wikimedia
+   Commons. Nagrania angielskie, niemieckie i francuskie pochodzą
+   z Wikisłownika (dla angielskiego najpierw brytyjskie, zgodnie z IPA
+   kursu). Nagrania hiszpańskie i włoskie pochodzą z Lingua Libre, bo
+   wyciąg Wikisłownika pomija nagrania z szablonów wymowy tych języków.
+   `presentation` zwraca adres pliku MP3 liczony z nazwy według schematu
+   Commons, więc pakiet zawiera wyłącznie nazwy plików. Przewodnik
+   i umiejętność pokazują przy nowym słowie oraz w wyniku „prawie” i „nie
+   wiem” zapis IPA i odnośnik „🔊 wymowa”. `NOTICE` i README podają źródło
+   i licencje nagrań. Pokrycie według pomiaru z 16.11.2026: angielski
+   98–100%, niemiecki 95–98%, francuski 87–95%, hiszpański 63–91%,
+   włoski 27–81%.
+4. **Przykłady.** Krok potoku `tools/courses/generate.py
+   prepare|submit|collect` (Message Batches API, Claude Sonnet 5.5) pisze
+   dla każdego hasła bez zdania z Tatoeby jedno krótkie zdanie na poziomie
+   hasła, w znaczeniu kursu, z polskim tłumaczeniem. Przegląd przykładów
+   (`examples.py`) ocenia je tak samo jak zdania z Tatoeby. Decyzje trafiają
+   do `generated.jsonl` w repozytorium, więc budowa powtarza się bez API.
+   Zdanie ma w haśle źródło `generated`. Najpierw próbka 200 haseł i ocena
+   40 losowych, potem pełny przebieg po Twojej zgodzie z wyceną z próbki.
+   Cel: zdanie w co najmniej 95% haseł każdego poziomu.
+5. **Za niski poziom.** Gdy w jednym języku co najmniej 8 z 10 ostatnich
+   nowych słów dostaje „znałem”, wynik `grade` zawiera `level_hint`.
+   Przewodnik proponuje wtedy test poziomujący albo wyższy poziom przez
+   podgląd zmiany planu.
+6. **Sprawdzenie i wydanie.** Testy silnika dla `done`, `level_hint`
+   i adresu nagrania, test potoku dla nazw nagrań, `session_test.py
+   --check`, testy serwera, ręczna próba odnośnika do nagrania w Claude
+   i ChatGPT w przeglądarce i na telefonie. Wydanie `v1.0.0-rc.7`
+   i wdrożenie na serwer, każde za osobną zgodą.
+
+### Etap 9 (warunkowy). Karta w oknie czatu
+
+MCP Apps pozwalają narzędziu pokazać w rozmowie interaktywną kartę w osobnej
+ramce. Według ogłoszenia z 26.01.2026 obsługują je Claude w przeglądarce
+i w aplikacji desktopowej oraz ChatGPT; ogłoszenie nie wspomina aplikacji na
+telefon ani odtwarzania dźwięku. Karta VocabBota pokazywałaby licznik, słowo,
+zapis IPA i przycisk odtwarzania nagrania. Słowa i zdania bez nagrania
+odczytywałaby synteza mowy przeglądarki. Etap zaczyna się od próby: obsługa
+rozszerzenia w MCP Python SDK, zasady CSP dla plików z
+`upload.wikimedia.org` oraz odtwarzanie w Claude i ChatGPT na komputerze i na
+telefonie. O etapie decydujesz po wyniku Etapu 8 i kolejnych uwagach
+z pilotażu.
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -1326,6 +1403,7 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 6, test sesji z modelem przez łącznik | 1,54 USD przy Claude Sonnet 5.5 (szacunek 1–3 USD) | zatwierdzony 15.11.2026 |
 | Etap 6, wdrożenie na VPS | brak kosztów modeli | zatwierdzone 15.11.2026 |
 | Etap 7, przegląd włoskich znaczeń i przykładów | 3,54 USD przy Claude Sonnet 5.5 (limit 7 USD) | zatwierdzony 15.11.2026 |
+| Etap 8, zdania przykładowe z modelu dla około 10 700 haseł | próbka około 0,3 USD; całość szacunkowo 10–15 USD przy Claude Sonnet 5.5 (szacunek z kosztu przeglądów Etapów 4 i 7) | osobna, po próbce |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
@@ -1345,13 +1423,17 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 | Dane wordfreq pochodzą z okresu do 2021 roku | słownictwo A1–B2 zmienia się wolno; częstość służy wyłącznie do kolejności |
 | Model w czacie podpowiada odpowiedź | `next` bez odpowiedzi, reguła 1, test sesyjny tej reguły |
 | Publiczny serwer przyciąga nieproszone konta i próby logowania | konta wyłącznie z kodem zaproszenia, limit nieudanych prób, hasła w scrypt, tokeny jako skróty, adresy zwrotne z listy dozwolonych |
-| ChatGPT w planach Plus i Pro udostępnia własnym łącznikom tylko odczyt | Claude jako pierwsza aplikacja pilotażu; próba zapisu odpowiedzi w ChatGPT na koncie uczącego się przed zaproszeniem kolejnych osób |
+| ChatGPT w planach Plus i Pro udostępnia własnym łącznikom tylko odczyt | Claude jako pierwsza aplikacja pilotażu; 16.11.2026 konto pilotażysty w ChatGPT zapisało plan i 18 odpowiedzi przez serwer dodany we Wtyczkach |
+| Zdanie wygenerowane przez model ma błąd albo inne znaczenie słowa | przegląd przykładów jak dla zdań z Tatoeby, próbka 40 haseł przed pełnym przebiegiem, źródło `generated` w haśle, zgłoszenia `flag` |
+| Nagranie w Commons zmienia nazwę albo znika | nazwy odświeżane przy każdej budowie kursu; hasło bez nagrania pokazuje sam zapis IPA |
 
 ---
 
 ## 14. Rozszerzenia po wersji 1.0
 
-- Wymowa przez syntezę mowy systemu operacyjnego oraz nagrania z Wikisłownika.
+- Wymowa w sesji w terminalu (odtwarzanie nagrań i synteza mowy systemu
+  operacyjnego); nagrania w czacie obejmuje Etap 8, kartę z odtwarzaniem
+  Etap 9.
 - Sesja na telefonie poza aplikacjami czatu: strona w sieci domowej albo na
   serwerze z Etapu 6, korzystająca z tego samego folderu nauki.
 - Kolejne języki nauki i angielski jako drugi język bazowy.

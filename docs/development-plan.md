@@ -5,10 +5,11 @@
 This is the English translation of `development-plan.pl.md`, which is the
 version kept up to date first.
 
-Status: 2026-11-15, after Stage 6 (version 1.0.0-rc.5, 1.0.0rc5 in the Python
+Status: 2026-11-16, after Stage 7 (version 1.0.0-rc.6, 1.0.0rc6 in the Python
 package). You accepted the plan on 14.11.2026 and added Stages 4, 5, 6 and 7 on
 15.11.2026. Stage 7 gave the Italian course and the session one card at a
-time. The engine, the `vocabbot` program with its new terminal session,
+time. Stage 8 (pilot feedback: pronunciation, examples, a counter and
+ChatGPT) awaits your acceptance. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1284,6 +1285,87 @@ Conclusions:
 2. The coverage of examples at B1–B2 is lower for Italian than for the other
    languages, because Tatoeba has few direct Italian–Polish translations.
 
+### Stage 8. Pilot feedback: pronunciation, examples, a counter and ChatGPT
+
+You added Stage 8 on 16.11.2026 after the feedback of the first pilot
+learner, who learns English in ChatGPT. Status: a proposal for your
+acceptance. The code follows the acceptance, and the model runs follow a
+separate approval with a cost estimate.
+
+#### Check of the feedback (16.11.2026)
+
+| Feedback | Facts | Change |
+|---|---|---|
+| connecting ChatGPT looks different from the instructions | OpenAI's help center describes adding a server under Plugins (the plus button, a custom MCP server) without developer mode; the account's log on the server confirms that ChatGPT saved the plan and 18 answers | item 1 |
+| the word cannot be heard | the courses hold no recordings; a chat application shows text and links | item 3 |
+| the word cannot be read | 74% to 98% of the entries have IPA, depending on the language and level; `vocab_next` returns it with a new word and the guide asks to show it, while the result of an answer does not repeat it; the feedback may mean the written pronunciation or reading aloud, which a question to the pilot learner settles | item 3 |
+| not every new word has an example | 10,738 of 28,671 entries have no sentence: 7% to 11% of the A1 entries and 45% to 71% of the B2 entries; 6 of the pilot learner's 18 cards had none (for, all, one, over, take, IT); the sentences come only from Tatoeba, and the rules forbid the chat model to add course data | item 4 |
+| a counter of the words done | `vocab_today` reports the reviews and new words done for each language; `vocab_answer` and `vocab_next` report only the cards left, and the guide does not ask for a counter; the terminal session has a counter with a progress bar | item 2 |
+
+The log also shows 14 answers "znałem" among the first 15 new A2 words, after
+which the pilot learner changed the levels to B1–B2 (item 5).
+
+Scope:
+
+1. **ChatGPT.** The path Settings, Integrations, Plugins, the plus button and
+   a custom MCP server with OAuth in `docs/server.md`, `docs/server.pl.md`,
+   on the server's home page (`server.home_chatgpt`) and in the pilot
+   invitation. The risk row on read-only access in ChatGPT reports the
+   result of 16.11.2026.
+2. **A counter.** The results of `answer`, `grade`, `regrade` and `next`
+   report `done` beside `left`: the reviews, new words and drill done that
+   day. The server's guide and the `vocab-session` skill start every message
+   of a session with a counter line, for example "7 z 25 · nowe 3/15 ·
+   powtórki 4/10". `today` lists the day's new words, so the summary at the
+   end of a session gives their number and list.
+3. **Pronunciation.** The pipeline writes the file name of a Wikimedia
+   Commons recording into the entry. English, German and French recordings
+   come from Wiktionary (for English the British one first, as the course's
+   IPA). Spanish and Italian recordings come from Lingua Libre, because the
+   Wiktionary extract leaves out the recordings in the pronunciation
+   templates of these languages. `presentation` returns the address of the
+   MP3 file, computed from the name by the Commons scheme, so the package
+   holds only file names. The guide and the skill show the IPA and a link
+   "🔊 wymowa" with a new word and in the result "prawie" and "nie wiem".
+   `NOTICE` and the README name the source and the licences of the
+   recordings. Coverage measured on 16.11.2026: English 98–100%, German
+   95–98%, French 87–95%, Spanish 63–91%, Italian 27–81%.
+4. **Examples.** A pipeline step `tools/courses/generate.py
+   prepare|submit|collect` (Message Batches API, Claude Sonnet 5.5) writes,
+   for every entry without a Tatoeba sentence, one short sentence at the
+   entry's level, in the course meaning, with a Polish translation. The
+   example review (`examples.py`) judges them as it judges Tatoeba
+   sentences. The decisions go to `generated.jsonl` in the repository, so a
+   build repeats without the API. The sentence names the source `generated`
+   in the entry. First a sample of 200 entries and a check of 40 random
+   ones, then the full run after your approval with the cost measured on the
+   sample. The goal: a sentence in at least 95% of the entries of every
+   level.
+5. **A level set too low.** When at least 8 of the last 10 new words of a
+   language get "znałem", the result of `grade` holds `level_hint`. The
+   guide then offers the placement test or a higher level through a preview
+   of the plan change.
+6. **Checks and release.** Engine tests for `done`, `level_hint` and the
+   recording's address, a pipeline test for the recording names,
+   `session_test.py --check`, the server tests, a manual check of the
+   recording link in Claude and ChatGPT in a browser and on a phone.
+   Release `v1.0.0-rc.7` and deployment on the server, each with a separate
+   approval.
+
+### Stage 9 (conditional). A card in the chat window
+
+MCP Apps let a tool show an interactive card in the conversation, in a frame
+of its own. According to the announcement of 26.01.2026, Claude in the
+browser and in the desktop application and ChatGPT support them; the
+announcement does not mention the phone applications or audio playback. The
+VocabBot card would show the counter, the word, the IPA and a button that
+plays the recording. The browser's speech synthesis would read the words and
+sentences without a recording. The stage starts with a trial: support for the
+extension in the MCP Python SDK, the CSP rules for files from
+`upload.wikimedia.org`, and playback in Claude and ChatGPT on a computer and
+on a phone. You decide on the stage after the result of Stage 8 and further
+pilot feedback.
+
 ---
 
 ## 11. Completeness check
@@ -1338,6 +1420,7 @@ of words confused between languages, own words from any text.
 | Stage 6, a session test with a model through the connector | 1.54 USD with Claude Sonnet 5.5 (estimate 1–3 USD) | approved on 15.11.2026 |
 | Stage 6, the deployment on the VPS | no model costs | approved on 15.11.2026 |
 | Stage 7, the review of the Italian meanings and examples | 3.54 USD with Claude Sonnet 5.5 (limit 7 USD) | approved on 15.11.2026 |
+| Stage 8, example sentences from the model for about 10,700 entries | a sample for about 0.3 USD; the whole run an estimated 10–15 USD with Claude Sonnet 5.5 (estimated from the cost of the reviews of Stages 4 and 7) | separate, after the sample |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub
@@ -1357,14 +1440,17 @@ account on 14.11.2026.
 | The wordfreq data comes from the period until 2021 | A1–B2 vocabulary changes slowly; frequency serves only the order |
 | The model in the chat gives the answer away | `next` without the answer, rule 1, a session test of this rule |
 | A public server attracts unwanted accounts and sign-in attempts | accounts only with an invitation code, a limit of failed attempts, passwords in scrypt, tokens as hashes, redirects from a list of allowed addresses |
-| ChatGPT on the Plus and Pro plans gives custom connectors read access only | Claude as the first application of the pilot; a trial of saving answers in ChatGPT on the learner's account before inviting more people |
+| ChatGPT on the Plus and Pro plans gives custom connectors read access only | Claude as the first application of the pilot; on 16.11.2026 the pilot learner's account in ChatGPT saved the plan and 18 answers through the server added under Plugins |
+| A sentence written by the model has a mistake or another meaning of the word | the example review as for Tatoeba sentences, a sample of 40 entries before the full run, the source `generated` in the entry, `flag` reports |
+| A recording on Commons is renamed or removed | the names are refreshed at every course build; an entry without a recording shows the IPA alone |
 
 ---
 
 ## 14. Extensions after version 1.0
 
-- Pronunciation through the speech synthesis of the operating system and
-  recordings from Wiktionary.
+- Pronunciation in the terminal session (playing recordings and the speech
+  synthesis of the operating system); Stage 8 covers recordings in the chat,
+  Stage 9 a card that plays them.
 - A session on a phone outside chat applications: a page in the home network
   or on the server of Stage 6, using the same learner's folder.
 - More languages to learn and English as a second base language.
