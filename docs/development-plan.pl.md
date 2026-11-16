@@ -16,8 +16,8 @@ SuperMemo: samoocena, tłumaczenie zdania na żądanie, termin powtórki przy
 wyniku, wyłączenie słowa i notatka do słowa) zaakceptowałeś i zrealizowałem
 16.11.2026, a za Twoją zgodą wydałem go jako `v1.0.0-rc.9` na GitHubie
 i w PyPI oraz wdrożyłem na serwer. Na Twoją propozycję samoocena
-i tłumaczenie na żądanie są od tego samego dnia wartościami domyślnymi
-w repozytorium lokalnym; ich wydanie czeka na Twoją zgodę.
+i tłumaczenie na żądanie są od tego samego dnia wartościami domyślnymi,
+wydanymi za Twoją zgodą jako `v1.0.0-rc.10` i wdrożonymi na serwer.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1636,6 +1636,15 @@ tekstowym nic innego o nich nie informuje. Plan zapisany przed rc.9 dostaje
 nowe wartości domyślne; na serwerze dotyczy to obu kont, ponieważ żaden plan
 nie zapisał tych ustawień pod rc.9. Testy zakładające tryb wpisywania mają go
 teraz jawnie, a testy planu domyślnego sprawdzają nowe zachowanie.
+
+Wydanie i wdrożenie za Twoją zgodą z 16.11.2026: tag `v1.0.0-rc.10`, wydanie
+przedpremierowe na GitHubie z kompletem 9 paczek, `vocabbot 1.0.0rc10`
+w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone,
+wtyczka w Twoim Codexie odświeżona; serwer 1.0.0rc10 pod
+`https://vocab.archxs.com`. Test dymny tylko do odczytu z krótko ważnym
+tokenem konta testowego, unieważnionym po teście, pokazał w `vocab_today`
+`answer_mode: self` i `sentence_translation: hidden`, a `vocab_reveal`
+pokazał odpowiedź karty czekającej w sesji.
 
 #### Poza zakresem do czasu prób
 

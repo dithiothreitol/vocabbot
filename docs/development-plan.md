@@ -21,8 +21,8 @@ request, the review date with the result, switching a word off and a note
 for a word) you accepted, and I carried it out on 16.11.2026; with your
 approval I released it as `v1.0.0-rc.9` on GitHub and PyPI and deployed it
 on the server. At your suggestion self-assessment and the translation on
-request are the defaults since the same day in the local repository; their
-release awaits your approval. The engine, the `vocabbot` program with its new terminal session,
+request are the defaults since the same day, released with your approval as
+`v1.0.0-rc.10` and deployed on the server. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1661,6 +1661,15 @@ saved before rc.9 gets the new defaults; on the server this covers both
 accounts, since no plan saved these settings under rc.9. The tests that
 assume typing now set it explicitly, and the tests of the default plan check
 the new behaviour.
+
+The release and the deployment with your approval of 16.11.2026: the tag
+`v1.0.0-rc.10`, a pre-release on GitHub with all 9 packages,
+`vocabbot 1.0.0rc10` on PyPI through trusted publishing with sums matching
+GitHub, CI green, the plugin in your Codex refreshed; server 1.0.0rc10 at
+`https://vocab.archxs.com`. A read-only smoke test with a short-lived token of
+the test account, revoked after the test, showed `answer_mode: self` and
+`sentence_translation: hidden` in `vocab_today`, and `vocab_reveal` showed the
+answer of a card waiting in the session.
 
 #### Out of scope until trials
 
