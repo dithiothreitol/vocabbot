@@ -8,9 +8,10 @@ Stan: 2026-11-16, po Etapie 7 (wersja 1.0.0-rc.6, w pakiecie Pythona
 (uwagi z pilotażu: wymowa, przykłady, licznik, ChatGPT oraz karta w oknie
 czatu) zrealizowałem 16.11.2026 i za Twoją zgodą wydałem jako `v1.0.0-rc.7`
 na GitHubie i w PyPI oraz wdrożyłem na serwer. Etap 10 (etapy sesji jak
-w SuperMemo: wybór etapu, kolejne słowa i kolejne tury powtórek) dodałeś
-i zrealizowałem 16.11.2026 w repozytorium lokalnym; jego wydanie czeka na
-Twoją zgodę.
+w SuperMemo: wybór etapu, kolejne słowa, kolejne tury powtórek, nowe słowo
+jako pytanie, dwie oceny w utrwalaniu i kolejność powtórek) dodałeś
+16.11.2026; za Twoją zgodą wydałem go jako `v1.0.0-rc.8` na GitHubie
+i w PyPI oraz wdrożyłem na serwer.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1412,9 +1413,8 @@ polecenie, wynik poniżej.
 ### Etap 10. Etapy sesji jak w SuperMemo: wybór etapu, kolejne słowa i kolejne tury powtórek
 
 Etap 10 dodałeś 16.11.2026 po porównaniu sesji VocabBota z aplikacją
-SuperMemo (dwa zrzuty ekranu kursu niemieckiego). Stan: zrealizowany
-16.11.2026 w repozytorium lokalnym, wynik poniżej. Wydanie i wdrożenie
-czekają na Twoją zgodę.
+SuperMemo (dwa zrzuty ekranu kursu niemieckiego). Stan: zrealizowany,
+wydany jako `v1.0.0-rc.8` i wdrożony 16.11.2026, wynik poniżej.
 
 #### Mechanika SuperMemo (stan na 16.11.2026)
 
@@ -1460,6 +1460,8 @@ czekają na Twoją zgodę.
 | testy | 260 na Pythonie 3.15 i 232 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 z 7) i `claude plugin validate --strict` bez uwag; nowe testy: nowe słowo jako pytanie i ocena `known`, dwie oceny utrwalania z odmową oceny „prawie”, cztery kolejności powtórek, ustawienia planu przez polecenia, sesja w terminalu z pytaniem od razu |
 | symulacja programu | pełne kursy przez polecenia przy planie domyślnym: 1407 sprawdzeń bez usterki w 131 odpowiedziach (55 nowych słów nieznanych, 16 znanych wcześniej, 41 odpowiedzi utrwalania wyłącznie z ocenami `know` i `dont_know`); żadna karta nie podała słowa przed oceną, a cztery kolejności powtórek obejmują te same karty |
 | symulacja z modelem | lokalny serwer i Claude Code z modelem Sonnet, 10 tur za 1,79 USD: start od powtórek z linią o wyborze, „nowe” (`vocab_next` ze `stage: new`), nowe słowo jako pytanie, pełna prezentacja po „?”, „✓ znane wcześniej” po poprawnej odpowiedzi, „daj jeszcze 3 słowa” (`vocab_add_today` z `count: 3`), powrót do powtórek, następna tura (`vocab_add_today` z `reviews: 5`, dołączyły 4 dostępne karty) i przejście do utrwalania; każda tura zgodna z przewodnikiem |
+| wydanie i wdrożenie | za Twoją zgodą z 16.11.2026: tag `v1.0.0-rc.8`, wydanie przedpremierowe na GitHubie z kompletem 9 paczek, `vocabbot 1.0.0rc8` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.8; serwer 1.0.0rc8 pod `https://vocab.archxs.com`, test dymny z krótko ważnym tokenem konta testowego, unieważnionym po teście: 22 narzędzia, karta w pięciu narzędziach (z `vocab_add_today`), zasób karty z CSP i etykietami, licznik w `vocab_today`, nagranie i przykład w `vocab_lookup` |
+| do sprawdzenia | sesja z Twojego konta w Claude i ChatGPT: nowe słowo jako pytanie, hasła „nowe”, „powtórki”, „więcej słów” i „jeszcze powtórki”, karta z trzema etapami; plany kont na serwerze, także konta z pilotażu, mają teraz `new_words=ask` |
 
 ---
 

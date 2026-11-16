@@ -12,9 +12,10 @@ time. I carried out Stages 8 and 9 (pilot feedback: pronunciation,
 examples, a counter, ChatGPT and a card in the chat window) on 16.11.2026;
 with your approval I released them as `v1.0.0-rc.7` on GitHub and PyPI and
 deployed them on the server. You added Stage 10 (the session's stages as in
-SuperMemo: the choice of stage, more words and more rounds of reviews) and I
-carried it out on 16.11.2026 in the local repository; its release awaits
-your approval. The engine, the `vocabbot` program with its new terminal session,
+SuperMemo: the choice of stage, more words, more rounds of reviews, a new
+word as a question, two grades in the drill and the order of reviews) on
+16.11.2026; with your approval I released it as `v1.0.0-rc.8` on GitHub and
+PyPI and deployed it on the server. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1432,8 +1433,7 @@ your request, the result below.
 
 You added Stage 10 on 16.11.2026 after comparing VocabBot's session with the
 SuperMemo application (two screenshots of a German course). Status: carried
-out on 16.11.2026 in the local repository, result below. The release and
-the deployment await your approval.
+out, released as `v1.0.0-rc.8` and deployed on 16.11.2026, result below.
 
 #### How SuperMemo works (as of 16.11.2026)
 
@@ -1479,6 +1479,8 @@ the deployment await your approval.
 | tests | 260 on Python 3.15 and 232 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 of 7) and `claude plugin validate --strict` without remarks; new tests: a new word as a question and the grade `known`, the two grades of the drill with the refusal of "prawie", the four orders of reviews, the plan settings through the commands, the terminal session asking at once |
 | simulation of the program | the full courses through the commands with the default plan: 1407 checks without a fault in 131 answers (55 new words not known, 16 known before, 41 drill answers graded only `know` or `dont_know`); no card gave its word before the grade, and the four orders of reviews hold the same cards |
 | simulation with a model | a local server and Claude Code with the Sonnet model, 10 turns for 1.79 USD: a start from the reviews with the line about the choice, "nowe" (`vocab_next` with `stage: new`), a new word as a question, the full introduction after "?", "✓ znane wcześniej" after a right answer, "daj jeszcze 3 słowa" (`vocab_add_today` with `count: 3`), back to the reviews, the next round (`vocab_add_today` with `reviews: 5`, the 4 available cards joined) and a move to the drill; every turn followed the guide |
+| release and deployment | with your approval of 16.11.2026: the tag `v1.0.0-rc.8`, a pre-release on GitHub with all 9 packages, `vocabbot 1.0.0rc8` on PyPI through trusted publishing with sums matching GitHub, CI green, the plugin in your Codex refreshed to rc.8; server 1.0.0rc8 at `https://vocab.archxs.com`, a smoke test with a short-lived token of the test account, revoked after the test: 22 tools, the card on five tools (with `vocab_add_today`), the card resource with its CSP and labels, the counter in `vocab_today`, a recording and an example in `vocab_lookup` |
+| to check | a session from your account in Claude and ChatGPT: a new word as a question, the words "nowe", "powtórki", "więcej słów" and "jeszcze powtórki", the card with three stages; the plans of the accounts on the server, the pilot's account too, now have `new_words=ask` |
 
 ---
 
