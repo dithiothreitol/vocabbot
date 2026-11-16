@@ -309,7 +309,8 @@ recognition cards.
   word, then `vocab_next` with the stage of that card. The word stays away
   until the learner asks for it back ("przywróć słowo …"): `vocab_lookup`
   finds its card, and `vocab_flag` with `clear: true` brings it back with its
-  date. `vocab_status` lists the words put aside (`skipped`).
+  date. The result of `vocab_flag` holds the day's `counter` after the
+  change. `vocab_status` lists the words put aside (`skipped`).
 - **A note.** "zapisz notatkę: …" saves the learner's text as written with
   `vocab_note` for the card of the last result (or the card `vocab_lookup`
   finds). The note comes with the word's answer and never with its question.

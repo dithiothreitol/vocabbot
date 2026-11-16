@@ -214,7 +214,8 @@ next session or a reminder only as `shared/rules.md` allows.
   słowo": `flag --card <card> --skip --json`, without showing the word, then
   `next --stage <stage of that card> --json`. The word stays away until the
   learner asks for it back ("przywróć słowo …"): `lookup` finds its card, and
-  `flag --card <card> --clear --json` brings it back with its date.
+  `flag --card <card> --clear --json` brings it back with its date. The
+  result of `flag` holds the day's `counter` after the change.
   `status --json` lists the words put aside (`skipped`).
 - **A note.** "zapisz notatkę: …" saves the learner's text as written with
   `note --card <card> --stdin --json` (the text on standard input) for the

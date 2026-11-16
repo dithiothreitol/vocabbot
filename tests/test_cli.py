@@ -511,7 +511,7 @@ def test_the_card_as_in_supermemo_through_the_commands(
     assert graded["word"]["note"] == "mój skrót"
 
     skipped = program.run("flag", "--card", graded["next"]["items"][0]["card"], "--skip", *learner)
-    assert skipped["skipped"]
+    assert skipped["skipped"] and skipped["counter"] == "Postęp: 1/3 · nowe 1/3 · do utrwalenia 1"
     out = program.text("status", *learner)
     assert "Odłożone słowa:" in out
     program.run("note", "--card", item["card"], "--clear", *learner)

@@ -1638,7 +1638,7 @@ proposed) and the default of `answer_mode` (`type` as proposed).
 | tests | 268 on Python 3.15 and 240 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (8 of 8, the new session `session-self-assessment`) and `claude plugin validate --strict` without remarks; new tests of the engine, the commands, the terminal and the server for each of the five points |
 | simulation through the commands | the full courses (de A1–A2, es A1, it A1, 15 new words a day), three days of learning with self-assessment, the translation on request and notes, then a day with the date kept back: 6140 checks without a fault in 199 answers (66 grades of the learner in every variant, 29 notes, 11 words put aside); no `next` held a word or a note, and an answer outside today's session was refused |
 | preview of the card | the test host in Edge in the light and the dark theme: a question with the translation kept back, the answer after "pokaż" with a note and three grades, in the drill with two, a result with its return date |
-| for decision | a simulation with a model (an estimate of 1–2 USD), the release `v1.0.0-rc.9` and the deployment: each with your separate approval |
+| simulation with a model | a local server and Claude Code with the Sonnet model, a plan with `answer_mode=self` and `sentence_translation=hidden`, 8 turns for 1.32 USD (a limit of 2 USD): a question without its translation and with the hint "pokaż", "tłumaczenie" given from the same result without a tool call, "pokaż" (`vocab_reveal`) with the full answer and the question about the grade, "prawie" passed as given to `vocab_grade` (a row without `auto`) with "wróci dziś w utrwalaniu", a note through `vocab_note`, a typed answer through `vocab_answer` with "wróci za 2 dni", "nie chcę tego słowa" (`vocab_flag` with `skip`) without showing the answer, and the word brought back named by its Polish meaning; the one fault: after bringing the word back the model showed the counter from before the change, since the result of `vocab_flag` had no counter; the result of `flag` now holds the day's counter after the change |
 
 #### Out of scope until trials
 
@@ -1707,7 +1707,7 @@ of words confused between languages, own words from any text.
 | Stage 8, example sentences from the model for 10,738 entries | 8.32 USD with Claude Sonnet 5.5 (sample 0.09 USD, limit 12 USD) | approved on 16.11.2026 after the sample |
 | Stage 8, simulated sessions with the model through a local server | 2.86 USD (9 and 6 turns, the Sonnet model in Claude Code) | within the request of 16.11.2026 |
 | Stage 10, a simulation of the session with a model through a local server | 1.79 USD (10 turns, the Sonnet model in Claude Code; estimate 1–2 USD) | approved 16.11.2026 |
-| Stage 11, a simulation of the session with a model through a local server | an estimate of 1–2 USD (a limit of 2 USD) | separate |
+| Stage 11, a simulation of the session with a model through a local server | 1.32 USD (8 turns, the Sonnet model in Claude Code; a limit of 2 USD) | approved 16.11.2026 |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub

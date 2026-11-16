@@ -3,7 +3,7 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
-## Unreleased
+## 1.0.0-rc.9 - 2026-11-16
 
 ### Added
 
@@ -38,6 +38,8 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
 - `doctor --merge` also joins conflict copies of the notes, and puts the
   rows of the flags and the notes in the order of time.
+- The result of `flag` holds the day's counter after the change, so a chat
+  shows the right counter after a word is put aside or brought back.
 - `session-self-assessment` joins the session tests (8 sessions).
 
 ## 1.0.0-rc.8 - 2026-11-16

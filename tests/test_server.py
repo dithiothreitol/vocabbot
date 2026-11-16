@@ -468,7 +468,7 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             assert noted["ok"] and noted["note"] == "moje skojarzenie"
             assert (await client.call_tool("vocab_note", {"card": card})).is_error
             aside = await _call(client, "vocab_flag", card=card, skip=True)
-            assert aside["skipped"]
+            assert aside["skipped"] and aside["counter"].startswith("Postęp: ")
             status = await _call(client, "vocab_status")
             assert [w["card"].split("#")[0] for w in status["skipped"]] == [card.split("#")[0]]
             assert (await _call(client, "vocab_flag", card=card, clear=True))["cleared"]

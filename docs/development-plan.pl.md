@@ -1614,7 +1614,7 @@ propozycji).
 | testy | 268 na Pythonie 3.15 i 240 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (8 z 8, nowa sesja `session-self-assessment`) i `claude plugin validate --strict` bez uwag; nowe testy silnika, poleceń, terminala i serwera dla każdego z pięciu punktów |
 | symulacja przez polecenia | pełne kursy (de A1–A2, es A1, it A1, 15 nowych słów dziennie), trzy dni nauki z samooceną, tłumaczeniem na żądanie i notatkami, potem dzień z ukrytym terminem: 6140 sprawdzeń bez usterki w 199 odpowiedziach (66 ocen uczącego się we wszystkich odmianach, 29 notatek, 11 słów odłożonych); żadne `next` nie zawierało słowa ani notatki, a odpowiedź spoza dzisiejszej sesji została odrzucona |
 | podgląd karty | host testowy w Edge w motywie jasnym i ciemnym: pytanie z ukrytym tłumaczeniem, odpowiedź po „pokaż” z notatką i trzema ocenami, w utrwalaniu z dwiema, wynik z terminem powrotu |
-| do decyzji | symulacja z modelem (szacunkowo 1–2 USD), wydanie `v1.0.0-rc.9` i wdrożenie: każda czynność za Twoją osobną zgodą |
+| symulacja z modelem | lokalny serwer i Claude Code z modelem Sonnet, plan z `answer_mode=self` i `sentence_translation=hidden`, 8 tur za 1,32 USD (limit 2 USD): pytanie bez tłumaczenia z podpowiedzią „pokaż”, „tłumaczenie” podane z tego samego wyniku bez wywołania narzędzia, „pokaż” (`vocab_reveal`) z pełną odpowiedzią i pytaniem o ocenę, „prawie” przekazane dosłownie do `vocab_grade` (wiersz bez `auto`) z terminem „wróci dziś w utrwalaniu”, notatka przez `vocab_note`, wpisana odpowiedź przez `vocab_answer` z terminem „wróci za 2 dni”, „nie chcę tego słowa” (`vocab_flag` ze `skip`) bez pokazania odpowiedzi i przywrócenie słowa nazwanego polskim znaczeniem; jedyna usterka: po przywróceniu słowa model pokazał licznik sprzed zmiany, ponieważ wynik `vocab_flag` nie miał licznika; wynik `flag` zawiera teraz licznik dnia po zmianie |
 
 #### Poza zakresem do czasu prób
 
@@ -1683,7 +1683,7 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 8, zdania przykładowe z modelu dla 10 738 haseł | 8,32 USD przy Claude Sonnet 5.5 (próbka 0,09 USD, limit 12 USD) | zatwierdzony 16.11.2026 po próbce |
 | Etap 8, symulacje sesji z modelem przez lokalny serwer | 2,86 USD (9 i 6 tur, model Sonnet w Claude Code) | w ramach polecenia z 16.11.2026 |
 | Etap 10, symulacja sesji z modelem przez lokalny serwer | 1,79 USD (10 tur, model Sonnet w Claude Code; szacunek 1–2 USD) | zatwierdzona 16.11.2026 |
-| Etap 11, symulacja sesji z modelem przez lokalny serwer | szacunkowo 1–2 USD (limit 2 USD) | osobna |
+| Etap 11, symulacja sesji z modelem przez lokalny serwer | 1,32 USD (8 tur, model Sonnet w Claude Code; limit 2 USD) | zatwierdzona 16.11.2026 |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie

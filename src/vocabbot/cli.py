@@ -822,16 +822,20 @@ def run_quiz(catalog: Catalog, data: dict[str, Any], lenient: bool) -> dict[str,
 
 
 def cmd_flag(ctx: Context) -> dict[str, Any]:
+    learner, catalog = ctx.learner(), ctx.catalog()
     note = ctx.text() if ctx.args.stdin else ""
-    return session.flag(
-        ctx.learner(),
-        ctx.catalog(),
+    out = session.flag(
+        learner,
+        catalog,
         ctx.args.card,
         ctx.now,
         note=note,
         skip=ctx.args.skip,
         clear=ctx.args.clear,
     )
+    # a word out of the queue or back in it changes the day: the result holds the counter after it
+    out.update(session.day_progress(learner, catalog, ctx.day()))
+    return out
 
 
 def cmd_doctor(ctx: Context) -> dict[str, Any]:

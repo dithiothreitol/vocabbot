@@ -392,7 +392,8 @@ def register(server: MCPServer, tools: Tools) -> None:
         "Zgłoszenie błędu albo odłożenie słowa",
         "Report a mistake in a course entry with the learner's note, or with skip true put a"
         " word aside that the learner does not want to learn; either way the card leaves the"
-        " queue until clear true brings it back with the date it had.",
+        " queue until clear true brings it back with the date it had. The result holds the"
+        " day's counter after the change.",
         WRITE,
     )
     async def vocab_flag(
