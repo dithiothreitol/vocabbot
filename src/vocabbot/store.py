@@ -1,7 +1,7 @@
 """The learner's folder: plan, review log, flags, own words and the pointer to it.
 
     registers/plan.json        languages, levels, weights, limits, retention, days off
-    registers/day.json         extra new words for one day
+    registers/day.json         new words and reviews added to one day
     registers/.pending/        previews waiting for a confirm token
     log/reviews.jsonl          one row per graded answer, never rewritten
     log/decisions.md           one line per approved change of the plan or a course
@@ -25,6 +25,7 @@ from vocabbot.errors import VocabError
 
 PLAN = "registers/plan.json"
 DAY = "registers/day.json"
+DAY_SETTINGS = ("extra_new", "extra_reviews")
 PENDING = "registers/.pending"
 REVIEWS = "log/reviews.jsonl"
 DECISIONS = "log/decisions.md"
@@ -449,18 +450,35 @@ class Learner:
                 state[entry] = not row.get("clear", False)
         return {entry for entry, on in state.items() if on}
 
-    def extra_new(self, day: date) -> int:
+    def _day_setting(self, day: date, key: str) -> int:
         try:
             data = json.loads(self.path(DAY).read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return 0
         if not isinstance(data, dict) or data.get("day") != day.isoformat():
             return 0
-        extra = data.get("extra_new", 0)
-        return extra if isinstance(extra, int) and extra > 0 else 0
+        value = data.get(key, 0)
+        return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
+
+    def _set_day_setting(self, day: date, key: str, value: int) -> None:
+        settings = {name: self._day_setting(day, name) for name in DAY_SETTINGS}
+        settings[key] = value
+        kept = {name: number for name, number in settings.items() if number > 0}
+        write_text(self.path(DAY), dump_json({"day": day.isoformat(), **kept}))
+
+    def extra_new(self, day: date) -> int:
+        """New words the learner added to the day, on top of the plan's number."""
+        return self._day_setting(day, "extra_new")
 
     def set_extra_new(self, day: date, extra: int) -> None:
-        write_text(self.path(DAY), dump_json({"day": day.isoformat(), "extra_new": extra}))
+        self._set_day_setting(day, "extra_new", extra)
+
+    def extra_reviews(self, day: date) -> int:
+        """Reviews the learner added to the day: due ones over the limit, then later ones."""
+        return self._day_setting(day, "extra_reviews")
+
+    def set_extra_reviews(self, day: date, extra: int) -> None:
+        self._set_day_setting(day, "extra_reviews", extra)
 
     def own_path(self, lang: str) -> Path:
         return self.path(OWN.format(lang=lang))

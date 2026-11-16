@@ -3,6 +3,46 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Added
+
+- The stages of a day, as in SuperMemo (repetitions, new material, final
+  drill), are the learner's choice: `next --stage reviews|new|drill` brings
+  the cards of the chosen stage first, and an answer with `--next` returns
+  the next card of the stage the answered card belongs to. A result names
+  the stage (`stage`), a chosen stage without cards (`stage_empty`) and the
+  cards left in each stage (`left`). Reviews left undone stay due.
+- More reviews for a day: `today --reviews N` adds the next round, the due
+  cards outside the day's list first (over `review_limit`, or on a day off)
+  and then the cards with the nearest later dates as reviews before their
+  day. `registers/day.json` keeps the number beside the added new words.
+- `more` in the results of `today` and `next`: the new words, due reviews
+  and later reviews that can still join the day. `today --extra` and
+  `today --reviews` report `added` and, with `--next`, the next cards;
+  `grade` takes `--next` as well.
+- The terminal session: `/nowe`, `/powtorki`, `/utrwalanie` and `/wiecej`
+  at the answer prompt, `p` at a new word, and after the day's list the
+  choice of more new words, the next round of reviews or the end.
+- The server: `vocab_next` takes `stage`, `vocab_grade` takes `then_next`,
+  and `vocab_add_today` takes `count` and `reviews` and shows the card. The
+  card shows the three stages with the cards left and marks the one in
+  progress. The session guide and the `vocab-session` skill describe the
+  stages, the words that change them and the offer after the day's list.
+
+### Changed
+
+- `left.reviews` counts the reviews before their day too, and the server's
+  tools no longer take `ahead`: such reviews join the day through
+  `vocab_add_today`.
+
+### Fixed
+
+- Asking for more new words several times with two or three languages no
+  longer brings more words than asked for: added words join one at a time
+  in a fixed order of languages, so a larger number only appends.
+- Reviews the learner adds leave the paced number of new words unchanged.
+
 ## 1.0.0-rc.7 - 2026-11-16
 
 ### Added

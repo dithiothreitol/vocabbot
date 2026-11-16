@@ -10,6 +10,13 @@ order in the terminal and in the chat:
    less than `sibling_gap_days` ago waits;
 3. drill: cards answered "almost" or "dont_know" today, until "know".
 
+These are the three stages of a day, as in SuperMemo (repetitions, new
+material, final drill). The learner may take them in another order
+(`staged`), and may add to the day: more new words, and more reviews, which
+are the due cards over the limit first and then the cards with the nearest
+later dates ("ahead"). What the learner added is kept in registers/day.json,
+so the list stays a function of the log before the day and of that file.
+
 Languages are interleaved (or kept in blocks), and cards of one concept stay
 at least `sibling_distance` positions apart.
 """
@@ -72,6 +79,11 @@ class DayPlan:
     planned_new: int = 0  # the plan's new words for the day, before pacing
     paced_new: int | None = None  # fewer new words to stay within the usual minutes
     due_tomorrow: int = 0
+    suspended: set[str] = field(default_factory=set)
+    ahead: list[str] = field(default_factory=list)  # reviews before their day, added today
+    extra_reviews: int = 0  # reviews the learner added to the day
+    waiting: int = 0  # due cards outside today's list (the limit, a day off)
+    later: int = 0  # cards with a later date, not on today's list and not answered today
 
     def lang_codes(self) -> list[str]:
         return [item["code"] for item in self.plan["languages"]]
@@ -96,11 +108,46 @@ def split_quota(total: int, weights: dict[str, int], ordinal: int) -> dict[str, 
     return quota
 
 
+def added_order(weights: dict[str, int], order: list[str], count: int) -> list[str]:
+    """The languages of the words added to a day, one word at a time, by weight.
+
+    A longer list starts with the shorter one, so asking for more words only
+    appends to the words already chosen (the split by largest remainders does
+    not have this property: a larger total may move a place between languages).
+    """
+    given = dict.fromkeys(order, 0)
+    rank = {code: index for index, code in enumerate(order)}
+    out: list[str] = []
+    for _ in range(max(0, count)):
+        code = min(order, key=lambda c: (Fraction(given[c] + 1, max(1, weights[c])), rank[c]))
+        given[code] += 1
+        out.append(code)
+    return out
+
+
 def rotate(codes: list[str], ordinal: int) -> list[str]:
     if not codes:
         return codes
     shift = ordinal % len(codes)
     return codes[shift:] + codes[:shift]
+
+
+STAGES = {"reviews": ("review", "ahead"), "new": ("new",), "drill": ("drill",)}
+STAGE_OF = {phase: stage for stage, phases in STAGES.items() for phase in phases}
+
+
+def staged(sequence: list[Item], stage: str | None) -> list[Item]:
+    """The day's cards with the cards of the chosen stage first.
+
+    The rest keeps the engine's order, so a stage that runs out leads to the
+    next one and nothing of the day is lost. Without a stage: reviews, new
+    words, reviews before their day, drill.
+    """
+    if stage is None:
+        return list(sequence)
+    phases = STAGES[stage]
+    chosen = [item for item in sequence if item.phase in phases]
+    return chosen + [item for item in sequence if item.phase not in phases]
 
 
 def interleave(cards: list[str], lang_of: dict[str, str], order: list[str]) -> list[str]:
@@ -163,18 +210,19 @@ def select_new(
     Answers given during the day do not change the choice. The words of the
     plan (`base`, the daily limit) are chosen first and never change during the
     day; words the learner adds (more words for today, and one more for each
-    word marked as known, which does not use the limit) join after them, so a
-    card already shown never leaves the list.
+    word marked as known, which does not use the limit) join after them one at
+    a time in a fixed order of languages, so a larger number only appends:
+    a card already shown never leaves the list and the day keeps its number.
     """
     active = [item for item in plan["languages"] if not item.get("paused")]
     weights = {item["code"]: int(item.get("weight", 1)) for item in active}
     known = sum(1 for card in today.learned if today.first_grade.get(card) == "known")
     zero = dict.fromkeys(weights, 0)
     full = total + known if total > 0 else 0
-    quota = split_quota(full, weights, day.toordinal()) if full > 0 else zero
     planned_base = min(total if base is None else base, total)
     first = split_quota(planned_base, weights, day.toordinal()) if planned_base > 0 else zero
-    second = {code: max(0, quota[code] - first[code]) for code in weights}
+    order = rotate(list(weights), day.toordinal())
+    added = added_order(weights, order, full - planned_base)
     directions = [DIRECTION_CODES[d] for d in plan["directions"]]
     # Words learned today that the plan no longer holds (its levels or languages changed
     # during the day) stay in the day and take the places of words not chosen yet, in their
@@ -193,10 +241,16 @@ def select_new(
         for code, extra in split_quota(spare, weights, day.toordinal()).items():
             cuts[code] += extra
     for code in weights:
-        from_second = min(second[code], cuts[code])
-        second[code] -= from_second
-        first[code] = max(0, first[code] - (cuts[code] - from_second))
-        quota[code] = first[code] + second[code]
+        # the first added places of the language go, then places of the plan's words
+        kept: list[str] = []
+        for lang in added:
+            if lang == code and cuts[code] > 0:
+                cuts[code] -= 1
+            else:
+                kept.append(lang)
+        added = kept
+        first[code] = max(0, first[code] - cuts[code])
+    quota = {code: first[code] + added.count(code) for code in weights}
     introduced: dict[str, list[tuple[str, str, date]]] = defaultdict(list)
     for card, state in before.cards.items():
         entry = catalog.card(card)
@@ -236,8 +290,6 @@ def select_new(
         exhausted.add(code)
         return False
 
-    order = rotate(list(weights), day.toordinal())
-
     def fill(remaining: dict[str, int]) -> None:
         """Take each language's share; a language without words left passes it on."""
         for code in order:
@@ -254,7 +306,12 @@ def select_new(
                 break
 
     fill(first)
-    fill(second)
+    for code in added:
+        # a language without words left passes its place on
+        if code in exhausted or not take(code):
+            for other in order:
+                if other not in exhausted and take(other):
+                    break
     planned = [card for code in order for card in picks[code]]
     chosen = set(planned)
     # words learned today outside today's choice: the plan changed during the day, or the
@@ -335,6 +392,7 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     suspended = learner.suspended()
     off = store.WEEKDAYS[day.weekday()] in plan["days_off"]
     extra = learner.extra_new(day)
+    extra_reviews = learner.extra_reviews(day)
 
     due_list: list[tuple[date, str]] = []
     later: list[tuple[date, str]] = []
@@ -355,19 +413,26 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     due_cards = [card for _, card in due_list]
     limit = plan.get("review_limit")
     if off:
-        reviews: list[str] = []
+        planned_reviews = 0
     elif isinstance(limit, int):
-        reviews = due_cards[:limit]
+        planned_reviews = min(limit, len(due_cards))
     else:
-        reviews = due_cards
-    overflow = 0 if off else len(due_cards) - len(reviews)
+        planned_reviews = len(due_cards)
+    # reviews the learner added: the due cards outside the day's list come first, then
+    # the cards with the nearest later dates, as reviews before their day
+    reviews = due_cards[: planned_reviews + extra_reviews]
+    added_due = reviews[planned_reviews:]
+    reviews_ahead = [card for _, card in later][: extra_reviews - len(added_due)]
+    waiting = len(due_cards) - len(reviews)
+    overflow = 0 if off else waiting
 
     planned = 0 if off else int(plan["new_per_day"])
     base = planned
     paced_new = None
     if profile is not None and profile.minutes and planned:
         per_card = attendance.seconds(before.rows)
-        base = attendance.paced(planned, len(reviews), profile.minutes, per_card)
+        # the day's own reviews count: reviews the learner adds leave the new words as they are
+        base = attendance.paced(planned, planned_reviews, profile.minutes, per_card)
         paced_new = base if base < planned else None
     total = base + extra
     new, quota = select_new(plan, catalog, before, today, day, total, suspended, base=base)
@@ -383,7 +448,10 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         ),
         key=lambda card: today.last_ts[card],
     )
-    ahead_cards = [card for _, card in later if card not in done][: max(0, ahead)]
+    ahead_cards = [card for card in reviews_ahead if card not in done]
+    ahead_planned_left = list(ahead_cards)
+    if ahead > len(ahead_cards):
+        ahead_cards = [card for _, card in later if card not in done][:ahead]
     entries = {card: catalog.card(card) for card in {*reviews, *new, *drill, *ahead_cards}}
     lang_of = {card: card[:2] for card in entries}
     family = {card: str((entry or {}).get("concept", card)) for card, entry in entries.items()}
@@ -394,8 +462,18 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     # The whole day's reviews and new words are put in order first and the
     # cards already answered are left out afterwards, so the order of what
     # remains never changes during the day.
+    # reviews added during the day join after the planned ones, which keep their order
     full_reviews = spread(
-        arrange([c for c in reviews if entries.get(c)], lang_of, codes), family, distance, []
+        arrange([c for c in reviews[:planned_reviews] if entries.get(c)], lang_of, codes),
+        family,
+        distance,
+        [],
+    )
+    full_reviews += spread(
+        arrange([c for c in added_due if entries.get(c)], lang_of, codes),
+        family,
+        distance,
+        full_reviews,
     )
     full_new = spread(
         arrange([c for c in new if entries.get(c)], lang_of, codes), family, distance, full_reviews
@@ -446,4 +524,9 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         planned_new=planned,
         paced_new=paced_new,
         due_tomorrow=sum(1 for due, card in later if due == day + timedelta(days=1)),
+        suspended=suspended,
+        ahead=reviews_ahead,
+        extra_reviews=extra_reviews,
+        waiting=waiting,
+        later=sum(1 for _, card in later if card not in done) - len(ahead_planned_left),
     )

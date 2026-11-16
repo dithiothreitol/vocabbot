@@ -130,8 +130,8 @@ def register(server: MCPServer, tools: Tools) -> None:
         "vocab_today",
         "Plan dnia",
         "The learner's day: reviews due, new words and drill per language, the minutes it"
-        " takes, a day off, what is done and left with the counter line, and the words first"
-        " shown today. Writes nothing.",
+        " takes, a day off, what is done and left in each stage with the counter line, what"
+        " can still be added today (`more`), and the words first shown today. Writes nothing.",
         READ,
         card=True,
     )
@@ -140,31 +140,44 @@ def register(server: MCPServer, tools: Tools) -> None:
 
     @tool(
         "vocab_add_today",
-        "Więcej nowych słów",
-        "Add new words to today's session, only when the learner asks for more.",
+        "Więcej na dziś",
+        "Add to today's session, only when the learner asks for more: `count` new words on"
+        " top of the day's number, or `reviews` more reviews (the next round: due cards over"
+        " the limit or of a day off first, then the cards with the nearest later dates). The"
+        " result says how many joined (`added`) and holds the next cards (`next`).",
         WRITE,
+        card=True,
     )
-    async def vocab_add_today(count: Annotated[int, Field(ge=1, le=100)]) -> str:
-        return await tools.run(["today", "--extra", str(count)])
+    async def vocab_add_today(
+        count: Annotated[int, Field(ge=0, le=100)] = 0,
+        reviews: Annotated[int, Field(ge=0, le=200)] = 0,
+    ) -> str:
+        if count + reviews < 1:
+            raise ToolError("give count (new words) or reviews, at least 1")
+        argv = ["today", "--extra", str(count), "--reviews", str(reviews), "--next"]
+        return await tools.run(argv)
 
     @tool(
         "vocab_next",
         "Następne karty",
-        "The next cards of today's session in the engine's order: as many as the plan's"
-        " batch (1 by default, one card at a time) unless `count` says otherwise. A review"
-        " shows only its question; a new word (phase new) also has its word for the"
-        " introduction. `ahead` brings that many reviews of later days, only when the learner"
-        " chose to learn ahead. Calling it again returns the same cards until answers come in.",
+        "The next cards of today's session: as many as the plan's batch (1 by default, one"
+        " card at a time) unless `count` says otherwise. Without `stage` the engine's order"
+        " holds: reviews, new words, drill. `stage` (reviews, new or drill) brings the cards"
+        " of the stage the learner chose first, at any moment of the session. A review shows"
+        " only its question; a new word (phase new) also has its word for the introduction."
+        " Calling it again returns the same cards until answers come in.",
         READ,
         card=True,
     )
     async def vocab_next(
         count: Annotated[int | None, Field(ge=1, le=50)] = None,
-        ahead: Annotated[int, Field(ge=0, le=200)] = 0,
+        stage: Literal["reviews", "new", "drill"] | None = None,
     ) -> str:
-        argv = ["next", "--ahead", str(ahead)]
+        argv = ["next"]
         if count is not None:
             argv += ["--count", str(count)]
+        if stage is not None:
+            argv += ["--stage", stage]
         return await tools.run(argv)
 
     @tool(
@@ -173,18 +186,17 @@ def register(server: MCPServer, tools: Tools) -> None:
         "Grade the learner's typed answers to the cards of the last vocab_next, exactly as"
         " typed (an unknown answer as an empty string). Returns the engine's grade with its"
         " error classes, the right word, and what is left today; with `then_next` also the"
-        " next cards (`next`), so the session needs one call per card. `ahead` is true for"
-        " cards with phase ahead.",
+        " next cards (`next`) of the stage the answered card belongs to, so the session needs"
+        " one call per card and stays in the stage the learner chose.",
         WRITE,
         card=True,
     )
-    async def vocab_answer(answers: Answers, ahead: bool = False, then_next: bool = False) -> str:
+    async def vocab_answer(answers: Answers, then_next: bool = False) -> str:
         text = "\n".join(
             json.dumps({"card": item.card, "answer": item.answer}, ensure_ascii=False)
             for item in answers
         )
         argv = ["answer", "--batch", "--stdin"]
-        argv += ["--ahead"] if ahead else []
         argv += ["--next"] if then_next else []
         return await tools.run(argv, text)
 
@@ -194,16 +206,18 @@ def register(server: MCPServer, tools: Tools) -> None:
         "The learner's own grade of a card: known (the learner knew the word before the"
         " course; only at its first showing), or know, almost, dont_know for a recognition"
         " card after vocab_reveal. After several known words in a row the result may hold"
-        " `level_hint`.",
+        " `level_hint`. With `then_next` the result also holds the next cards (`next`) of"
+        " the same stage.",
         WRITE,
         card=True,
     )
     async def vocab_grade(
         card: Card,
         grade: Literal["known", "know", "almost", "dont_know"],
-        ahead: bool = False,
+        then_next: bool = False,
     ) -> str:
-        argv = ["grade", "--card", card, "--grade", grade, *(["--ahead"] if ahead else [])]
+        argv = ["grade", "--card", card, "--grade", grade]
+        argv += ["--next"] if then_next else []
         return await tools.run(argv)
 
     @tool(

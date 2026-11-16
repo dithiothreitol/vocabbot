@@ -400,3 +400,139 @@ def test_the_level_hint_comes_once_a_day_for_the_present_levels(catalog: Catalog
     assert session.level_hint([*rows, *a2], catalog, "en", higher, tuesday)["suggested"] == "b1"
     top = {"languages": [{"code": "en", "levels": ["b2"]}]}
     assert session.level_hint(rows, catalog, "en", top, tuesday) is None
+
+
+# ---------------------------------------------------------------- stages and more cards
+
+
+def test_the_learner_chooses_the_stage(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=3)
+    learn_day(learner, catalog, MONDAY)
+    day = MONDAY + timedelta(days=2)
+    due = compute(learner, catalog, day).reviews
+    assert len(due) == 3
+
+    usual = session.next_items(learner, catalog, day, count=1)
+    assert usual["stage"] == "reviews" and usual["items"][0]["phase"] == "review"
+    chosen = session.next_items(learner, catalog, day, count=1, stage="new")
+    assert chosen["stage"] == "new" and chosen["items"][0]["phase"] == "new"
+    assert "stage_empty" not in chosen
+    assert chosen["left"] == {"reviews": 3, "new": 3, "drill": 0}
+
+    # the new words are answered while the reviews wait; a wrong one goes to the drill
+    new = [i["card"] for i in session.next_items(learner, catalog, day, stage="new")["items"][:3]]
+    for second, card in enumerate(new):
+        given = "xxx" if second == 0 else correct(catalog, card)
+        result = session.answer(learner, catalog, day, moment(day, second), card, given)
+        assert session.KIND_STAGE[result["kind"]] == "new"
+    drill = session.next_items(learner, catalog, day, count=1, stage="drill")
+    assert drill["stage"] == "drill" and drill["items"][0]["card"] == new[0]
+
+    # a stage without cards names itself and leads to the engine's order
+    after = session.next_items(learner, catalog, day, count=1, stage="new")
+    assert after["stage_empty"] == "new" and after["stage"] == "reviews"
+    assert after["items"][0]["phase"] == "review"
+
+    # reviews left undone stay due on the next day
+    assert set(due) <= set(compute(learner, catalog, day + timedelta(days=1)).reviews)
+    with pytest.raises(VocabError) as error:
+        session.next_items(learner, catalog, day, stage="later")
+    assert error.value.code == "bad_stage"
+
+
+def test_the_next_round_of_reviews_comes_before_its_day(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=4)
+    learn_day(learner, catalog, MONDAY)
+    # every card already has today's answer: nothing joins and nothing is written
+    assert session.add_extra(learner, catalog, MONDAY, reviews=3)["added"]["reviews"] == 0
+    assert learner.extra_reviews(MONDAY) == 0
+
+    tuesday = MONDAY + timedelta(days=1)
+    before = compute(learner, catalog, tuesday)
+    assert not before.reviews and before.later == 4
+    outside = sorted(before.before.cards)[0]
+    with pytest.raises(VocabError) as error:
+        session.answer(learner, catalog, tuesday, moment(tuesday), outside, "x")
+    assert error.value.code == "not_due"
+
+    added = session.add_extra(learner, catalog, tuesday, reviews=3)
+    assert added["added"] == {"new": 0, "reviews": 3}
+    assert added["left"]["reviews"] == 3 and added["more"]["reviews_ahead"] == 1
+    cards = session.next_items(learner, catalog, tuesday, count=10, stage="reviews")
+    assert [item["phase"] for item in cards["items"][:3]] == ["ahead"] * 3
+    assert all("word" not in item for item in cards["items"][:3])
+    card = cards["items"][0]["card"]
+    result = session.answer(
+        learner, catalog, tuesday, moment(tuesday), card, correct(catalog, card)
+    )
+    assert result["kind"] == "review" and learner.rows()[0][-1]["ahead"] is True
+    assert "przed terminem 1/3" in result["counter"]
+    assert result["left"]["reviews"] == 2
+    # the early answer moves the card's next date, counted from the real gap
+    assert (
+        result["next_due"]
+        > compute(learner, catalog, tuesday).before.cards[card].due(before.scheduler).isoformat()
+    )
+
+    # more new words and more reviews live side by side in the day's register
+    session.add_extra(learner, catalog, tuesday, count=2)
+    assert learner.extra_new(tuesday) == 2 and learner.extra_reviews(tuesday) == 3
+    session.add_extra(learner, catalog, tuesday, reviews=5)
+    assert learner.extra_reviews(tuesday) == 4  # only one more card was there
+    assert learner.extra_reviews(tuesday + timedelta(days=1)) == 0
+
+
+def test_more_reviews_take_the_due_ones_first(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=15, review_limit=10)
+    learn_day(learner, catalog, MONDAY)
+    day = MONDAY + timedelta(days=2)
+    planned = compute(learner, catalog, day)
+    assert len(planned.reviews) == 10 and planned.waiting == 5
+    added = session.add_extra(learner, catalog, day, reviews=3)
+    assert added["added"]["reviews"] == 3
+    dp = compute(learner, catalog, day)
+    assert dp.reviews[:10] == planned.reviews and len(dp.reviews) == 13
+    assert not dp.ahead and dp.overflow == 2
+    # the planned reviews keep their places; the added ones follow
+    order = [item.card for item in dp.sequence if item.phase == "review"]
+    assert order[:10] == [item.card for item in planned.sequence if item.phase == "review"]
+
+
+def test_a_day_off_can_still_bring_its_reviews(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=3, days_off=["wed"])
+    learn_day(learner, catalog, MONDAY)
+    wednesday = MONDAY + timedelta(days=2)
+    dp = compute(learner, catalog, wednesday)
+    assert dp.off and not dp.sequence and dp.waiting == 3
+    assert session.more(dp, catalog)["reviews_due"] == 3
+    added = session.add_extra(learner, catalog, wednesday, reviews=2)
+    assert added["added"]["reviews"] == 2
+    items = session.next_items(learner, catalog, wednesday, count=5)["items"]
+    assert [item["phase"] for item in items] == ["review", "review"]
+
+
+def test_more_words_only_append_to_the_day(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2", "es:a1-a2", "fr:a1-a2"], new_per_day=6)
+    chosen = compute(learner, catalog, MONDAY).new
+    assert len(chosen) == 6
+    second = 0
+    for step in range(1, 7):
+        # the learner answers what the day holds, then asks for more, several times
+        for card in compute(learner, catalog, MONDAY).new:
+            if card not in compute(learner, catalog, MONDAY).today.seen:
+                second += 1
+                session.answer(
+                    learner, catalog, MONDAY, moment(MONDAY, second), card, correct(catalog, card)
+                )
+        added = session.add_extra(learner, catalog, MONDAY, 3)
+        longer = compute(learner, catalog, MONDAY).new
+        assert added["added"]["new"] == 3
+        assert set(chosen) < set(longer) and len(longer) == 6 + 3 * step
+        # one word for each language
+        assert sorted(card[:2] for card in set(longer) - set(chosen)) == ["de", "es", "fr"]
+        chosen = longer
+    # a word marked as known brings one more, and nothing else moves
+    card = next(c for c in chosen if c not in compute(learner, catalog, MONDAY).today.seen)
+    session.self_grade(learner, catalog, MONDAY, moment(MONDAY, 900), card, "known")
+    longer = compute(learner, catalog, MONDAY).new
+    assert set(chosen) < set(longer) and len(longer) == len(chosen) + 1

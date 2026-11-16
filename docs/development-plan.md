@@ -11,7 +11,10 @@ package). You accepted the plan on 14.11.2026 and added Stages 4, 5, 6 and 7 on
 time. I carried out Stages 8 and 9 (pilot feedback: pronunciation,
 examples, a counter, ChatGPT and a card in the chat window) on 16.11.2026;
 with your approval I released them as `v1.0.0-rc.7` on GitHub and PyPI and
-deployed them on the server. The engine, the `vocabbot` program with its new terminal session,
+deployed them on the server. You added Stage 10 (the session's stages as in
+SuperMemo: the choice of stage, more words and more rounds of reviews) and I
+carried it out on 16.11.2026 in the local repository; its release awaits
+your approval. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -408,11 +411,19 @@ starts at the hour `day_starts_at`.
 3. Order of the session: reviews, then new words, at the end the drill. The
    languages are interleaved in proportion to their cards. The engine keeps
    at least `sibling_distance` positions between the cards of one family.
-4. The list of the day is a function of the log before that day, the plan
-   and the course, so an interrupted session resumes in the same order in the
-   terminal and in the chat.
+4. The list of the day is a function of the log before that day, the plan,
+   the course and the day's register, so an interrupted session resumes in
+   the same order in the terminal and in the chat.
 5. A day off from `days_off` has an empty queue and the reviews due move to
    the next learning day.
+6. The learner chooses the stage (reviews, new words, drill) at any moment:
+   the session brings the cards of the chosen stage first, and the other
+   cards keep the engine's order (Stage 10).
+7. The learner adds more new words and more reviews to the day. Added words
+   join one at a time in a fixed order of languages by weight. Added reviews
+   are the due cards outside the day's list first, then the cards with the
+   nearest later dates as reviews before their day. `registers/day.json`
+   keeps the numbers of added cards (Stage 10).
 
 ### 7.3 Safeguards of saving grades
 
@@ -449,8 +460,9 @@ complete.
 |---|---|
 | `vocabbot init [FOLDER] --base pl --lang en:b1-b2:2 --lang de:a1-a2 --new 15` | creates the learner's folder and the plan |
 | `vocabbot today` | the plan of the day: reviews, new words and drill for every language |
+| `vocabbot today --extra N`, `vocabbot today --reviews N` | more new words and the next round of reviews for today; with `--next` the result holds the next cards (Stage 10) |
 | `vocabbot drill` | the interactive session in a terminal |
-| `vocabbot next --count 10 --json` | the next cards without their answers; new words with their full content to show |
+| `vocabbot next --count 10 --json` | the next cards without their answers; new words with their full content to show; `--stage reviews\|new\|drill` brings the cards of the chosen stage first (Stage 10) |
 | `vocabbot answer --card ID --stdin --json` | grades a typed answer, saves a row, returns the right answer and the example |
 | `vocabbot grade --card ID --grade known` | the learner's own grade: "known" and recognition cards |
 | `vocabbot regrade --card ID --grade know` | a change of the last grade at the learner's request, marked in the log |
@@ -1413,6 +1425,57 @@ your request, the result below.
 | deployment | server 1.0.0rc7 at `https://vocab.archxs.com` since 16.11.2026; a smoke test with a short-lived token of the test account, revoked after the test: 22 tools, the card on four tools, the card resource with its CSP and labels, the counter in `vocab_today`, a recording and an example in `vocab_lookup` |
 | to check | the card in Claude and ChatGPT on a computer and on a phone from your account |
 
+### Stage 10. The session's stages as in SuperMemo: the choice of stage, more words and more rounds of reviews
+
+You added Stage 10 on 16.11.2026 after comparing VocabBot's session with the
+SuperMemo application (two screenshots of a German course). Status: carried
+out on 16.11.2026 in the local repository, result below. The release and
+the deployment await your approval.
+
+#### How SuperMemo works (as of 16.11.2026)
+
+| Mechanism | SuperMemo | Source |
+|---|---|---|
+| three stages of a day | the application's bar has three counters: repetitions, new material and drills; a course opens on the repetitions, then on the new material, then on the drills | FAQ "Repetitions and drills", the post "How to start learning with a course" |
+| moving between the stages | the learner changes the mode at any moment (the Tab key in the browser) | FAQ on keyboard shortcuts |
+| new material | the number of cards a day in the course plan (5, 10, 20, 30 or one's own) is a start, and after it the course goes on with further pages | the post "Customize your learning with SuperMemo", observation of the application |
+| repetitions | repetitions left undone move to the following days, the new interval follows the real time since the previous repetition, the calendar has a daily limit of repetitions and excluded days | FAQ "Repetition limit", the post "Sort your repetitions" |
+| a repetition before its day | SuperMemo for Windows makes a mid-interval repetition with a correction in the algorithm; the help of the course application describes no such function | SuperMemo help, "Mid-interval repetition" |
+| the drill | a card graded "I don't know" or "Almost" comes back the same day until it succeeds, in a fixed order; grades of the final drill in SuperMemo for Windows leave the intervals unchanged | FAQ "Repetitions and drills", SuperMemo help, "Final drill" |
+| grades | "I know" lengthens the interval, "Almost" lengthens it and sends the card to the drill, "I don't know" shortens it | the post "Repeat section and 3 buttons assessment" |
+| the first contact | the first contact with a word counts as learning and the next ones as repetitions | the post "How to learn with SuperMemo" |
+
+#### Scope and result of Stage 10 (16.11.2026)
+
+| Your remark | How |
+|---|---|
+| 1. a choice between new words and reviews | `next --stage reviews\|new\|drill` (on the server `vocab_next` with `stage`) brings the cards of the chosen stage first; the result names the stage (`stage`), a stage without cards (`stage_empty`) and the cards left in the three stages (`left`); without a choice the engine's order holds: reviews, new words, drill |
+| 2. the day's number of new words as a start | `today --extra N --next` (`vocab_add_today` with `count`) adds words on top of the plan's number any number of times, up to 100 a day; `more.new` gives the words available at the plan's levels, and the session offers more words after the day's list |
+| 3. skipping the reviews | moving to the stage `new` leaves the reviews untouched: the card on screen waits in its stage, and reviews left undone keep their date and open the next day |
+| 4. moving to the new words during the reviews | an answer with `--next` (`then_next`) returns the next card of the stage the answered card belongs to, so the chosen stage lasts without further parameters; after the last card of a stage the session moves to the next one in the engine's order |
+| 4. a new cycle of reviews after all of them | `today --reviews N --next` (`vocab_add_today` with `reviews`) adds the next round: the due reviews outside the day's list first (over `review_limit`, or of a day off), then the cards with the nearest later dates as reviews before their day; the engine counts the next date from the real gap (FSRS), the log row carries `ahead`, and a card answered today joins no further round |
+| the drill | unchanged in principle: a card graded "prawie" or "nie wiem" comes back until "wiem" and its date no longer changes that day; the stage `drill` may be chosen earlier |
+| the day's register | `registers/day.json` keeps the new words and the reviews added to one day, so the day's list stays a function of the log before the day, the plan, the course and this file, and an interrupted session resumes at the same place in the terminal and in the chat |
+| the terminal | `vocabbot drill` takes `/nowe`, `/powtorki`, `/utrwalanie` and `/wiecej` at the answer prompt and the key `p` at a new word, and after the day's list offers `n` (5 new words), `p` (the next round of 10 reviews) and Enter (the end) |
+| the chat | the guide `session` and the skill `vocab-session` have the section "The stages and more cards": a start from the reviews with one line about the choice, the words "nowe", "powtórki", "utrwalanie", "więcej słów" and "jeszcze powtórki", one line at the end of a stage and the offer after the day's list |
+| the server and the card | `vocab_next` takes `stage`, `vocab_grade` takes `then_next`, `vocab_add_today` takes `count` and `reviews` and returns `added` and `next`; the parameter `ahead` left the tools, since reviews before their day join the day through `vocab_add_today`; the card shows the three stages with the cards left and marks the stage in progress |
+| a fault found by the simulation | a second request for more new words with three languages gave 28 words instead of 25: the largest remainder split moved a place between languages and a word already shown fell outside the choice; added words now join one at a time in a fixed order of languages by weight, so a larger number only appends (this also covers the word added after "znałem") |
+| the day's pace | reviews the learner adds leave the number of new words set from the presence profile unchanged |
+| tests | 255 on Python 3.15 and 227 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 of 7) and `claude plugin validate --strict` without remarks; new tests: the choice of a stage and a stage without cards, a round of reviews before their day, due reviews over the limit first, a day off with reviews on request, the next card in the chosen stage through the commands, stages and additions in the terminal, more new words with three languages, the server's tools with `stage`, `then_next` and `reviews` |
+| simulation | the full courses (de A1–A2, es A1, it A1, 15 new words a day) through the program's commands: 1206 checks without a fault; the counter adds up after every answer, the next card stays in the chosen stage, two additions give 25 new words, four rounds give 35 reviews before their day without a repeat, and a round is empty when every card has today's answer; a simulation with a model in the chat needs your approval of its cost |
+
+Differences from SuperMemo left for your decision:
+
+1. **A new word.** VocabBot introduces a new word and asks about it after
+   "dalej"; SuperMemo shows a new word at once as an exercise with the
+   learner's own grade.
+2. **Grades in the drill.** SuperMemo has two grades in the drill ("I know"
+   and "I don't know"); VocabBot grades the typed answer with three grades
+   and "prawie" keeps the card in the drill.
+3. **The order of reviews.** SuperMemo lets the learner choose the order of
+   repetitions (course order, random, rising intervals); VocabBot gives the
+   most overdue cards first.
+
 ---
 
 ## 11. Completeness check
@@ -1424,7 +1487,7 @@ your request, the result below.
 | A vocabulary course by frequency with CEFR levels | yes | A1–A2 and B1–B2 courses, ordered by frequency |
 | A word page: meaning, example, pronunciation | yes | the Polish meaning, a sentence with a gap, IPA |
 | Three grades | yes | `know`, `almost`, `dont_know` |
-| Learning, reviews, drill | yes | one queue of the day in this order |
+| Learning, reviews, drill | yes | three stages of the day in this order, with the learner's choice of stage, more new words and more rounds of reviews (Stage 10) |
 | A review at a recall of about 90% | yes | FSRS-6, the recall in the plan, the spread of due dates, initial intervals fitted to the log, the full fit of a language after a win in `replay`, due dates by presence |
 | Skipping known words | yes | the grade "known" and the placement test |
 | Cards a day, the length of the course | yes | `plan`, `forecast` |
@@ -1515,6 +1578,14 @@ account on 14.11.2026.
 - SuperMemo, the review section and three grades: https://supermemo.com/blog/repeat-section-and-3-buttons-assessment
 - SuperMemo, mixed repetitions: https://www.supermemo.com/en/faq/mixed-repetitions
 - SuperMemo, learning plan: https://www.supermemo.com/en/faq/learning-plan
+- SuperMemo, repetitions and drills: https://www.supermemo.com/en/faq/repetitions-and-drills
+- SuperMemo, first steps with a course: https://www.supermemo.com/en/blog/how-to-start-learning-with-a-course-5-easy-steps
+- SuperMemo, keyboard shortcuts: https://www.supermemo.com/en/faq/which-keyboard-shortcuts-can-i-use-in-supermemo
+- SuperMemo, cards a day: https://www.supermemo.com/en/blog/customize-your-learning-with-supermemo
+- SuperMemo, repetition limit: https://www.supermemo.com/en/faq/repetition-limit
+- SuperMemo, order of repetitions: https://www.supermemo.com/en/blog/new-at-supermemo-sort-your-repetitions
+- SuperMemo, how to learn: https://www.supermemo.com/en/blog/how-to-learn-with-supermemo
+- SuperMemo for Windows, glossary (Final drill, Mid-interval repetition): https://www.super-memory.com/help/g.htm
 - FSRS, description of the algorithm: https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm
 - py-fsrs: https://github.com/open-spaced-repetition/py-fsrs
 - kaikki.org, Wiktionary data: https://kaikki.org/dictionary/rawdata.html

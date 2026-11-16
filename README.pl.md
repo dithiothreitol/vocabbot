@@ -13,10 +13,16 @@ samą sesję w czacie.
 
 ## Przebieg nauki
 
-- **Dzień.** Najpierw powtórki zaplanowane na dziś, potem nowe słowa, na
-  końcu utrwalanie: każda karta z błędną odpowiedzią wraca pod koniec sesji
-  aż do odpowiedzi „wiem”. Odpowiedź w utrwalaniu nie zmienia terminu
-  powtórki.
+- **Dzień.** Dzień ma trzy etapy, tak jak w SuperMemo: powtórki zaplanowane
+  na dziś, nowe słowa i utrwalanie, w którym każda karta z błędną
+  odpowiedzią wraca aż do odpowiedzi „wiem”. Odpowiedź w utrwalaniu
+  zachowuje termin powtórki.
+- **Wybór uczącego się.** Uczący się przechodzi między etapami w dowolnej
+  chwili: do nowych słów przy czekających powtórkach, z powrotem do powtórek
+  oraz do utrwalania. Dzienna liczba nowych słów jest punktem startu
+  i kolejne słowa dochodzą do dnia na prośbę, dowolną liczbę razy. Po
+  powtórkach zaplanowanych na dziś następna tura podaje karty o najbliższych
+  terminach, a algorytm uwzględnia krótszy odstęp w ich następnym terminie.
 - **Karty.** Karta pokazuje polskie znaczenie, część mowy i zdanie
   przykładowe z luką, a uczący się wpisuje słowo. Nowe słowo pojawia się
   najpierw z rodzajem, formami, wymową IPA, odnośnikiem do nagrania

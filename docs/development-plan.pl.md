@@ -7,7 +7,10 @@ Stan: 2026-11-16, po Etapie 7 (wersja 1.0.0-rc.6, w pakiecie Pythona
 15.11.2026. Etap 7 dał kurs włoski i sesję po jednej karcie. Etapy 8 i 9
 (uwagi z pilotażu: wymowa, przykłady, licznik, ChatGPT oraz karta w oknie
 czatu) zrealizowałem 16.11.2026 i za Twoją zgodą wydałem jako `v1.0.0-rc.7`
-na GitHubie i w PyPI oraz wdrożyłem na serwer.
+na GitHubie i w PyPI oraz wdrożyłem na serwer. Etap 10 (etapy sesji jak
+w SuperMemo: wybór etapu, kolejne słowa i kolejne tury powtórek) dodałeś
+i zrealizowałem 16.11.2026 w repozytorium lokalnym; jego wydanie czeka na
+Twoją zgodę.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -401,11 +404,19 @@ i wynosi co najmniej jeden dzień. Dzień nauki zaczyna się o godzinie
 3. Kolejność sesji: powtórki, potem nowe słowa, na końcu utrwalanie. Języki
    przeplatają się proporcjonalnie do liczby kart. Silnik zachowuje między
    kartami jednej rodziny odstęp co najmniej `sibling_distance` pozycji.
-4. Lista dnia jest funkcją dziennika sprzed danego dnia, planu i kursu,
-   dlatego przerwana sesja wznawia się w tym samym porządku w terminalu
-   i w czacie.
+4. Lista dnia jest funkcją dziennika sprzed danego dnia, planu, kursu
+   i rejestru dnia, dlatego przerwana sesja wznawia się w tym samym porządku
+   w terminalu i w czacie.
 5. Dzień wolny z `days_off` ma pustą kolejkę i zaległe powtórki przechodzą
    na najbliższy dzień nauki.
+6. Uczący się wybiera etap (powtórki, nowe słowa, utrwalanie) w dowolnej
+   chwili: sesja podaje najpierw karty wybranego etapu, a pozostałe karty
+   zachowują kolejność silnika (Etap 10).
+7. Uczący się dopisuje do dnia kolejne nowe słowa i kolejne powtórki.
+   Dodatkowe słowa dochodzą po jednym w stałej kolejności języków według
+   wag. Dodatkowe powtórki obejmują najpierw zaległe karty spoza listy dnia,
+   potem karty o najbliższych terminach jako powtórki przed terminem.
+   Liczby dopisanych kart przechowuje `registers/day.json` (Etap 10).
 
 ### 7.3 Zabezpieczenia zapisu ocen
 
@@ -441,8 +452,9 @@ dzienne obciążenie oraz datę ukończenia wybranych poziomów.
 |---|---|
 | `vocabbot init [FOLDER] --base pl --lang en:b1-b2:2 --lang de:a1-a2 --new 15` | tworzy folder nauki i plan |
 | `vocabbot today` | plan dnia: powtórki, nowe słowa i utrwalanie dla każdego języka |
+| `vocabbot today --extra N`, `vocabbot today --reviews N` | kolejne nowe słowa i kolejna tura powtórek na dziś; z `--next` wynik zawiera następne karty (Etap 10) |
 | `vocabbot drill` | sesja interaktywna w terminalu |
-| `vocabbot next --count 10 --json` | kolejne karty bez odpowiedzi; nowe słowa z pełną treścią do pokazania |
+| `vocabbot next --count 10 --json` | kolejne karty bez odpowiedzi; nowe słowa z pełną treścią do pokazania; `--stage reviews\|new\|drill` podaje najpierw karty wybranego etapu (Etap 10) |
 | `vocabbot answer --card ID --stdin --json` | ocenia wpisaną odpowiedź, zapisuje wiersz, zwraca poprawną odpowiedź i przykład |
 | `vocabbot grade --card ID --grade known` | ocena własna: „znałem” oraz karty rozpoznawania |
 | `vocabbot regrade --card ID --grade know` | zmiana ostatniej oceny na prośbę uczącego się, z oznaczeniem w dzienniku |
@@ -1394,6 +1406,57 @@ polecenie, wynik poniżej.
 | wdrożenie | serwer 1.0.0rc7 pod `https://vocab.archxs.com` od 16.11.2026; test dymny z krótko ważnym tokenem konta testowego, unieważnionym po teście: 22 narzędzia, karta w czterech narzędziach, zasób karty z CSP i etykietami, licznik w `vocab_today`, nagranie i przykład w `vocab_lookup` |
 | do sprawdzenia | wyświetlanie karty w Claude i ChatGPT na komputerze i na telefonie z Twojego konta |
 
+### Etap 10. Etapy sesji jak w SuperMemo: wybór etapu, kolejne słowa i kolejne tury powtórek
+
+Etap 10 dodałeś 16.11.2026 po porównaniu sesji VocabBota z aplikacją
+SuperMemo (dwa zrzuty ekranu kursu niemieckiego). Stan: zrealizowany
+16.11.2026 w repozytorium lokalnym, wynik poniżej. Wydanie i wdrożenie
+czekają na Twoją zgodę.
+
+#### Mechanika SuperMemo (stan na 16.11.2026)
+
+| Mechanizm | SuperMemo | Źródło |
+|---|---|---|
+| trzy etapy dnia | pasek aplikacji ma trzy liczniki: powtórki, nowy materiał i utrwalenia; kurs otwiera się na powtórkach, potem na nowym materiale, potem na utrwaleniach | FAQ „Powtórki i utrwalenia”, wpis „How to start learning with a course” |
+| przejście między etapami | uczący się zmienia tryb w dowolnej chwili (w przeglądarce klawiszem Tab) | FAQ o skrótach klawiszowych |
+| nowy materiał | liczba kart dziennie w planie kursu (5, 10, 20, 30 albo własna) jest punktem startu i po jej wykonaniu kurs podaje kolejne strony | wpis „Customize your learning with SuperMemo”, obserwacja aplikacji |
+| powtórki | powtórki niewykonane danego dnia przechodzą na kolejne dni, nowy odstęp wynika z rzeczywistego czasu od poprzedniej powtórki, kalendarz ma dzienny limit powtórek i dni wyłączone | FAQ „Repetition limit”, wpis „Sort your repetitions” |
+| powtórka przed terminem | SuperMemo dla Windows wykonuje powtórkę w środku odstępu z korektą algorytmu; pomoc aplikacji kursowej takiej funkcji nie opisuje | pomoc SuperMemo, hasło „Mid-interval repetition” |
+| utrwalanie | karta z oceną „nie wiem” albo „prawie” wraca tego samego dnia aż do skutku, w stałej kolejności; oceny z utrwalania w SuperMemo dla Windows zachowują odstępy | FAQ „Powtórki i utrwalenia”, pomoc SuperMemo, hasło „Final drill” |
+| oceny | „wiem” wydłuża odstęp, „prawie” wydłuża odstęp i kieruje kartę do utrwalania, „nie wiem” skraca odstęp | wpis „Repeat section and 3 buttons assessment” |
+| pierwszy kontakt | pierwszy kontakt ze słowem liczy się jako nauka, a następne jako powtórki | wpis „How to learn with SuperMemo” |
+
+#### Zakres i wynik Etapu 10 (16.11.2026)
+
+| Twoja uwaga | Realizacja |
+|---|---|
+| 1. wybór między nowymi słowami a powtórkami | `next --stage reviews\|new\|drill` (na serwerze `vocab_next` z parametrem `stage`) podaje najpierw karty wybranego etapu; wynik nazywa etap (`stage`), etap bez kart (`stage_empty`) i liczbę kart pozostałych w trzech etapach (`left`); bez wyboru obowiązuje kolejność silnika: powtórki, nowe słowa, utrwalanie |
+| 2. dzienna liczba nowych słów jako punkt startu | `today --extra N --next` (`vocab_add_today` z `count`) dopisuje słowa ponad liczbę z planu dowolną liczbę razy, do 100 dziennie; `more.new` podaje liczbę słów dostępnych na poziomach planu, a sesja proponuje kolejne słowa po liście dnia |
+| 3. pominięcie powtórek | przejście do etapu `new` zostawia powtórki nietknięte: karta z ekranu czeka w swoim etapie, a powtórki niewykonane danego dnia zachowują termin i otwierają następny dzień |
+| 4. przejście do nowych słów w trakcie powtórek | odpowiedź z `--next` (`then_next`) podaje kolejną kartę tego etapu, do którego należała karta z odpowiedzią, więc wybrany etap trwa bez dodatkowych parametrów; po ostatniej karcie etapu sesja przechodzi do następnego w kolejności silnika |
+| 4. nowy cykl powtórek po wykonaniu wszystkich | `today --reviews N --next` (`vocab_add_today` z `reviews`) dopisuje następną turę: najpierw zaległe powtórki spoza listy dnia (ponad `review_limit` albo z dnia wolnego), potem karty o najbliższych terminach jako powtórki przed terminem; silnik liczy następny termin z rzeczywistego odstępu (FSRS), wiersz dziennika ma znacznik `ahead`, a karta z dzisiejszą odpowiedzią do kolejnej tury już nie wchodzi |
+| utrwalanie | bez zmian w zasadzie: karta z oceną „prawie” albo „nie wiem” wraca do odpowiedzi „wiem” i jej termin już się tego dnia nie zmienia; etap `drill` można wybrać wcześniej |
+| rejestr dnia | `registers/day.json` przechowuje dodatkowe nowe słowa i dodatkowe powtórki jednego dnia, więc lista dnia pozostaje funkcją dziennika sprzed dnia, planu, kursu i tego pliku, a przerwana sesja wznawia się w tym samym miejscu w terminalu i w czacie |
+| terminal | `vocabbot drill` przyjmuje przy odpowiedzi `/nowe`, `/powtorki`, `/utrwalanie` i `/wiecej`, przy nowym słowie klawisz `p`, a po liście dnia proponuje `n` (5 nowych słów), `p` (następna tura 10 powtórek) i Enter (koniec) |
+| czat | przewodnik `session` i umiejętność `vocab-session` mają rozdział „The stages and more cards”: start od powtórek z jedną linią o wyborze, hasła „nowe”, „powtórki”, „utrwalanie”, „więcej słów” i „jeszcze powtórki”, jedna linia przy końcu etapu oraz propozycja po liście dnia |
+| serwer i karta | `vocab_next` ma `stage`, `vocab_grade` ma `then_next`, `vocab_add_today` ma `count` i `reviews` oraz zwraca `added` i `next`; parametr `ahead` zniknął z narzędzi, bo powtórki przed terminem wchodzą do dnia przez `vocab_add_today`; karta pokazuje trzy etapy z liczbą pozostałych kart i wyróżnia etap w toku |
+| usterka znaleziona w symulacji | druga dokładka nowych słów przy trzech językach dawała 28 słów zamiast 25: podział metodą największych reszt przesuwał miejsce między językami i słowo już pokazane zostawało poza wyborem; dodatkowe słowa dochodzą teraz po jednym w stałej kolejności języków według wag, więc większa liczba tylko dopisuje (dotyczy też słowa dokładanego po ocenie „znałem”) |
+| tempo dnia | powtórki dopisane przez uczącego się zostawiają bez zmian liczbę nowych słów wyznaczoną z profilu obecności |
+| testy | 255 na Pythonie 3.15 i 227 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 z 7) i `claude plugin validate --strict` bez uwag; nowe testy: wybór etapu i etap bez kart, tura powtórek przed terminem, zaległe powtórki ponad limit jako pierwsze, dzień wolny z powtórkami na prośbę, kolejna karta w wybranym etapie przez polecenia, etapy i dokładki w terminalu, dokładki nowych słów przy trzech językach, narzędzia serwera z `stage`, `then_next` i `reviews` |
+| symulacja | pełne kursy (de A1–A2, es A1, it A1, 15 nowych słów dziennie) przez polecenia programu: 1206 sprawdzeń bez usterki; licznik sumuje się po każdej odpowiedzi, kolejna karta zostaje w wybranym etapie, dwie dokładki dają 25 nowych słów, cztery tury dają 35 powtórek przed terminem bez powtórzeń, a tura przy wszystkich kartach z dzisiejszą odpowiedzią jest pusta; symulacja z modelem w czacie wymaga Twojej zgody na koszt |
+
+Różnice wobec SuperMemo pozostawione do Twojej decyzji:
+
+1. **Nowe słowo.** VocabBot przedstawia nowe słowo i pyta o nie po haśle
+   „dalej”; SuperMemo pokazuje nowe słowo od razu jako ćwiczenie
+   z samooceną.
+2. **Oceny w utrwalaniu.** SuperMemo ma w utrwalaniu dwie oceny („wiem”
+   i „nie wiem”); VocabBot ocenia wpisaną odpowiedź trzema ocenami
+   i odpowiedź „prawie” zostawia kartę w utrwalaniu.
+3. **Kolejność powtórek.** SuperMemo pozwala wybrać kolejność powtórek
+   (według kursu, losowa, rosnące odstępy); VocabBot podaje jako pierwsze
+   karty najbardziej zaległe.
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -1405,7 +1468,7 @@ polecenie, wynik poniżej.
 | Kurs słownictwa według częstości z poziomami CEFR | tak | kursy A1–A2 i B1–B2, kolejność według częstości |
 | Strona słowa: znaczenie, przykład, wymowa | tak | znaczenie polskie, zdanie z luką, IPA |
 | Trzy oceny | tak | `know`, `almost`, `dont_know` |
-| Nauka, powtórki, utrwalanie | tak | jedna kolejka dnia w tej kolejności |
+| Nauka, powtórki, utrwalanie | tak | trzy etapy dnia w tej kolejności, z wyborem etapu przez uczącego się, kolejnymi nowymi słowami i kolejnymi turami powtórek (Etap 10) |
 | Powtórka przy trwałości około 90% | tak | FSRS-6, trwałość w planie, rozrzut terminów, początkowe odstępy dopasowane do dziennika, pełne dopasowanie dla języka po wygranej w `replay`, terminy według obecności |
 | Pomijanie znanych słów | tak | ocena „znałem” i test poziomujący |
 | Liczba kart dziennie, czas trwania kursu | tak | `plan`, `forecast` |
@@ -1497,6 +1560,14 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 - SuperMemo, sekcja powtórek i trzy oceny: https://supermemo.com/blog/repeat-section-and-3-buttons-assessment
 - SuperMemo, powtórki mieszane: https://www.supermemo.com/en/faq/mixed-repetitions
 - SuperMemo, plan nauki: https://www.supermemo.com/en/faq/learning-plan
+- SuperMemo, powtórki i utrwalenia: https://www.supermemo.com/pl/faq/powtorki-i-utrwalenia
+- SuperMemo, pierwsze kroki z kursem: https://www.supermemo.com/en/blog/how-to-start-learning-with-a-course-5-easy-steps
+- SuperMemo, skróty klawiszowe: https://www.supermemo.com/en/faq/which-keyboard-shortcuts-can-i-use-in-supermemo
+- SuperMemo, liczba kart dziennie: https://www.supermemo.com/en/blog/customize-your-learning-with-supermemo
+- SuperMemo, limit powtórek: https://www.supermemo.com/en/faq/repetition-limit
+- SuperMemo, kolejność powtórek: https://www.supermemo.com/en/blog/new-at-supermemo-sort-your-repetitions
+- SuperMemo, jak się uczyć: https://www.supermemo.com/en/blog/how-to-learn-with-supermemo
+- SuperMemo dla Windows, słownik pojęć (Final drill, Mid-interval repetition): https://www.super-memory.com/help/g.htm
 - FSRS, opis algorytmu: https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm
 - py-fsrs: https://github.com/open-spaced-repetition/py-fsrs
 - kaikki.org, dane Wikisłownika: https://kaikki.org/dictionary/rawdata.html

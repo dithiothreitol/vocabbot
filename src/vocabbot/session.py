@@ -5,7 +5,10 @@ These functions hold the guarantees of the engine:
 - `next_items` never returns the answer of a card under review or in drill;
 - `answer` grades a typed answer itself and logs the engine's grade;
 - a new card is accepted only when it is on today's list;
-- a card that is not due is accepted only as a review ahead of time;
+- a card that is not due is accepted only as a review ahead of time: one of the
+  reviews the learner added to the day, or an answer marked `ahead`;
+- the learner chooses the stage (reviews, new words, drill) and may add new
+  words and reviews to the day; the engine's order holds when nothing is chosen;
 - "known" (I knew this word before the course) only at a card's first showing;
 - a regrade changes only the last grade of a card on the same day and is marked.
 """
@@ -21,7 +24,7 @@ from vocabbot import presence as attendance
 from vocabbot.book import RATING, CardState, spread_key
 from vocabbot.courses import Catalog, hide_other_answers, presentation, question, split_card
 from vocabbot.errors import VocabError
-from vocabbot.queue import DayPlan, compute
+from vocabbot.queue import STAGE_OF, STAGES, DayPlan, compute, staged
 
 SELF_GRADES = ("known", "know", "almost", "dont_know")
 MAX_GIVEN = 200
@@ -29,6 +32,10 @@ SECONDS = {"review": 10, "new": 25, "drill": 8, "ahead": 10}
 # a level set too low: most of the last new words of a language were known before the course
 HINT_WINDOW = 10
 HINT_KNOWN = 8
+# the stage an answer belongs to, so the next cards stay in the stage the learner chose
+KIND_STAGE = {"learn": "new", "review": "reviews", "drill": "drill"}
+MAX_EXTRA_NEW = 100
+MAX_EXTRA_REVIEWS = 500
 
 
 def now_utc() -> datetime:
@@ -67,7 +74,7 @@ def classify(
     state = dp.before.cards.get(card)
     if state is not None:
         due = state.due(dp.scheduler_for(state.lang))
-        if due <= dp.day or ahead:
+        if due <= dp.day or ahead or card in dp.ahead:
             return entry, "review", state
         raise VocabError("not_due", card=card, due=due.isoformat())
     if card in dp.new:
@@ -75,11 +82,11 @@ def classify(
     raise VocabError("not_in_today", card=card)
 
 
-def _left(dp: DayPlan) -> dict[str, int]:
+def _phases(dp: DayPlan) -> dict[str, int]:
     counts = {"review": 0, "new": 0, "drill": 0, "ahead": 0}
     for item in dp.sequence:
         counts[item.phase] += 1
-    return {"reviews": counts["review"], "new": counts["new"], "drill": counts["drill"]}
+    return counts
 
 
 def progress(dp: DayPlan) -> dict[str, Any]:
@@ -92,15 +99,21 @@ def progress(dp: DayPlan) -> dict[str, Any]:
     ahead of their day count only on a day with such reviews (`ahead`).
     """
     seen, learned = set(dp.today.seen), set(dp.today.learned)
-    left = _left(dp)
+    phases = _phases(dp)
+    # the cards left in each of the three stages; reviews before their day belong to reviews
+    left = {
+        "reviews": phases["review"] + phases["ahead"],
+        "new": phases["new"],
+        "drill": phases["drill"],
+    }
     done = {
         "reviews": sum(1 for card in dp.reviews if card in seen),
         "new": sum(1 for card in dp.new if card in learned),
     }
     due = set(dp.reviews)
     ahead_done = sum(1 for card in dp.today.seen if card in dp.before.cards and card not in due)
-    ahead_left = sum(1 for item in dp.sequence if item.phase == "ahead")
-    reviews, new = done["reviews"] + left["reviews"], done["new"] + left["new"]
+    ahead_left = phases["ahead"]
+    reviews, new = done["reviews"] + phases["review"], done["new"] + left["new"]
     finished = done["reviews"] + done["new"] + ahead_done
     parts = [
         assets.text(
@@ -260,7 +273,7 @@ def record(
     if ms is not None and ms > 0:
         row["ms"] = int(ms)
     early = state is not None and state.due(dp.scheduler_for(state.lang)) > dp.day
-    if ahead and kind == "review" and early:
+    if kind == "review" and early and (ahead or card in dp.ahead):
         row["ahead"] = True
     learner.append_review(row)
     due, interval = _schedule_after(dp, card, kind, state, grade)
@@ -468,24 +481,69 @@ def regrade(
     return out
 
 
+def more(dp: DayPlan, catalog: Catalog) -> dict[str, int]:
+    """What the learner can still add to the day: new words of the plan's levels, due
+    reviews outside today's list, and reviews before their day."""
+    directions = [store.DIRECTIONS[d] for d in dp.plan["directions"]]
+    taken = set(dp.before.cards) | set(dp.new)
+    entries: set[str] = set()
+    for item in dp.plan["languages"]:
+        if item.get("paused"):
+            continue
+        code = item["code"]
+        for entry in [*catalog.first(code), *catalog.course(code, item["levels"])]:
+            entries.add(str(entry["id"]))
+    new = sum(
+        1
+        for entry_id in entries - dp.suspended
+        for direction in directions
+        if f"{entry_id}#{direction}" not in taken
+    )
+    return {
+        "new": max(0, min(new, MAX_EXTRA_NEW - dp.extra)),
+        "reviews_due": dp.waiting,
+        "reviews_ahead": dp.later,
+    }
+
+
 def next_items(
-    learner: store.Learner, catalog: Catalog, day: date, *, count: int = 10, ahead: int = 0
+    learner: store.Learner,
+    catalog: Catalog,
+    day: date,
+    *,
+    count: int = 10,
+    ahead: int = 0,
+    stage: str | None = None,
 ) -> dict[str, Any]:
-    """The next cards of the day. Answers appear only for new words, which are introduced."""
+    """The next cards of the day. Answers appear only for new words, which are introduced.
+
+    With `stage` the cards of that stage come first (reviews, new or drill);
+    `stage` in the result names the stage of the first card returned, and
+    `stage_empty` the chosen stage when it has no cards left.
+    """
+    if stage is not None and stage not in STAGES:
+        raise VocabError("bad_stage", stage=stage)
     dp = compute(learner, catalog, day, ahead=ahead)
+    sequence = staged(dp.sequence, stage)
     items = []
-    for item in dp.sequence[: max(0, count)]:
-        out: dict[str, Any] = {
+    for item in sequence[: max(0, count)]:
+        shown: dict[str, Any] = {
             "card": item.card,
             "lang": item.lang,
             "phase": item.phase,
             "question": question(item.entry, item.direction),
         }
         if item.phase == "new":
-            out["word"] = presentation(item.entry)
-        items.append(out)
+            shown["word"] = presentation(item.entry)
+        items.append(shown)
     hide_other_answers(catalog, items)
-    return {"day": day.isoformat(), "items": items, **progress(dp), "off": dp.off}
+    out: dict[str, Any] = {"day": day.isoformat(), "items": items, **progress(dp), "off": dp.off}
+    if sequence:
+        out["stage"] = STAGE_OF[sequence[0].phase]
+    if stage is not None and out.get("stage") != stage:
+        out["stage_empty"] = stage
+    out["more"] = more(dp, catalog)
+    return out
 
 
 def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, Any]:
@@ -508,11 +566,8 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
     counts = progress(dp)
     left = counts["left"]
     seconds = _seconds(dp)
-    minutes = (
-        left["reviews"] * seconds["review"]
-        + left["new"] * seconds["new"]
-        + left["drill"] * seconds["drill"]
-    ) / 60
+    phases = _phases(dp)
+    minutes = sum(phases[phase] * seconds[phase] for phase in phases) / 60
     warnings: list[dict[str, Any]] = []
     copies = store.conflict_copies(learner.root)
     if copies:
@@ -528,6 +583,8 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
         "day": dp.day.isoformat(),
         "off": dp.off,
         "extra_new": dp.extra,
+        "extra_reviews": dp.extra_reviews,
+        "more": more(dp, catalog),
         "languages": languages,
         "left": left,
         "done": counts["done"],
@@ -593,10 +650,30 @@ def _seconds(dp: DayPlan) -> dict[str, float]:
     return attendance.seconds(dp.book.rows)
 
 
-def add_extra(learner: store.Learner, catalog: Catalog, day: date, count: int) -> dict[str, Any]:
-    """More new words for today (written to registers/day.json, the day's only setting)."""
-    if count < 1:
+def add_extra(
+    learner: store.Learner, catalog: Catalog, day: date, count: int = 0, reviews: int = 0
+) -> dict[str, Any]:
+    """More new words and more reviews for today, written to registers/day.json.
+
+    More reviews are the due cards outside today's list (over the review
+    limit, or all of them on a day off), most overdue first, and then the
+    cards with the nearest later dates as reviews before their day: the next
+    round of reviews after the due ones. `added` says how many cards joined.
+    """
+    if count < 0 or reviews < 0 or count + reviews < 1:
         raise VocabError("bad_extra", count=count)
-    extra = min(100, learner.extra_new(day) + count)
-    learner.set_extra_new(day, extra)
-    return summary(learner, catalog, compute(learner, catalog, day))
+    before = compute(learner, catalog, day)
+    if reviews:
+        possible = before.waiting + before.later
+        extra = min(MAX_EXTRA_REVIEWS, before.extra_reviews + min(reviews, possible))
+        learner.set_extra_reviews(day, extra)
+    if count:
+        learner.set_extra_new(day, min(MAX_EXTRA_NEW, before.extra + count))
+    after = compute(learner, catalog, day)
+    out = summary(learner, catalog, after)
+    was, now = _phases(before), _phases(after)
+    out["added"] = {
+        "new": now["new"] - was["new"],
+        "reviews": now["review"] + now["ahead"] - was["review"] - was["ahead"],
+    }
+    return out

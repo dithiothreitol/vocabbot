@@ -99,3 +99,64 @@ def test_stopping_keeps_the_answers(tmp_path: Path, catalog: Catalog) -> None:
     assert result["answered"] == 3
     assert len(learner.rows()[0]) == 3
     assert any("Postęp jest zapisany." in line for line in screen.out)
+
+
+class Staged(Script):
+    """A learner who types commands before the first answer and chooses at the end."""
+
+    def __init__(self, catalog: Catalog, commands: list[str], more: str = "") -> None:
+        super().__init__(catalog, wrong=set(), known=set())
+        self.commands = commands
+        self.more = more
+        self.asked: list[str] = []
+
+    def _line(self, prompt: str) -> str:
+        if self.commands:
+            return self.commands.pop(0)
+        assert self.current is not None
+        self.asked.append(self.current)
+        return super()._line(prompt)
+
+    def _key(self, prompt: str) -> str:
+        if "Enter koniec" in prompt:
+            key, self.more = self.more, ""
+            return key
+        return super()._key(prompt)
+
+
+def test_stages_and_more_cards_in_the_terminal(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=2)
+    run(learner, catalog, MONDAY, Script(catalog, wrong=set(), known=set()))
+    day = MONDAY + timedelta(days=2)
+    dp = compute(learner, catalog, day)
+    reviews, new = list(dp.reviews), list(dp.new)
+    assert len(reviews) == 2 and len(new) == 2
+
+    # /nowe at the first review: the new words come first, the reviews after them;
+    # at the end of the list "n" adds new words
+    screen = Staged(catalog, commands=["/nowe"], more="n")
+    run(learner, catalog, day, screen)
+    assert screen.asked[:2] == new and set(screen.asked[2:4]) == set(reviews)
+    assert len(screen.asked) == 4 + drill.MORE_NEW
+    assert any("Dzisiejsza lista jest zrobiona." in line for line in screen.out)
+    assert any(f"Dodane nowe słowa: {drill.MORE_NEW}." in line for line in screen.out)
+    assert learner.extra_new(day) == drill.MORE_NEW
+    assert any("Na dziś koniec." in line for line in screen.out)
+
+    # every card has today's answer, so only new words are offered now
+    again = Staged(catalog, commands=[], more="p")
+    run(learner, catalog, day, again)
+    assert not again.asked and not learner.extra_reviews(day)
+
+    # the next round of reviews: the cards of later days, before their day
+    other = make_learner(tmp_path / "other", ["de:a1-a2"], new_per_day=2)
+    run(other, catalog, MONDAY, Script(catalog, wrong=set(), known=set()))
+    tuesday = MONDAY + timedelta(days=1)
+    learned = set(compute(other, catalog, tuesday).before.cards)
+    assert not compute(other, catalog, tuesday).reviews
+    screen = Staged(catalog, commands=["/powtorki"], more="p")
+    run(other, catalog, tuesday, screen)
+    assert any("Powtórki z dzisiejszej listy są zrobione." in line for line in screen.out)
+    assert any("Następna tura powtórek: 2." in line for line in screen.out)
+    assert set(screen.asked[2:]) == learned
+    assert [row.get("ahead") for row in other.rows()[0][-2:]] == [True, True]

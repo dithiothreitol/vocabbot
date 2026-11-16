@@ -382,7 +382,13 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             assert "vocab_next" in tools and len(tools) == 22
             # the card of MCP Apps: the session's tools name it, the server serves it
             with_card = {name for name, tool in listed.items() if (tool.meta or {}).get("ui")}
-            assert with_card == {"vocab_today", "vocab_next", "vocab_answer", "vocab_grade"}
+            assert with_card == {
+                "vocab_today",
+                "vocab_next",
+                "vocab_answer",
+                "vocab_grade",
+                "vocab_add_today",
+            }
             assert listed["vocab_next"].meta == {
                 "ui": {"resourceUri": CARD},
                 "openai/outputTemplate": CARD,
@@ -433,6 +439,23 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             assert chained["next"]["counter"] == chained["counter"]
             assert len(chained["next"]["items"]) == 1
             assert chained["next"]["items"][0]["card"] != card
+            # the learner chooses the stage and adds to the day
+            assert chained["next"]["stage"] == "new"
+            drill = await _call(client, "vocab_next", stage="drill")
+            assert drill["stage"] == "drill" and drill["items"][0]["phase"] == "drill"
+            more = await _call(client, "vocab_add_today", count=2)
+            assert more["added"] == {"new": 2, "reviews": 0}
+            assert more["next"]["stage"] == "new"
+            assert more["counter"] == "Postęp: 4/8 · nowe 4/8 · do utrwalenia 1"
+            known = await _call(
+                client,
+                "vocab_grade",
+                card=more["next"]["items"][0]["card"],
+                grade="known",
+                then_next=True,
+            )
+            assert known["next"]["stage"] == "new"
+            assert (await client.call_tool("vocab_add_today", {})).is_error
             refused = await client.call_tool("vocab_plan_change", {"settings": ["--x=1"]})
             assert refused.is_error
             status = await _call(client, "vocab_status")

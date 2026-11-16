@@ -12,9 +12,16 @@ Claude and Codex that runs the same session in a chat.
 
 ## How learning works
 
-- **A day.** Reviews due today come first, then new words, then the drill:
-  every card answered wrong comes back at the end of the session until the
-  learner knows it. A drill answer leaves the due date unchanged.
+- **A day.** A day has three stages, as in SuperMemo: reviews due today
+  come first, then new words, then the drill, where every card answered
+  wrong comes back until the learner knows it. A drill answer leaves the due
+  date unchanged.
+- **The learner's choice.** The learner moves between the stages at any
+  moment: to the new words while reviews wait, back to the reviews, to the
+  drill. The day's number of new words is a start: more words join the day
+  on request, as many times as the learner likes. After the due reviews the
+  next round brings the cards with the nearest later dates, and the
+  algorithm counts the shorter gap in their next date.
 - **Cards.** A card shows the Polish meaning, the part of speech and an
   example sentence with a gap; the learner types the word. New words are
   introduced first with their gender, forms, IPA, a link to a recording and

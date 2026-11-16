@@ -14,10 +14,13 @@ argument-hint: "[cards per message]"
 
 # VocabBot: the daily session
 
-The session runs in the engine's order: reviews due today, then new words,
-then the drill of cards answered wrong. This skill shows the cards and passes
-the learner's answers to the engine, which grades them and schedules the next
-review.
+The day has three stages, as in SuperMemo: the reviews due today, the new
+words, and the drill of cards answered wrong. The session takes them in this
+order, and the learner may choose another one at any moment: move to the new
+words while reviews wait, go back to the reviews, learn more new words than
+the day's number, and start the next round of reviews. This skill shows the
+cards and passes the learner's answers to the engine, which grades them and
+schedules the next review.
 
 Read `shared/rules.md` before the first card. It says how to call the engine
 and holds the rules every VocabBot skill keeps; the most important here: the
@@ -35,10 +38,9 @@ Run `today --json`.
   learner. Offer the setup (`vocab-start`), or pass `--learner <folder>` once
   the learner names the folder.
 - `off: true`: a day off; the reviews wait for the next learning day. When
-  the learner wants to learn anyway, `today --extra <n> --json` adds new
-  words for today, and `next --ahead 10 --json` brings reviews of
-  later days (answers to cards with `phase: ahead` go to `answer` with
-  `--ahead`). A learner without learned words has no reviews to bring ahead.
+  the learner wants to learn anyway, `today --reviews <n> --next --json`
+  brings the reviews (the due ones first) and `today --extra <n> --next
+  --json` new words.
 - `warnings` with `conflict_copies` or `damaged_rows`: say that `vocab-start`
   checks and repairs the folder; the session can go on.
 - `paced`: the engine gives fewer new words today (`today` instead of
@@ -46,10 +48,13 @@ Run `today --json`.
   sentence.
 - `ahead_hint`: tomorrow is a day off or a day the learner usually skips.
   After today's cards, offer its `count` reviews ahead of their day:
-  `next --count <count> --ahead <count> --json`, answered with `--ahead`.
+  `today --reviews <count> --next --json`.
 
 Show the day in two or three lines from `languages` (reviews, new words,
-drill per language) and `minutes`.
+drill per language) and `minutes`. Then start with the stage the learner
+named ("nowe słówka", "tylko powtórki"), or with the reviews, and say once in
+one line that the learner chooses: „nowe” moves to the new words, „powtórki”
+back to the reviews, „więcej słów” adds new words.
 
 ## Step 1: the cards
 
@@ -76,8 +81,8 @@ new word also has `word`. `reference/presentation.md` shows the layout.
   Polish meaning, and the example with its translation. End the message
   there; its question comes in the next message, after the learner says
   they are ready, so the answer is not on the screen. A learner who knew the word before the course says so, and
-  `grade --card <card> --grade known --json` records it; that card then needs
-  no question.
+  `grade --card <card> --grade known --next --json` records it; that card
+  then needs no question, and `next` in the result holds the next cards.
 - **A level set too low.** A result of `grade` with `level_hint` means that
   most of the learner's last new words (`known` of `of`) were known before the
   course. Say so in one sentence and offer, once, the placement test or the
@@ -111,23 +116,65 @@ list. The learner answers by number; when the reply does not map clearly onto
 the numbers, ask once. Send every answer of the list in one call and show the
 results of the list, then the next batch from `next`.
 
-Go on until `left` shows no reviews, no new words and no drill. Cards
-answered wrong come back in the "utrwalanie" (the drill) at the end, as many
-times as needed; their due date no longer changes that day.
+Go on until `left` shows no reviews, no new words and no drill, or until the
+learner ends the session. Cards answered wrong come back in the "utrwalanie"
+(the drill) at the end, as many times as needed; their due date no longer
+changes that day.
+
+## The stages and more cards
+
+The learner decides what to learn and how much, at any moment of the session.
+
+- **The stage.** `stage` in a result of `next`, and in `next` of an answer,
+  names the stage of the cards returned: `reviews`, `new` or `drill`.
+- **A change of stage.** When the learner asks for the new words, the reviews
+  or the drill ("nowe", "pomiń powtórki", "przejdź do nauki", "wróć do
+  powtórek", "utrwalanie"), run `next --stage new|reviews|drill --json` and
+  go on from its cards. The card that was on screen waits in its own stage,
+  unanswered. A message that names a stage is a request, never an answer to
+  the card.
+- **Staying in the stage.** `--next` returns the next cards of the stage the
+  answered card belongs to, so a learner who chose the new words gets the
+  next new word while the reviews wait.
+- **A stage ends.** When `next.stage` differs from the stage of the answered
+  card, or a result holds `stage_empty`, the stage has no cards left. Say in
+  one line what is done and what waits, from `left` ("Nowe słowa na dziś
+  zrobione. Czekają powtórki: 12."), then show the card returned. Reviews the
+  learner leaves undone stay due and come first on the next day.
+- **More new words.** The day's number of new words is a start, never a
+  limit. When the learner asks for more ("więcej słów", "kolejne słowa",
+  "jeszcze 10"), run `today --extra <n> --next --json`: the number the
+  learner names, 5 otherwise. `more.new` in the latest result says how many
+  the course still has.
+- **The next round of reviews.** When the learner asks for more reviews
+  ("jeszcze powtórki", "następna tura"), run
+  `today --reviews <n> --next --json`: the number the learner names, 10
+  otherwise. The engine takes the due reviews outside today's list first
+  (`more.reviews_due`: over the review limit, or on a day off), then the
+  cards with the nearest later dates (`more.reviews_ahead`), from the state
+  after today's answers. These come with `phase: ahead` and are asked as any
+  review; the engine counts the shorter gap when it sets the next date.
+- The result of `today --extra` or `today --reviews` holds `added` (the cards
+  that joined) and `next` with the first of them. `added` with 0 means
+  nothing more is there: every word already has today's answer, or the
+  levels have no more words.
 
 ## Step 2: the end
 
 Run `today --json` and sum up the session from it: the `counter`, then the
 new words of the day from `learned_today` (word and meaning, "znane
-wcześniej" for `known`). Offer the coach (`vocab-coach`) for the words that
-went wrong. Announce the next
-session or a reminder only as `shared/rules.md` allows.
+wcześniej" for `known`). Then offer, in one line, what `more` allows: more
+new words, the next round of reviews, or the end; the learner's choice goes
+to `today --extra` or `today --reviews` and the session goes on with Step 1.
+Offer the coach (`vocab-coach`) for the words that went wrong. Announce the
+next session or a reminder only as `shared/rules.md` allows.
 
 ## During the session
 
 - **Change of a grade.** Only on the learner's explicit request for a named
   card: `regrade --card <card> --grade know|almost|dont_know --json`.
-- **More words today.** `today --extra <n> --json`, then Step 1 again.
+- **Another stage, more words, more reviews.** The section "The stages and
+  more cards".
 - **More or fewer cards in a message.** `vocab-start` changes `batch` in the
   plan with a preview and the learner's yes.
 - **A mistake in a card.** The learner's note goes to

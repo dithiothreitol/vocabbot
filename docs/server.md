@@ -125,8 +125,9 @@ words a day, with an optional placement test.
 
 Chat applications that support MCP Apps (Claude on the web and in the
 desktop application, ChatGPT) show VocabBot's card with the results of
-`vocab_today`, `vocab_next`, `vocab_answer` and `vocab_grade`: the day's
-counter, the word with its IPA and a button that plays its recording, the
+`vocab_today`, `vocab_next`, `vocab_answer`, `vocab_grade` and
+`vocab_add_today`: the day's counter, the three stages (reviews, new words,
+drill) with the cards left in each, the word with its IPA and a button that plays its recording, the
 question, and the new words of the day. The recordings come from Wikimedia
 Commons (Wiktionary and Lingua Libre) and play straight from
 `upload.wikimedia.org`, the only address the card may load. A word or a

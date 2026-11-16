@@ -50,6 +50,10 @@
   .counter { color: var(--vb-muted); font-size: 12px; text-align: right; }
   .bar { height: 4px; border-radius: 999px; background: var(--vb-muted-bg); margin: 8px 0 4px; overflow: hidden; }
   .bar > div { height: 100%; width: 0; background: var(--vb-fg); border-radius: 999px; transition: width .3s ease; }
+  .stages { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+  .stage { font-size: 12px; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--vb-border); color: var(--vb-muted); }
+  .stage.on { color: var(--vb-fg); border-color: var(--vb-fg); font-weight: 600; }
+  .stage b { margin-left: 5px; font-weight: 600; font-variant-numeric: tabular-nums; }
   section:empty { display: none; }
   .block { border-top: 1px solid var(--vb-border); padding-top: 10px; margin-top: 10px; }
   .tag { color: var(--vb-muted); font-size: 12px; text-transform: none; }
@@ -86,6 +90,7 @@
 <main class="card" aria-live="polite">
   <header><span class="brand">VocabBot</span><span id="counter" class="counter"></span></header>
   <div class="bar" id="bar" hidden><div id="bar-fill"></div></div>
+  <div class="stages" id="stages" hidden></div>
   <section id="results"></section>
   <section id="items"></section>
   <section id="today"></section>
@@ -295,6 +300,15 @@
     var total = finished + (left.reviews || 0) + (left["new"] || 0);
     bar.hidden = !total;
     document.getElementById("bar-fill").style.width = total ? Math.round(100 * finished / total) + "%" : "0";
+    // the three stages of the day with the cards left in each; the stage in progress stands out
+    var stages = document.getElementById("stages");
+    stages.textContent = "";
+    stages.hidden = !data.left;
+    if (data.left) ["reviews", "new", "drill"].forEach(function (stage) {
+      var chip = el("span", "stage" + (data.stage === stage ? " on" : ""), text("stage_" + stage));
+      chip.appendChild(el("b", "", left[stage] || 0));
+      stages.appendChild(chip);
+    });
   }
   function parse(params) {
     if (!params) return null;
@@ -320,7 +334,7 @@
     if (data.level_hint) resultsBox.appendChild(el("div", "hint", text("level_hint", data.level_hint)));
     var itemsBox = document.getElementById("items");
     items.forEach(function (item) { itemsBox.appendChild(item.phase === "new" && item.word ? renderNewWord(item) : renderQuestion(item)); });
-    var today = renderToday(data);
+    var today = data.next ? null : renderToday(data);
     if (today) document.getElementById("today").appendChild(today);
     var note = document.getElementById("note");
     var left = data.left || {};

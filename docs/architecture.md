@@ -21,7 +21,7 @@ learner ── chat ── skill ── bin/vocabbot.pyz --json ┘     │     
 | `fsrs.py` | FSRS-6 with the published default parameters; the target recall sets the interval; the fuzz of py-fsrs with a day taken from a hash of the card and the day of the answer; the fit of the initial stabilities to the learner's second answers |
 | `store.py` | the learner's folder, the plan and its checks, JSON-lines files written with LF |
 | `book.py` | the state of every card replayed from the log, with the initial stabilities fitted once the log holds 40 second answers |
-| `queue.py` | the day: reviews, new words split by weight, interleaving, the drill |
+| `queue.py` | the day: reviews, new words split by weight, interleaving, the drill; the three stages in the order the learner chooses, and the new words and reviews added to a day |
 | `answers.py` | normalising and grading a typed answer by the rules of its language |
 | `courses.py` | the catalog of courses and own words, questions and presentations, `course check` |
 | `session.py` | the next cards, answers, own grades, regrades, `lookup`, `reveal` |

@@ -126,8 +126,9 @@ dziennie, z opcjonalnym testem poziomującym.
 
 Aplikacje czatu, które obsługują MCP Apps (Claude w przeglądarce
 i w aplikacji desktopowej, ChatGPT), pokazują przy wynikach `vocab_today`,
-`vocab_next`, `vocab_answer` i `vocab_grade` kartę VocabBota: licznik dnia,
-słowo z zapisem IPA i przyciskiem odtwarzania nagrania, pytanie oraz nowe
+`vocab_next`, `vocab_answer`, `vocab_grade` i `vocab_add_today` kartę
+VocabBota: licznik dnia, trzy etapy (powtórki, nowe słowa, utrwalanie)
+z liczbą pozostałych kart, słowo z zapisem IPA i przyciskiem odtwarzania nagrania, pytanie oraz nowe
 słowa dnia. Nagrania pochodzą z Wikimedia Commons (Wikisłownik i Lingua
 Libre) i odtwarzają się bezpośrednio z `upload.wikimedia.org`, jedynego
 adresu, z którego karta może pobierać pliki. Słowo albo zdanie bez nagrania

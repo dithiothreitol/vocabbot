@@ -40,6 +40,24 @@ FR · czytać (czasownik)
 J'aime ___ le soir. · Lubię czytać wieczorem.
 ```
 
+A stage ends, and the next one follows in the same message:
+
+```
+Postęp: 15/27 · nowe 15/15 · powtórki 0/12
+
+✓ wiem · la mesa
+Nowe słowa na dziś zrobione. Czekają powtórki: 12. Więcej nowych słów dodam na hasło „więcej słów”.
+
+DE · pies (rzeczownik, z rodzajnikiem)
+___ ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+```
+
+The end of the day's list, after the summary:
+
+```
+Dzisiejsza lista jest zrobiona. Możesz wziąć kolejne nowe słowa („więcej słów”), następną turę powtórek („jeszcze powtórki”) albo zakończyć.
+```
+
 ## Several cards (`batch` 2 or more)
 
 ### Introducing new words

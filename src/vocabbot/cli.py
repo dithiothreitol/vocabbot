@@ -34,7 +34,7 @@ from vocabbot import (
 from vocabbot.book import ParameterSet
 from vocabbot.courses import Catalog, split_card
 from vocabbot.errors import VocabError
-from vocabbot.queue import compute
+from vocabbot.queue import STAGES, compute
 
 Renderer = Callable[[dict[str, Any]], list[str]]
 
@@ -282,6 +282,8 @@ def render_summary(data: dict[str, Any]) -> list[str]:
         lines.append(style(assets.text("cli.done"), "green"))
     if data.get("extra_new"):
         lines.append(assets.text("cli.extra", count=data["extra_new"]))
+    if data.get("extra_reviews"):
+        lines.append(assets.text("cli.extra_reviews", count=data["extra_reviews"]))
     if data.get("paced"):
         lines.append(style(assets.text("cli.paced", **data["paced"]), "dim"))
     if data.get("ahead_hint"):
@@ -559,8 +561,10 @@ def cmd_use(ctx: Context) -> dict[str, Any]:
 
 def cmd_today(ctx: Context) -> dict[str, Any]:
     learner, catalog, day = ctx.learner(), ctx.catalog(), ctx.day()
-    if ctx.args.extra:
-        return session.add_extra(learner, catalog, day, ctx.args.extra)
+    if ctx.args.extra or ctx.args.reviews:
+        added = session.add_extra(learner, catalog, day, ctx.args.extra, ctx.args.reviews)
+        # the cards just added come next: the reviews when both were asked for
+        return with_next(ctx, added, "reviews" if ctx.args.reviews else "new")
     return session.summary(learner, catalog, compute(learner, catalog, day))
 
 
@@ -569,7 +573,12 @@ def cmd_next(ctx: Context) -> dict[str, Any]:
     if count < 1:
         raise VocabError("bad_count")
     return session.next_items(
-        ctx.learner(), ctx.catalog(), ctx.day(), count=count, ahead=ctx.args.ahead
+        ctx.learner(),
+        ctx.catalog(),
+        ctx.day(),
+        count=count,
+        ahead=ctx.args.ahead,
+        stage=ctx.args.stage,
     )
 
 
@@ -595,7 +604,7 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
             ahead=ctx.args.ahead,
             source=source,
         )
-        return with_next(ctx, single)
+        return with_next(ctx, single, session.KIND_STAGE.get(single["kind"]))
     results: list[dict[str, Any]] = []
     refused = 0
     for number, item in answer_lines(ctx.text()):
@@ -624,24 +633,31 @@ def cmd_answer(ctx: Context) -> dict[str, Any]:
             results.append({"card": card, "error": exc.as_dict()})
             refused += 1
     counts = session.day_progress(learner, catalog, day)
-    return with_next(ctx, {"ok": refused == 0, "results": results, "refused": refused, **counts})
+    kinds = [r["kind"] for r in results if "kind" in r]
+    stage = session.KIND_STAGE.get(kinds[-1]) if kinds else None
+    data = {"ok": refused == 0, "results": results, "refused": refused, **counts}
+    return with_next(ctx, data, stage)
 
 
-def with_next(ctx: Context, data: dict[str, Any]) -> dict[str, Any]:
-    """With --next, the result also holds the next cards, so a card needs one call."""
+def with_next(ctx: Context, data: dict[str, Any], stage: str | None = None) -> dict[str, Any]:
+    """With --next, the result also holds the next cards, so a card needs one call.
+
+    The next cards stay in the stage of the card just answered: a learner who
+    chose the new words while reviews wait gets the next new word.
+    """
     if not getattr(ctx.args, "next", False):
         return data
     count = batch_of(ctx)
-    ahead = count if ctx.args.ahead else 0
+    ahead = count if getattr(ctx.args, "ahead", False) else 0
     data["next"] = session.next_items(
-        ctx.learner(), ctx.catalog(), ctx.day(), count=count, ahead=ahead
+        ctx.learner(), ctx.catalog(), ctx.day(), count=count, ahead=ahead, stage=stage
     )
     return data
 
 
 def cmd_grade(ctx: Context) -> dict[str, Any]:
     source = "chat" if ctx.args.json else "cli"
-    return session.self_grade(
+    graded = session.self_grade(
         ctx.learner(),
         ctx.catalog(),
         ctx.day(),
@@ -651,6 +667,7 @@ def cmd_grade(ctx: Context) -> dict[str, Any]:
         ahead=ctx.args.ahead,
         source=source,
     )
+    return with_next(ctx, graded, session.KIND_STAGE.get(graded["kind"]))
 
 
 def cmd_reveal(ctx: Context) -> dict[str, Any]:
@@ -941,6 +958,15 @@ def build_parser(
 
     p = add("today", cmd_today, render_summary, "the plan of the day")
     p.add_argument("--extra", type=int, default=0, help="add this many new words to today")
+    p.add_argument(
+        "--reviews",
+        type=int,
+        default=0,
+        help="add this many reviews to today: due ones over the limit, then later ones",
+    )
+    p.add_argument(
+        "--next", action="store_true", help="with --extra or --reviews: also the next cards"
+    )
 
     p = add("drill", cmd_drill, render_drill, "the day's session in the terminal")
     p.add_argument(
@@ -953,6 +979,11 @@ def build_parser(
         "--count", type=int, default=None, help="cards to show (default: the plan's batch, 1)"
     )
     p.add_argument("--ahead", type=int, default=0)
+    p.add_argument(
+        "--stage",
+        choices=tuple(STAGES),
+        help="the stage to take first: reviews, new (words) or drill",
+    )
 
     p = add("answer", cmd_answer, render_answer, "grade a typed answer read from standard input")
     p.add_argument("--card", help="the card, e.g. de-c00042#p")
@@ -973,6 +1004,9 @@ def build_parser(
     p.add_argument("--card", required=True)
     p.add_argument("--grade", required=True, choices=session.SELF_GRADES)
     p.add_argument("--ahead", action="store_true")
+    p.add_argument(
+        "--next", action="store_true", help="also return the next cards (the plan's batch)"
+    )
 
     p = add(
         "lookup",

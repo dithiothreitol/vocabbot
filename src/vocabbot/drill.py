@@ -2,7 +2,11 @@
 
 Every answer is written to the log the moment it is graded, so the learner may
 stop at any card (/koniec, Ctrl+C or the end of input) and lose nothing. The
-session draws with term.py: colours and symbols where the terminal shows them,
+day runs in the engine's order (reviews, new words, drill); the learner moves
+to another stage at any card (/nowe, /powtorki, /utrwalanie), asks for more
+new words (/wiecej), and at the end of the day's list chooses between more
+new words, the next round of reviews and the end. The session draws with
+term.py: colours and symbols where the terminal shows them,
 plain text elsewhere. In an interactive terminal a finished card folds into
 one line, so the screen keeps a short history of the session.
 """
@@ -19,7 +23,7 @@ from typing import Any
 from vocabbot import assets, session, store, term
 from vocabbot.courses import Catalog, presentation, question
 from vocabbot.errors import VocabError
-from vocabbot.queue import Item, compute
+from vocabbot.queue import STAGES, Item, compute, staged
 
 QUIT = ":q"
 COMMANDS = {
@@ -30,8 +34,16 @@ COMMANDS = {
     "/znam": "known",
     "/pomoc": "help",
     "/?": "help",
+    "/nowe": "new",
+    "/powtorki": "reviews",
+    "/powtórki": "reviews",
+    "/utrwalanie": "drill",
+    "/wiecej": "more",
+    "/więcej": "more",
 }
 BATCH = 5
+MORE_NEW = 5  # new words added by /wiecej and by "n" at the end of the day's list
+MORE_REVIEWS = 10  # reviews of the next round, added by "p" at the end of the day's list
 KEY_GRADES = {"1": "know", "2": "almost", "3": "dont_know"}
 GRADE_COLOURS = {
     "know": "green",
@@ -46,6 +58,10 @@ ACTIVITY_DAYS = 28
 
 class Quit(Exception):
     """The learner ends the session."""
+
+
+class Switch(Exception):
+    """The learner moves to another stage; the card on screen stays in the queue."""
 
 
 def read_key(prompt: str) -> str:
@@ -221,6 +237,7 @@ class Drill:
         self.style = screen.style
         self.clock = clock
         self.ahead = ahead
+        self.stage: str | None = None  # the stage the learner chose; None is the engine's order
         self.counts: Counter[str] = Counter()
         self.failed: set[str] = set()
         self.done = 0
@@ -242,17 +259,25 @@ class Drill:
         try:
             while True:
                 dp = self.compute()
-                pending = [item for item in dp.sequence if item.card not in self.failed]
+                pending = staged(
+                    [item for item in dp.sequence if item.card not in self.failed], self.stage
+                )
                 self.total = self.done + len(pending)
                 if not pending:
                     finished = True
-                    break
-                if pending[0].phase == "new":
-                    batch = [item for item in pending if item.phase == "new"][:BATCH]
-                    for item in self.introduce(batch, len(pending)):
-                        self.ask(item)
-                else:
-                    self.ask(pending[0], left=len(pending))
+                    if not self.offer_more(dp):
+                        break
+                    finished = False
+                    continue
+                try:
+                    if pending[0].phase == "new":
+                        batch = [item for item in pending if item.phase == "new"][:BATCH]
+                        for item in self.introduce(batch, len(pending)):
+                            self.ask(item)
+                    else:
+                        self.ask(pending[0], left=len(pending))
+                except Switch:
+                    continue
         except (Quit, EOFError, KeyboardInterrupt):
             pass
         self.closing(finished)
@@ -268,6 +293,51 @@ class Drill:
                 style(assets.text("drill.summary", minutes=summary["minutes"], **left), "dim")
             )
         self.screen.write(style(assets.text("drill.help"), "dim"))
+
+    # ------------------------------------------------------------ stages and more cards
+
+    def switch(self, stage: str) -> None:
+        """Move to a stage that has cards; the card on screen waits in its own stage."""
+        waiting = {item.phase for item in self.compute().sequence if item.card not in self.failed}
+        if not waiting & set(STAGES[stage]):
+            self.screen.show(f"  {assets.text(f'drill.stage_empty_{stage}')}", "yellow")
+            return
+        self.stage = stage
+        self.screen.fold(None)
+        self.screen.write(self.style(assets.text(f"drill.stage_{stage}"), "bold"))
+        raise Switch
+
+    def add_more(self, new: int = 0, reviews: int = 0) -> bool:
+        """More new words or the next round of reviews for today; False when none joined."""
+        result = session.add_extra(self.learner, self.catalog, self.day, new, reviews)
+        added = result["added"]["reviews" if reviews else "new"]
+        key = "drill.added_reviews" if reviews else "drill.added_new"
+        if not added:
+            key = "drill.no_more_reviews" if reviews else "drill.no_more_new"
+        self.screen.write(self.style(assets.text(key, count=added), "bold" if added else "yellow"))
+        if added:
+            self.stage = "reviews" if reviews else "new"
+        return bool(added)
+
+    def offer_more(self, dp: Any) -> bool:
+        """At the end of the day's list: more new words, the next round of reviews, or the end."""
+        available = session.more(dp, self.catalog)
+        reviews = available["reviews_due"] + available["reviews_ahead"]
+        options = []
+        if available["new"]:
+            options.append(assets.text("drill.more_new", count=min(MORE_NEW, available["new"])))
+        if reviews:
+            options.append(assets.text("drill.more_reviews", count=min(MORE_REVIEWS, reviews)))
+        if not options:
+            return False
+        self.screen.write(self.style(assets.text("drill.list_done"), "bold"))
+        prompt = self.style.sep.join([*options, assets.text("drill.more_end")])
+        key = self.screen.key(self.style(prompt, "dim") + " ")
+        if key == "n" and available["new"]:
+            return self.add_more(new=MORE_NEW)
+        if key == "p" and reviews:
+            return self.add_more(reviews=MORE_REVIEWS)
+        return False
 
     def card_head(self, item: Item, label: str) -> str:
         style = self.style
@@ -307,6 +377,9 @@ class Drill:
                 self.screen.show(f"  {assets.text('drill.also')} {', '.join(word['also'])}", "dim")
             self.sentence_lines(word.get("example"), word.get("example_pl"))
             key = self.screen.key(style(assets.text("drill.intro_keys"), "dim") + " ")
+            while key == "p":
+                self.switch("reviews")  # leaves the word when reviews wait, else says so
+                key = self.screen.key(style(assets.text("drill.intro_keys"), "dim") + " ")
             if key in ("q", "esc"):
                 raise Quit
             if key == "z":
@@ -378,6 +451,12 @@ class Drill:
                 self.help()
             elif command == "undo":
                 self.undo()
+            elif command in STAGES:
+                self.switch(command)
+            elif command == "more":
+                if self.add_more(new=MORE_NEW):
+                    self.screen.fold(None)
+                    raise Switch
             elif command == "known":
                 if item.phase == "new":
                     self.save_known(item, presentation(item.entry))
@@ -526,8 +605,15 @@ class Drill:
     # ------------------------------------------------------------ commands
 
     def help(self) -> None:
-        for key in ("help_answer", "help_known", "help_undo", "help_quit"):
-            self.screen.show(f"  {assets.text(f'drill.{key}')}", "dim")
+        for key in (
+            "help_answer",
+            "help_known",
+            "help_undo",
+            "help_stages",
+            "help_more",
+            "help_quit",
+        ):
+            self.screen.show(f"  {assets.text(f'drill.{key}', count=MORE_NEW)}", "dim")
 
     def undo(self) -> None:
         """/cofnij: another grade for the last answer, on the learner's request."""

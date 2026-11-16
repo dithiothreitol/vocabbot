@@ -366,3 +366,52 @@ def test_a_reported_card_leaves_the_drill_and_the_counter(program: Program, tmp_
     program.run("flag", "--card", card, "--stdin", *learner, stdin="zły przykład")
     day = program.run("today", *learner)
     assert day["left"]["drill"] == 0 and "do utrwalenia" not in day["counter"]
+
+
+def test_the_next_cards_stay_in_the_chosen_stage(
+    program: Program, tmp_path: Path, catalog: Catalog
+) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1-a2", "--new", "3")
+    program.run("commit", "--confirm", preview["token"])
+    monday = ("--learner", str(folder), "--today", DAY)
+    for _ in range(3):
+        card = program.run("next", *monday)["items"][0]["card"]
+        program.run("grade", "--card", card, "--grade", "known", *monday)
+
+    later = ("--learner", str(folder), "--today", "2026-11-30")
+    today = program.run("today", *later)
+    assert today["left"] == {"reviews": 3, "new": 3, "drill": 0}
+    assert today["more"]["new"] > 0
+    assert program.run("next", *later)["items"][0]["phase"] == "review"
+
+    first = program.run("next", "--stage", "new", *later)
+    assert first["stage"] == "new"
+    card = first["items"][0]["card"]
+    entry = catalog.card(card)
+    assert entry is not None
+    answered = program.run(
+        "answer", "--card", card, "--stdin", "--next", *later, stdin=entry["display"]
+    )
+    assert answered["kind"] == "learn" and answered["next"]["stage"] == "new"
+    second = answered["next"]["items"][0]
+    assert second["phase"] == "new"
+    known = program.run("grade", "--card", second["card"], "--grade", "known", "--next", *later)
+    assert known["next"]["items"][0]["phase"] == "new"
+    # a word marked as known brings one more; the last new words are left unanswered
+    last = known
+    while last["next"]["stage"] == "new":
+        line = json.dumps({"card": last["next"]["items"][0]["card"], "answer": ""})
+        last = program.run("answer", "--batch", "--stdin", "--next", *later, stdin=line)
+    # the new words are done: the reviews follow, and the drill waits for the end
+    assert last["next"]["stage"] == "reviews"
+    assert last["left"] == {"reviews": 3, "new": 0, "drill": 2}
+
+    # more new words on top of the day's number, with the first of them in the result
+    more = program.run("today", "--extra", "2", "--next", *later)
+    assert more["added"] == {"new": 2, "reviews": 0}
+    assert more["next"]["stage"] == "new" and more["next"]["items"][0]["phase"] == "new"
+    text = program.text("today", "--reviews", "1", *later)
+    assert "Dodatkowe nowe słowa na dziś: 2." in text
+    refused = program.run("today", "--reviews", "-1", *later, code=1)
+    assert refused["error"]["code"] == "bad_extra"

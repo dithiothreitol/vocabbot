@@ -70,6 +70,13 @@ in one and end in the other.
   answer prompt `/znam` marks a new word as known, `/cofnij` changes the grade
   of the previous answer, `/pomoc` lists the commands and `/koniec` (or q at a
   key prompt) ends the session with everything saved.
+- You choose what to learn. In the chat say "nowe" to move to the new words
+  while reviews wait, "powtórki" to go back, "więcej słów" for more new
+  words than the day's number, and "jeszcze powtórki" for the next round of
+  reviews. In the terminal the same choices are `/nowe`, `/powtorki`,
+  `/utrwalanie` and `/wiecej`, and after the day's list the session offers n
+  (5 more new words), p (the next round of 10 reviews) and Enter (the end).
+  Reviews you leave for later stay due and come first on the next day.
 - `vocabbot` without a command shows the plan of the day; Enter starts the
   session.
 - A grade changes only when you ask for it ("to była literówka, zalicz").

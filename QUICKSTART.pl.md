@@ -73,6 +73,14 @@ w drugim.
   znane, `/cofnij` zmienia ocenę poprzedniej odpowiedzi, `/pomoc` pokazuje
   polecenia, a `/koniec` (albo q przy wyborze klawisza) kończy sesję
   z zachowaniem postępu.
+- Wybierasz, czego się uczysz. W czacie hasło „nowe” przenosi sesję do
+  nowych słów przy czekających powtórkach, „powtórki” wraca do powtórek,
+  „więcej słów” dodaje nowe słowa ponad dzienną liczbę, „jeszcze powtórki”
+  zaczyna następną turę powtórek. W terminalu te same wybory dają polecenia
+  `/nowe`, `/powtorki`, `/utrwalanie` i `/wiecej`, a po liście dnia sesja
+  proponuje klawisze n (5 kolejnych nowych słów), p (następna tura 10
+  powtórek) i Enter (koniec). Powtórki odłożone na później zachowują termin
+  i otwierają następny dzień.
 - `vocabbot` bez polecenia pokazuje plan dnia, a Enter zaczyna sesję.
 - Ocena zmienia się wyłącznie na wyraźną prośbę („to była literówka,
   zalicz”).
