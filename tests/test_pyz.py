@@ -63,9 +63,19 @@ def test_packaged_courses_inside_the_archive(pyz: Path) -> None:
 
 def test_a_full_day_from_the_archive(pyz: Path, tmp_path: Path) -> None:
     folder = tmp_path / "nauka"
-    token = run(pyz, "init", str(folder), "--lang", "de:a1-a2", "--lang", "es:a1-a2", "--new", "6")[
-        "token"
-    ]
+    token = run(
+        pyz,
+        "init",
+        str(folder),
+        "--set",
+        "new_words=show",
+        "--lang",
+        "de:a1-a2",
+        "--lang",
+        "es:a1-a2",
+        "--new",
+        "6",
+    )["token"]
     run(pyz, "commit", "--confirm", token)
     sys.path.insert(0, str(REPO / "src"))
     from vocabbot.courses import Catalog

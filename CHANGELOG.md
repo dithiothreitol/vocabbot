@@ -3,10 +3,19 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
-## Unreleased
+## 1.0.0-rc.8 - 2026-11-16
 
 ### Added
 
+- A new word is asked at once, as in SuperMemo (`new_words: ask`, the plan's
+  default): `next` returns a new card without its word, the result of the
+  first answer shows the word in full, and a right first answer is logged as
+  `known`, a word known before the course, which adds one more new word and
+  counts for the level hint. `new_words=show` keeps the introduction before
+  the question. `today` names the setting in `new_words`.
+- `review_order` in the plan: `due` (most overdue first, the default),
+  `course`, `interval` (shortest intervals first) or `random` (the same
+  order for the whole day).
 - The stages of a day, as in SuperMemo (repetitions, new material, final
   drill), are the learner's choice: `next --stage reviews|new|drill` brings
   the cards of the chosen stage first, and an answer with `--next` returns
@@ -32,6 +41,14 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
 ### Changed
 
+- The drill has two grades, as in SuperMemo: an answer other than "know"
+  keeps the card in the drill and is logged as `dont_know` (the engine's
+  verdict stays in `auto` with its error classes); a drill answer is
+  regraded to `know` or `dont_know`.
+- A plan saved by an earlier version asks new words at once; `plan set
+  new_words=show` brings back the introduction before the question.
+- The forecast takes the share of right first answers from the log, and
+  20% for a plan that asks new words at once before the log has 20 of them.
 - `left.reviews` counts the reviews before their day too, and the server's
   tools no longer take `ahead`: such reviews join the day through
   `vocab_add_today`.

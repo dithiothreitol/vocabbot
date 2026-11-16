@@ -2,7 +2,12 @@
 
 These functions hold the guarantees of the engine:
 
-- `next_items` never returns the answer of a card under review or in drill;
+- `next_items` never returns the answer of a card under review or in drill, and
+  with the plan's `new_words: ask` (the default, as in SuperMemo) of no card at
+  all: a new word is asked at once and its first right answer means the learner
+  knew it before the course ("known"); `new_words: show` introduces it first;
+- the drill has two grades: an answer that is not "know" stays in the drill and
+  is logged as "dont_know";
 - `answer` grades a typed answer itself and logs the engine's grade;
 - a new card is accepted only when it is on today's list;
 - a card that is not due is accepted only as a review ahead of time: one of the
@@ -80,6 +85,24 @@ def classify(
     if card in dp.new:
         return entry, "learn", None
     raise VocabError("not_in_today", card=card)
+
+
+def asks_new_words(plan: dict[str, Any]) -> bool:
+    """New words come as questions at once (SuperMemo); otherwise they are shown first."""
+    return str(plan.get("new_words", "ask")) == "ask"
+
+
+def logged_grade(dp: DayPlan, kind: str, grade: str) -> str:
+    """The grade a row gets for a graded answer.
+
+    A new word asked at once and answered right was known before the course.
+    The drill has two grades, as in SuperMemo: "almost" keeps the card there.
+    """
+    if kind == "learn" and grade == "know" and asks_new_words(dp.plan):
+        return "known"
+    if kind == "drill" and grade == "almost":
+        return "dont_know"
+    return grade
 
 
 def _phases(dp: DayPlan) -> dict[str, int]:
@@ -329,7 +352,7 @@ def answer(
         entry,
         kind,
         state,
-        verdict.grade,
+        logged_grade(dp, kind, verdict.grade),
         now,
         verdict=verdict,
         given=given,
@@ -367,6 +390,7 @@ def self_grade(
         raise VocabError("known_only_first", card=card)
     if grade != "known" and split_card(card)[1] == "p":
         raise VocabError("production_needs_answer", card=card)
+    grade = logged_grade(dp, kind, grade)
     result = record(learner, dp, card, entry, kind, state, grade, now, source=source, ahead=ahead)
     if kind == "learn":
         hint = level_hint(learner.rows()[0], catalog, str(entry["lang"]), dp.plan, day)
@@ -457,6 +481,8 @@ def regrade(
         raise VocabError("nothing_to_regrade", card=card)
     if target.grade == "known":
         raise VocabError("known_not_regraded", card=card)
+    if target.kind == "drill" and grade == "almost":
+        raise VocabError("drill_two_grades", card=card)
     if target.grade == grade:
         raise VocabError("same_grade", card=card, grade=grade)
     rows, _ = learner.rows()
@@ -515,9 +541,11 @@ def next_items(
     ahead: int = 0,
     stage: str | None = None,
 ) -> dict[str, Any]:
-    """The next cards of the day. Answers appear only for new words, which are introduced.
+    """The next cards of the day, without their answers.
 
-    With `stage` the cards of that stage come first (reviews, new or drill);
+    Only a plan with `new_words: show` gets the word of a new card, to
+    introduce it before its question. With `stage` the cards of that stage
+    come first (reviews, new or drill);
     `stage` in the result names the stage of the first card returned, and
     `stage_empty` the chosen stage when it has no cards left.
     """
@@ -525,6 +553,7 @@ def next_items(
         raise VocabError("bad_stage", stage=stage)
     dp = compute(learner, catalog, day, ahead=ahead)
     sequence = staged(dp.sequence, stage)
+    introduce = not asks_new_words(dp.plan)
     items = []
     for item in sequence[: max(0, count)]:
         shown: dict[str, Any] = {
@@ -533,7 +562,7 @@ def next_items(
             "phase": item.phase,
             "question": question(item.entry, item.direction),
         }
-        if item.phase == "new":
+        if item.phase == "new" and introduce:
             shown["word"] = presentation(item.entry)
         items.append(shown)
     hide_other_answers(catalog, items)
@@ -592,6 +621,7 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
         "learned_today": learned_today(catalog, dp),
         "minutes": round(minutes),
         "batch": int(dp.plan.get("batch", 1)),
+        "new_words": str(dp.plan.get("new_words", "ask")),
         "warnings": warnings,
     }
     # pacing matters only while the courses still have the words it holds back

@@ -25,13 +25,21 @@ samą sesję w czacie.
   terminach, a algorytm uwzględnia krótszy odstęp w ich następnym terminie.
 - **Karty.** Karta pokazuje polskie znaczenie, część mowy i zdanie
   przykładowe z luką, a uczący się wpisuje słowo. Nowe słowo pojawia się
-  najpierw z rodzajem, formami, wymową IPA, odnośnikiem do nagrania
-  i przykładem. Licznik dnia otwiera każdą wiadomość sesji w czacie.
+  od razu jako takie pytanie, tak jak w SuperMemo, a wynik pierwszej
+  odpowiedzi pokazuje je w całości: rodzaj, formy, wymowę IPA, odnośnik do
+  nagrania i przykład. Poprawna pierwsza odpowiedź oznacza słowo znane przed
+  kursem i dodaje do dnia kolejne nowe słowo. Ustawienie planu
+  `new_words=show` pokazuje nowe słowo przed pytaniem. Licznik dnia otwiera
+  każdą wiadomość sesji w czacie.
 - **Oceny.** Silnik porównuje wpisaną odpowiedź z hasłem według reguł języka.
   Zgodność daje „wiem”, drobne potknięcie (znak diakrytyczny, jedna litera,
   rodzajnik, wielkość litery, inna forma słowa) daje „prawie”, pozostałe
   odpowiedzi dają „nie wiem”. Ocena „znałem” przy pierwszym pokazaniu
-  oznacza słowo znane przed kursem.
+  oznacza słowo znane przed kursem. Utrwalanie ma dwie oceny: „wiem”
+  zdejmuje kartę z utrwalania, każda inna odpowiedź ją tam zostawia.
+- **Kolejność powtórek.** Sesja podaje najpierw karty najbardziej zaległe.
+  Ustawienie planu `review_order` zmienia kolejność na kolejność kursu,
+  rosnące odstępy albo kolejność losową.
 - **Harmonogram.** FSRS-6 wyznacza kolejną powtórkę dla trwałości 90%, czyli
   dla wartości stosowanej w kursach SuperMemo. Wyniki zgadzają się
   z biblioteką py-fsrs 6.3.3.

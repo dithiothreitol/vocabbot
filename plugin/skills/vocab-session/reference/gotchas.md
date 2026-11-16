@@ -11,6 +11,10 @@
 - In the terminal session the same choices are `/nowe`, `/powtorki`,
   `/utrwalanie` and `/wiecej`, and the keys offered at the end of the list.
 - `known_only_first`: "znałem" works only the first time a word is shown.
+- `drill_two_grades`: a drill answer is regraded to `know` or `dont_know`.
+- The order of the reviews is the plan's `review_order`: `due` (most overdue
+  first, the default), `course`, `interval` or `random`; `vocab-start`
+  changes it.
 - `nothing_to_regrade` or `same_grade`: there is no grade from today to
   change, or the grade is already the requested one.
 - A drill answer (the second and later answers on one day) leaves the due

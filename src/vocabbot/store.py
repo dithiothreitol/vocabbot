@@ -57,6 +57,11 @@ DEFAULT_PLAN: dict[str, Any] = {
     "presence": "on",
     # cards in one message of the chat session; 1 asks them one at a time
     "batch": 1,
+    # a new word: asked at once as a question, as SuperMemo does, or shown first
+    "new_words": "ask",
+    # the order of the day's reviews: most overdue first, course order, shortest
+    # interval first, or random
+    "review_order": "due",
     "parameters": {},
     "parameters_info": {},
 }
@@ -76,6 +81,8 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "mix": ("interleaved", "blocks"),
     "diacritics": ("strict", "lenient"),
     "presence": ("on", "off"),
+    "new_words": ("ask", "show"),
+    "review_order": ("due", "course", "interval", "random"),
 }
 PARAMETER_COUNT = 21
 

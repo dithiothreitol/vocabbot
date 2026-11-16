@@ -21,6 +21,8 @@ and give one preview.
 | `sibling_gap_days` | 0 to 14, days between learning one concept in two languages (default 3) | `sibling_gap_days=5` |
 | `max_languages` | 1 to 6; a fourth language needs this raised first | `max_languages=4` |
 | `batch` | 1 to 20, the cards in one message of the chat session; 1 (default) asks one card at a time, as SuperMemo does | `batch=5` |
+| `new_words` | `ask` (default): a new word comes at once as a question, as in SuperMemo, and a right first answer marks it as known before the course; `show`: the word is shown first and asked afterwards | `new_words=show` |
+| `review_order` | the order of the day's reviews: `due` (most overdue first, default), `course` (the order of the course), `interval` (shortest intervals first) or `random` | `review_order=course` |
 | `presence` | `on` (default): due dates avoid the weekdays the learner usually skips, new words stay within the usual minutes, and a day before a skipped day offers reviews ahead; `off`: none of this | `presence=off` |
 | `parameters` | `default` removes the FSRS-6 parameters fitted by `plan fit` | `parameters=default` |
 

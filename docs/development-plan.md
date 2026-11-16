@@ -424,6 +424,9 @@ starts at the hour `day_starts_at`.
    are the due cards outside the day's list first, then the cards with the
    nearest later dates as reviews before their day. `registers/day.json`
    keeps the numbers of added cards (Stage 10).
+8. A new word comes at once as a question (`new_words: ask`) or after an
+   introduction (`new_words: show`). The day's reviews follow the order of
+   the plan (`review_order`). The drill has two grades (Stage 10).
 
 ### 7.3 Safeguards of saving grades
 
@@ -1462,19 +1465,20 @@ the deployment await your approval.
 | a fault found by the simulation | a second request for more new words with three languages gave 28 words instead of 25: the largest remainder split moved a place between languages and a word already shown fell outside the choice; added words now join one at a time in a fixed order of languages by weight, so a larger number only appends (this also covers the word added after "znałem") |
 | the day's pace | reviews the learner adds leave the number of new words set from the presence profile unchanged |
 | tests | 255 on Python 3.15 and 227 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 of 7) and `claude plugin validate --strict` without remarks; new tests: the choice of a stage and a stage without cards, a round of reviews before their day, due reviews over the limit first, a day off with reviews on request, the next card in the chosen stage through the commands, stages and additions in the terminal, more new words with three languages, the server's tools with `stage`, `then_next` and `reviews` |
-| simulation | the full courses (de A1–A2, es A1, it A1, 15 new words a day) through the program's commands: 1206 checks without a fault; the counter adds up after every answer, the next card stays in the chosen stage, two additions give 25 new words, four rounds give 35 reviews before their day without a repeat, and a round is empty when every card has today's answer; a simulation with a model in the chat needs your approval of its cost |
+| simulation | the full courses (de A1–A2, es A1, it A1, 15 new words a day) through the program's commands: 1206 checks without a fault; the counter adds up after every answer, the next card stays in the chosen stage, two additions give 25 new words, four rounds give 35 reviews before their day without a repeat, and a round is empty when every card has today's answer; the table below describes the simulation with a model |
 
-Differences from SuperMemo left for your decision:
+#### The three differences aligned with SuperMemo (16.11.2026, with your approval)
 
-1. **A new word.** VocabBot introduces a new word and asks about it after
-   "dalej"; SuperMemo shows a new word at once as an exercise with the
-   learner's own grade.
-2. **Grades in the drill.** SuperMemo has two grades in the drill ("I know"
-   and "I don't know"); VocabBot grades the typed answer with three grades
-   and "prawie" keeps the card in the drill.
-3. **The order of reviews.** SuperMemo lets the learner choose the order of
-   repetitions (course order, random, rising intervals); VocabBot gives the
-   most overdue cards first.
+| Difference | How |
+|---|---|
+| a new word | the plan setting `new_words` with the default `ask`: `next` gives a new card as a question without its word, the result of the first answer shows the word in full (forms, IPA, recording, meaning, example), and a word answered "nie wiem" comes back the same day in the drill; a right first answer gets the grade `known` (a word known before the course), adds one more new word to the day and counts for the level hint; `new_words=show` keeps the introduction before the question; plans saved earlier get `ask` |
+| two grades in the drill | a drill answer other than "wiem" keeps the card in the drill and enters the log as `dont_know`; the engine's verdict with its error classes stays in `auto`; the terminal offers the keys 1 and 3 in the drill, and a regrade there takes `know` or `dont_know` |
+| the order of reviews | the plan setting `review_order`: `due` (most overdue first, the default), `course` (the order of the course), `interval` (shortest intervals first), `random` (the same for the whole day); reviews added during the day follow the planned ones |
+| the forecast | `forecast` takes the share of right first answers from the log, and before 20 such answers it assumes 20% for a plan that asks at once and 80% for a plan that shows the word first |
+| the chat, the terminal and the card | the guide, the skill `vocab-session` and the rule about the answer after the grade describe a new word as a question, the result "✓ znane wcześniej" and the two grades of the drill; the terminal asks a new word without an introduction and shows its forms and example after a right answer; the card shows a new word in full with the result of its first answer |
+| tests | 260 on Python 3.15 and 232 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 of 7) and `claude plugin validate --strict` without remarks; new tests: a new word as a question and the grade `known`, the two grades of the drill with the refusal of "prawie", the four orders of reviews, the plan settings through the commands, the terminal session asking at once |
+| simulation of the program | the full courses through the commands with the default plan: 1407 checks without a fault in 131 answers (55 new words not known, 16 known before, 41 drill answers graded only `know` or `dont_know`); no card gave its word before the grade, and the four orders of reviews hold the same cards |
+| simulation with a model | a local server and Claude Code with the Sonnet model, 10 turns for 1.79 USD: a start from the reviews with the line about the choice, "nowe" (`vocab_next` with `stage: new`), a new word as a question, the full introduction after "?", "✓ znane wcześniej" after a right answer, "daj jeszcze 3 słowa" (`vocab_add_today` with `count: 3`), back to the reviews, the next round (`vocab_add_today` with `reviews: 5`, the 4 available cards joined) and a move to the drill; every turn followed the guide |
 
 ---
 
@@ -1486,7 +1490,7 @@ Differences from SuperMemo left for your decision:
 |---|---|---|
 | A vocabulary course by frequency with CEFR levels | yes | A1–A2 and B1–B2 courses, ordered by frequency |
 | A word page: meaning, example, pronunciation | yes | the Polish meaning, a sentence with a gap, IPA |
-| Three grades | yes | `know`, `almost`, `dont_know` |
+| Three grades | yes | `know`, `almost`, `dont_know`; two grades in the drill (Stage 10) |
 | Learning, reviews, drill | yes | three stages of the day in this order, with the learner's choice of stage, more new words and more rounds of reviews (Stage 10) |
 | A review at a recall of about 90% | yes | FSRS-6, the recall in the plan, the spread of due dates, initial intervals fitted to the log, the full fit of a language after a win in `replay`, due dates by presence |
 | Skipping known words | yes | the grade "known" and the placement test |
@@ -1532,6 +1536,7 @@ of words confused between languages, own words from any text.
 | Stage 7, the review of the Italian meanings and examples | 3.54 USD with Claude Sonnet 5.5 (limit 7 USD) | approved on 15.11.2026 |
 | Stage 8, example sentences from the model for 10,738 entries | 8.32 USD with Claude Sonnet 5.5 (sample 0.09 USD, limit 12 USD) | approved on 16.11.2026 after the sample |
 | Stage 8, simulated sessions with the model through a local server | 2.86 USD (9 and 6 turns, the Sonnet model in Claude Code) | within the request of 16.11.2026 |
+| Stage 10, a simulation of the session with a model through a local server | 1.79 USD (10 turns, the Sonnet model in Claude Code; estimate 1–2 USD) | approved 16.11.2026 |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub

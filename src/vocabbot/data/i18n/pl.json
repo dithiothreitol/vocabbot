@@ -22,6 +22,7 @@
     "known_only_first": "Ocena „znałem” jest dostępna tylko przy pierwszym pokazaniu karty {card}.",
     "production_needs_answer": "Kartę {card} ocenia silnik na podstawie wpisanej odpowiedzi (vocabbot answer).",
     "bad_regrade": "Zmiana oceny przyjmuje know, almost albo dont_know, a nie „{grade}”.",
+    "drill_two_grades": "Utrwalanie ma dwie oceny, więc odpowiedź karty {card} przyjmuje know albo dont_know.",
     "nothing_to_regrade": "Karta {card} nie ma dziś odpowiedzi, której ocenę można zmienić.",
     "known_not_regraded": "Oceny „znałem” karty {card} nie zmienia się; karta wróci w zwykłym terminie.",
     "same_grade": "Karta {card} ma już ocenę {grade}.",
@@ -91,6 +92,8 @@
     "set_summary": "zmiana planu: {changes}",
     "presence": "Plan według obecności: {value}",
     "batch": "Karty w jednej wiadomości sesji w czacie: {value}",
+    "new_words": "Nowe słowo: {value}",
+    "review_order": "Kolejność powtórek: {value}",
     "parameters": "Parametry FSRS-6 dopasowane do dziennika: {value}",
     "parameters_default": "brak, obowiązują domyślne",
     "fit_line": "{name}: parametry dopasowane do {reviews} powtórek; na późniejszej części dziennika log loss {loss} zamiast {base} dla FSRS-6",
@@ -113,6 +116,16 @@
   "mix": {
     "interleaved": "przeplatane",
     "blocks": "blokami"
+  },
+  "new_words": {
+    "ask": "od razu jako pytanie, tak jak w SuperMemo",
+    "show": "najpierw prezentacja słowa, potem pytanie"
+  },
+  "review_order": {
+    "due": "od najbardziej zaległych",
+    "course": "w kolejności kursu",
+    "interval": "od najkrótszych odstępów",
+    "random": "losowa"
   },
   "diacritics": {
     "strict": "brak znaku daje ocenę „prawie”",
@@ -253,6 +266,7 @@
     "intro_keys": "Enter dalej · z znałem to słowo · p powtórki · q koniec",
     "test_title": "Sprawdzenie nowych słów",
     "grade_keys": "Enter zapisuje „{grade}” · 1 wiem · 2 prawie · 3 nie wiem · q koniec",
+    "grade_keys_drill": "Enter zapisuje „{grade}” · 1 wiem · 3 nie wiem · q koniec",
     "recognize_keys": "Jak dobrze znasz znaczenie? 1 wiem · 2 prawie · 3 nie wiem · q koniec",
     "show_meaning": "Enter pokazuje znaczenie · q koniec",
     "back_today": "wróci dziś w utrwalaniu",

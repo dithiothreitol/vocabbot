@@ -23,14 +23,22 @@ Claude and Codex that runs the same session in a chat.
   next round brings the cards with the nearest later dates, and the
   algorithm counts the shorter gap in their next date.
 - **Cards.** A card shows the Polish meaning, the part of speech and an
-  example sentence with a gap; the learner types the word. New words are
-  introduced first with their gender, forms, IPA, a link to a recording and
-  an example. The day's counter starts every message of a session in a chat.
+  example sentence with a gap; the learner types the word. A new word
+  comes at once as such a question, as in SuperMemo, and the result of the
+  first answer shows it in full: gender, forms, IPA, a link to a recording
+  and an example. A right first answer marks the word as known before the
+  course and brings one more new word. The plan's `new_words=show` shows a
+  new word before its question. The day's counter starts every message of a
+  session in a chat.
 - **Grades.** The engine compares the typed answer with the entry by the
   rules of the language: right gives "wiem", a small slip (a diacritic, one
   letter, the article, the case, another form of the word) gives "prawie",
   anything else "nie wiem". "Znałem" marks a word the learner knew before
-  the course, at its first showing.
+  the course, at its first showing. The drill has two grades: "wiem" takes
+  the card out and any other answer keeps it there.
+- **Order of reviews.** The most overdue cards come first; the plan's
+  `review_order` changes it to the order of the course, the shortest
+  intervals first or a random order.
 - **Schedule.** FSRS-6 sets the next review for a recall of 90% by default,
   the target of the SuperMemo courses. Its results match py-fsrs 6.3.3.
 - **Several languages.** New words a day are shared between the languages by

@@ -417,6 +417,9 @@ i wynosi co najmniej jeden dzień. Dzień nauki zaczyna się o godzinie
    wag. Dodatkowe powtórki obejmują najpierw zaległe karty spoza listy dnia,
    potem karty o najbliższych terminach jako powtórki przed terminem.
    Liczby dopisanych kart przechowuje `registers/day.json` (Etap 10).
+8. Nowe słowo przychodzi od razu jako pytanie (`new_words: ask`) albo po
+   prezentacji (`new_words: show`). Powtórki dnia idą w kolejności z planu
+   (`review_order`). Utrwalanie ma dwie oceny (Etap 10).
 
 ### 7.3 Zabezpieczenia zapisu ocen
 
@@ -1443,19 +1446,20 @@ czekają na Twoją zgodę.
 | usterka znaleziona w symulacji | druga dokładka nowych słów przy trzech językach dawała 28 słów zamiast 25: podział metodą największych reszt przesuwał miejsce między językami i słowo już pokazane zostawało poza wyborem; dodatkowe słowa dochodzą teraz po jednym w stałej kolejności języków według wag, więc większa liczba tylko dopisuje (dotyczy też słowa dokładanego po ocenie „znałem”) |
 | tempo dnia | powtórki dopisane przez uczącego się zostawiają bez zmian liczbę nowych słów wyznaczoną z profilu obecności |
 | testy | 255 na Pythonie 3.15 i 227 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 z 7) i `claude plugin validate --strict` bez uwag; nowe testy: wybór etapu i etap bez kart, tura powtórek przed terminem, zaległe powtórki ponad limit jako pierwsze, dzień wolny z powtórkami na prośbę, kolejna karta w wybranym etapie przez polecenia, etapy i dokładki w terminalu, dokładki nowych słów przy trzech językach, narzędzia serwera z `stage`, `then_next` i `reviews` |
-| symulacja | pełne kursy (de A1–A2, es A1, it A1, 15 nowych słów dziennie) przez polecenia programu: 1206 sprawdzeń bez usterki; licznik sumuje się po każdej odpowiedzi, kolejna karta zostaje w wybranym etapie, dwie dokładki dają 25 nowych słów, cztery tury dają 35 powtórek przed terminem bez powtórzeń, a tura przy wszystkich kartach z dzisiejszą odpowiedzią jest pusta; symulacja z modelem w czacie wymaga Twojej zgody na koszt |
+| symulacja | pełne kursy (de A1–A2, es A1, it A1, 15 nowych słów dziennie) przez polecenia programu: 1206 sprawdzeń bez usterki; licznik sumuje się po każdej odpowiedzi, kolejna karta zostaje w wybranym etapie, dwie dokładki dają 25 nowych słów, cztery tury dają 35 powtórek przed terminem bez powtórzeń, a tura przy wszystkich kartach z dzisiejszą odpowiedzią jest pusta; symulację z modelem opisuje tabela poniżej |
 
-Różnice wobec SuperMemo pozostawione do Twojej decyzji:
+#### Wyrównanie trzech różnic do SuperMemo (16.11.2026, za Twoją zgodą)
 
-1. **Nowe słowo.** VocabBot przedstawia nowe słowo i pyta o nie po haśle
-   „dalej”; SuperMemo pokazuje nowe słowo od razu jako ćwiczenie
-   z samooceną.
-2. **Oceny w utrwalaniu.** SuperMemo ma w utrwalaniu dwie oceny („wiem”
-   i „nie wiem”); VocabBot ocenia wpisaną odpowiedź trzema ocenami
-   i odpowiedź „prawie” zostawia kartę w utrwalaniu.
-3. **Kolejność powtórek.** SuperMemo pozwala wybrać kolejność powtórek
-   (według kursu, losowa, rosnące odstępy); VocabBot podaje jako pierwsze
-   karty najbardziej zaległe.
+| Różnica | Realizacja |
+|---|---|
+| nowe słowo | ustawienie planu `new_words` z wartością domyślną `ask`: `next` podaje nową kartę jako pytanie bez słowa, wynik pierwszej odpowiedzi pokazuje słowo w całości (formy, IPA, nagranie, znaczenie, przykład), a słowo z odpowiedzią „nie wiem” wraca tego samego dnia w utrwalaniu; poprawna pierwsza odpowiedź dostaje ocenę `known` (słowo znane przed kursem), dodaje do dnia kolejne nowe słowo i liczy się do podpowiedzi poziomu; `new_words=show` zachowuje prezentację słowa przed pytaniem; plany zapisane wcześniej dostają `ask` |
+| dwie oceny w utrwalaniu | odpowiedź w utrwalaniu inna niż „wiem” zostawia kartę w utrwalaniu i trafia do dziennika jako `dont_know`; werdykt silnika z klasami błędów zostaje w polu `auto`; terminal proponuje w utrwalaniu klawisze 1 i 3, a zmiana oceny przyjmuje tam `know` albo `dont_know` |
+| kolejność powtórek | ustawienie planu `review_order`: `due` (od najbardziej zaległych, wartość domyślna), `course` (kolejność kursu), `interval` (od najkrótszych odstępów), `random` (losowa, stała przez cały dzień); powtórki dopisane w ciągu dnia dochodzą po zaplanowanych |
+| prognoza | `forecast` bierze udział poprawnych pierwszych odpowiedzi z dziennika, a przed zebraniem 20 takich odpowiedzi przyjmuje 20% dla planu z pytaniem od razu i 80% dla planu z prezentacją |
+| czat, terminal i karta | przewodnik, umiejętność `vocab-session` i reguła o odpowiedzi po ocenie opisują nowe słowo jako pytanie, wynik „✓ znane wcześniej” i dwie oceny utrwalania; terminal pyta o nowe słowo bez wcześniejszej prezentacji i po poprawnej odpowiedzi pokazuje formy i przykład; karta pokazuje nowe słowo w całości przy wyniku pierwszej odpowiedzi |
+| testy | 260 na Pythonie 3.15 i 232 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (7 z 7) i `claude plugin validate --strict` bez uwag; nowe testy: nowe słowo jako pytanie i ocena `known`, dwie oceny utrwalania z odmową oceny „prawie”, cztery kolejności powtórek, ustawienia planu przez polecenia, sesja w terminalu z pytaniem od razu |
+| symulacja programu | pełne kursy przez polecenia przy planie domyślnym: 1407 sprawdzeń bez usterki w 131 odpowiedziach (55 nowych słów nieznanych, 16 znanych wcześniej, 41 odpowiedzi utrwalania wyłącznie z ocenami `know` i `dont_know`); żadna karta nie podała słowa przed oceną, a cztery kolejności powtórek obejmują te same karty |
+| symulacja z modelem | lokalny serwer i Claude Code z modelem Sonnet, 10 tur za 1,79 USD: start od powtórek z linią o wyborze, „nowe” (`vocab_next` ze `stage: new`), nowe słowo jako pytanie, pełna prezentacja po „?”, „✓ znane wcześniej” po poprawnej odpowiedzi, „daj jeszcze 3 słowa” (`vocab_add_today` z `count: 3`), powrót do powtórek, następna tura (`vocab_add_today` z `reviews: 5`, dołączyły 4 dostępne karty) i przejście do utrwalania; każda tura zgodna z przewodnikiem |
 
 ---
 
@@ -1467,7 +1471,7 @@ Różnice wobec SuperMemo pozostawione do Twojej decyzji:
 |---|---|---|
 | Kurs słownictwa według częstości z poziomami CEFR | tak | kursy A1–A2 i B1–B2, kolejność według częstości |
 | Strona słowa: znaczenie, przykład, wymowa | tak | znaczenie polskie, zdanie z luką, IPA |
-| Trzy oceny | tak | `know`, `almost`, `dont_know` |
+| Trzy oceny | tak | `know`, `almost`, `dont_know`; w utrwalaniu dwie oceny (Etap 10) |
 | Nauka, powtórki, utrwalanie | tak | trzy etapy dnia w tej kolejności, z wyborem etapu przez uczącego się, kolejnymi nowymi słowami i kolejnymi turami powtórek (Etap 10) |
 | Powtórka przy trwałości około 90% | tak | FSRS-6, trwałość w planie, rozrzut terminów, początkowe odstępy dopasowane do dziennika, pełne dopasowanie dla języka po wygranej w `replay`, terminy według obecności |
 | Pomijanie znanych słów | tak | ocena „znałem” i test poziomujący |
@@ -1513,6 +1517,7 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 7, przegląd włoskich znaczeń i przykładów | 3,54 USD przy Claude Sonnet 5.5 (limit 7 USD) | zatwierdzony 15.11.2026 |
 | Etap 8, zdania przykładowe z modelu dla 10 738 haseł | 8,32 USD przy Claude Sonnet 5.5 (próbka 0,09 USD, limit 12 USD) | zatwierdzony 16.11.2026 po próbce |
 | Etap 8, symulacje sesji z modelem przez lokalny serwer | 2,86 USD (9 i 6 tur, model Sonnet w Claude Code) | w ramach polecenia z 16.11.2026 |
+| Etap 10, symulacja sesji z modelem przez lokalny serwer | 1,79 USD (10 tur, model Sonnet w Claude Code; szacunek 1–2 USD) | zatwierdzona 16.11.2026 |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie

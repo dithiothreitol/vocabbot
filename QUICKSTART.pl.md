@@ -58,8 +58,12 @@ Sesję w czacie rozpoczyna „sesja” albo „uczymy się”, a w terminalu pol
 kolejności, więc sesja rozpoczęta w jednym miejscu może skończyć się
 w drugim.
 
-- Nowe słowa pojawiają się najpierw w całości. Słowa znane przed kursem
-  dostają ocenę „znałem” i nie zużywają dziennego limitu.
+- Nowe słowo pojawia się od razu jako pytanie, tak jak w SuperMemo. Słowo,
+  które znasz, wpisujesz: poprawna pierwsza odpowiedź oznacza słowo znane
+  przed kursem i takie słowo zostawia dzienny limit bez zmian. Przy słowie
+  jeszcze nieznanym wpisujesz „?”: wynik pokazuje słowo z formami, wymową
+  i przykładem, a słowo wraca tego samego dnia w utrwalaniu. Ustawienie
+  planu `new_words=show` pokazuje każde nowe słowo przed pytaniem.
 - Pytanie pokazuje polskie znaczenie i zdanie z luką. Rzeczowniki
   niemieckie, hiszpańskie, francuskie i włoskie wymagają rodzajnika. Znak „?” albo
   pusta odpowiedź oznacza „nie wiem”.
@@ -68,8 +72,7 @@ w drugim.
 - W terminalu poprawna odpowiedź zapisuje się od razu i zwija się do
   jednego wiersza. Po pomyłce sesja pokazuje Twoją odpowiedź obok poprawnej
   z zaznaczonymi różnicami; Enter zapisuje proponowaną ocenę, a klawisze 1,
-  2 i 3 wybierają inną. Podczas wprowadzania nowych słów klawisz z oznacza
-  słowo jako znane. Przy odpowiedzi polecenie `/znam` oznacza nowe słowo jako
+  2 i 3 wybierają inną (utrwalanie ma dwie oceny, 1 i 3). Przy odpowiedzi polecenie `/znam` oznacza nowe słowo jako
   znane, `/cofnij` zmienia ocenę poprzedniej odpowiedzi, `/pomoc` pokazuje
   polecenia, a `/koniec` (albo q przy wyborze klawisza) kończy sesję
   z zachowaniem postępu.

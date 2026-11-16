@@ -536,3 +536,90 @@ def test_more_words_only_append_to_the_day(tmp_path: Path, catalog: Catalog) -> 
     session.self_grade(learner, catalog, MONDAY, moment(MONDAY, 900), card, "known")
     longer = compute(learner, catalog, MONDAY).new
     assert set(chosen) < set(longer) and len(longer) == len(chosen) + 1
+
+
+# ---------------------------------------------------------------- as in SuperMemo
+
+
+def test_a_new_word_is_asked_at_once(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=3, new_words="ask")
+    first = session.next_items(learner, catalog, MONDAY, count=10)
+    items = first["items"]
+    assert len(items) == 3
+    assert all(item["phase"] == "new" and "word" not in item for item in items)
+    assert session.summary(learner, catalog, compute(learner, catalog, MONDAY))["new_words"] == (
+        "ask"
+    )
+    known, missed, declared = (item["card"] for item in items)
+
+    # a right first answer: the learner knew the word before the course, so one more comes
+    result = session.answer(
+        learner, catalog, MONDAY, moment(MONDAY, 1), known, correct(catalog, known)
+    )
+    assert (result["kind"], result["grade"], result["auto"]) == ("learn", "known", "know")
+    assert result["word"]["meaning"] and result["left"]["new"] == 3
+    row = learner.rows()[0][-1]
+    assert (row["grade"], row["auto"]) == ("known", "know")
+
+    # a missed word is learned from the result and comes back in the drill
+    result = session.answer(learner, catalog, MONDAY, moment(MONDAY, 2), missed, "")
+    assert result["grade"] == "dont_know" and result["drill"] and result["word"]["word"]
+    assert result["left"] == {"reviews": 0, "new": 2, "drill": 1}
+
+    # "znałem" without an answer still works at the first showing
+    result = session.self_grade(learner, catalog, MONDAY, moment(MONDAY, 3), declared, "known")
+    assert result["grade"] == "known"
+    listed = session.summary(learner, catalog, compute(learner, catalog, MONDAY))
+    assert [word.get("known") for word in listed["learned_today"]] == [True, True]
+
+
+def test_the_drill_has_two_grades(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=6)
+    dp = compute(learner, catalog, MONDAY)
+    close = {}
+    for card in dp.new:
+        entry = catalog.card(card)
+        assert entry is not None
+        given = str(entry["display"]).lower()  # a noun without its capital letter
+        if session.evaluate(dp, catalog, entry, given).grade == "almost":
+            close[card] = given
+    card, given = next(iter(close.items()))
+    first = session.answer(learner, catalog, MONDAY, moment(MONDAY, 1), card, given)
+    assert (first["kind"], first["grade"]) == ("learn", "almost")
+    again = session.answer(learner, catalog, MONDAY, moment(MONDAY, 2), card, given)
+    assert (again["kind"], again["auto"], again["grade"]) == ("drill", "almost", "dont_know")
+    assert again["errors"] and again["drill"] and again["left"]["drill"] == 1
+    with pytest.raises(VocabError) as error:
+        session.regrade(learner, catalog, MONDAY, moment(MONDAY, 3), card, "almost")
+    assert error.value.code == "drill_two_grades"
+    done = session.answer(learner, catalog, MONDAY, moment(MONDAY, 4), card, correct(catalog, card))
+    assert done["grade"] == "know" and done["left"]["drill"] == 0
+    # the first answer keeps its grade and the card its date
+    assert [row["grade"] for row in learner.rows()[0]] == ["almost", "dont_know", "know"]
+    assert done["next_due"] == first["next_due"]
+
+
+def test_reviews_come_in_the_order_the_plan_names(tmp_path: Path, catalog: Catalog) -> None:
+    day = MONDAY + timedelta(days=4)
+    orders: dict[str, list[str]] = {}
+    for order in ("due", "course", "interval", "random"):
+        learner = make_learner(tmp_path / order, ["de:a1-a2"], new_per_day=8, review_order=order)
+        new = compute(learner, catalog, MONDAY).new
+        learn_day(learner, catalog, MONDAY, wrong={new[5], new[6]})
+        learn_day(learner, catalog, MONDAY + timedelta(days=1), wrong={new[5]})
+        dp = compute(learner, catalog, day)
+        orders[order] = [item.card for item in dp.sequence if item.phase == "review"]
+        assert orders[order] == [
+            item.card for item in compute(learner, catalog, day).sequence if item.phase == "review"
+        ]
+        if order == "interval":
+            intervals = [
+                (dp.before.cards[c].due(dp.scheduler) - dp.before.cards[c].last_day).days
+                for c in orders[order]
+            ]
+            assert intervals == sorted(intervals) and len(set(intervals)) > 1
+    assert len(orders["due"]) >= 8
+    assert all(sorted(cards) == sorted(orders["due"]) for cards in orders.values())
+    place = {str(e["id"]): n for n, e in enumerate(catalog.course("de", ["a1", "a2"]))}
+    assert orders["course"] == sorted(orders["course"], key=lambda c: place[c.split("#")[0]])
+    assert len({tuple(cards) for cards in orders.values()}) == 4

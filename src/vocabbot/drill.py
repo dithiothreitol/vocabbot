@@ -270,7 +270,8 @@ class Drill:
                     finished = False
                     continue
                 try:
-                    if pending[0].phase == "new":
+                    # a new word is asked at once, as in SuperMemo, unless the plan shows it first
+                    if pending[0].phase == "new" and not session.asks_new_words(dp.plan):
                         batch = [item for item in pending if item.phase == "new"][:BATCH]
                         for item in self.introduce(batch, len(pending)):
                             self.ask(item)
@@ -476,25 +477,40 @@ class Drill:
         verdict = session.evaluate(dp, self.catalog, entry, given)
         word = presentation(entry)
         if verdict.grade == "know":
-            result = self.save(dp, item, entry, kind, state, "know", verdict, given, ms, ahead)
+            grade = session.logged_grade(dp, kind, "know")
+            result = self.save(dp, item, entry, kind, state, grade, verdict, given, ms, ahead)
             summary = f"{q['meaning']} {style.glyph('arrow')} {word['word']}"
-            self.screen.fold(
-                self.line_for(item, "know", summary, when_back(result)), plain_too=True
-            )
+            back = when_back(result)
+            if grade == "known":
+                back = f"{assets.text('drill.known_saved')}{style.sep}{back}"
+            self.screen.fold(self.line_for(item, grade, summary, back), plain_too=True)
+            if kind == "learn":
+                self.first_contact(word)
             return
         self.show_verdict(verdict, word, given)
-        grade_name = assets.text(f"grades.{verdict.grade}")
-        key = self.screen.key(style(assets.text("drill.grade_keys", grade=grade_name), "dim") + " ")
-        grade = KEY_GRADES.get(key, verdict.grade)
+        proposed = session.logged_grade(dp, kind, verdict.grade)
+        keys = "drill.grade_keys_drill" if kind == "drill" else "drill.grade_keys"
+        grade_name = assets.text(f"grades.{proposed}")
+        key = self.screen.key(style(assets.text(keys, grade=grade_name), "dim") + " ")
+        grade = session.logged_grade(dp, kind, KEY_GRADES.get(key, proposed))
         result = self.save(dp, item, entry, kind, state, grade, verdict, given, ms, ahead)
         summary = f"{q['meaning']} {style.glyph('arrow')} {word['word']}"
-        if verdict.errors and grade != "know":
+        if verdict.errors and grade not in ("know", "known"):
             errors = ", ".join(assets.text(f"error_classes.{e}") for e in verdict.errors)
             summary += f"  ({errors})"
             self.to_work_on.append(f"{word['word']} ({errors})")
         self.screen.fold(self.line_for(item, grade, summary, when_back(result)))
         if key in ("q", "esc"):
             raise Quit
+
+    def first_contact(self, word: dict[str, Any]) -> None:
+        """A new word answered right at once: its forms and example, seen for the first time."""
+        details = word_details(word)
+        if details:
+            self.screen.write(self.style(f"  {details}", "dim"))
+        if word.get("example"):
+            for line in term.wrap(str(word["example"]), self.style.width() - 2, "  "):
+                self.screen.write(line)
 
     def save(
         self,
@@ -596,6 +612,7 @@ class Drill:
             self.screen.show(f"  {exc}", "red")
             self.failed.add(item.card)
             return
+        grade = str(result["grade"])  # the drill has two grades, a new word may be "known"
         self.counts[grade] += 1
         self.done += 1
         self.last = {"card": item.card, "grade": grade, "word": word["word"]}

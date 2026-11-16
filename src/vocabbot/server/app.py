@@ -163,9 +163,10 @@ def register(server: MCPServer, tools: Tools) -> None:
         "The next cards of today's session: as many as the plan's batch (1 by default, one"
         " card at a time) unless `count` says otherwise. Without `stage` the engine's order"
         " holds: reviews, new words, drill. `stage` (reviews, new or drill) brings the cards"
-        " of the stage the learner chose first, at any moment of the session. A review shows"
-        " only its question; a new word (phase new) also has its word for the introduction."
-        " Calling it again returns the same cards until answers come in.",
+        " of the stage the learner chose first, at any moment of the session. Every card"
+        " shows only its question; a new word (phase new) holds its word for an introduction"
+        " only with the plan's new_words set to show. Calling it again returns the same"
+        " cards until answers come in.",
         READ,
         card=True,
     )

@@ -6,8 +6,10 @@
 - Before that, give no part of the answer: not the word, its first letter,
   its length, its article, a synonym or a cognate in the language of the
   card, and not the same word in another language being learned.
-- A new word (`phase: new`) is first introduced: its `word` is meant to be
-  shown, and its question follows after the introduction.
+- A new word (`phase: new`) is asked at once, as in SuperMemo, and the result
+  of its first answer introduces it in full. Only a plan with
+  `new_words: show` puts `word` in the item of a new card: that word is
+  meant to be shown first, and its question follows after the introduction.
 - A recognition card (`question.ask: meaning`) shows the foreign word; its
   meaning comes from `reveal` after the learner has tried to recall it.
 - Results of `lookup` and `status` mark cards still waiting in today's

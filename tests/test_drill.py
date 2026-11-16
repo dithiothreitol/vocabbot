@@ -160,3 +160,27 @@ def test_stages_and_more_cards_in_the_terminal(tmp_path: Path, catalog: Catalog)
     assert any("Następna tura powtórek: 2." in line for line in screen.out)
     assert set(screen.asked[2:]) == learned
     assert [row.get("ahead") for row in other.rows()[0][-2:]] == [True, True]
+
+
+def test_new_words_as_questions_in_the_terminal(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=2, new_words="ask")
+    new = compute(learner, catalog, MONDAY).new
+    screen = Script(catalog, wrong=set(new), known=set())
+    result = run(learner, catalog, MONDAY, screen)
+    # no introduction: each word is asked, missed, and learned in the drill
+    assert not any("Sprawdzenie nowych słów" in line for line in screen.out)
+    assert result["dont_know"] == 2 and result["know"] == 2
+    assert [(r["kind"], r["grade"]) for r in learner.rows()[0]] == [
+        ("learn", "dont_know"),
+        ("learn", "dont_know"),
+        ("drill", "know"),
+        ("drill", "know"),
+    ]
+
+    # a word answered right at once was known before the course
+    other = make_learner(tmp_path / "other", ["de:a1-a2"], new_per_day=2, new_words="ask")
+    screen = Script(catalog, wrong=set(), known=set(), quit_after=1)
+    result = run(other, catalog, MONDAY, screen)
+    assert result["known"] == 1 and other.rows()[0][0]["grade"] == "known"
+    assert any("zapisane jako znane" in line for line in screen.out)
+    assert len(compute(other, catalog, MONDAY).new) == 3

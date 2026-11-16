@@ -58,6 +58,13 @@ def describe(plan: dict[str, Any]) -> list[str]:
         assets.text("plan.diacritics", value=assets.text(f"diacritics.{plan['diacritics']}")),
         assets.text("plan.presence", value=assets.text(f"presence.{plan.get('presence', 'on')}")),
         assets.text("plan.batch", value=plan.get("batch", 1)),
+        assets.text(
+            "plan.new_words", value=assets.text(f"new_words.{plan.get('new_words', 'ask')}")
+        ),
+        assets.text(
+            "plan.review_order",
+            value=assets.text(f"review_order.{plan.get('review_order', 'due')}"),
+        ),
     ]
     own = sorted((plan.get("parameters") or {}).keys())
     lines.append(
@@ -165,7 +172,7 @@ def _value(key: str, raw: str) -> Any:
         if raw.lower() in ("none", "brak", ""):
             return []
         return [part.strip().lower() for part in raw.split(",") if part.strip()]
-    if key in ("mix", "diacritics", "presence"):
+    if key in store.CHOICES:
         return raw.lower()
     if key == "parameters":
         if raw.lower() not in ("default", "fsrs6", "none"):

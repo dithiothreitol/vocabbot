@@ -264,7 +264,8 @@
     block.appendChild(head);
     if (result.word) {
       block.appendChild(wordLine(result.word, result.lang));
-      if (result.grade === "almost" || result.grade === "dont_know") {
+      // the first contact with a new word shows it in full for every grade
+      if (result.grade === "almost" || result.grade === "dont_know" || result.kind === "learn") {
         block.appendChild(el("div", "meaning", result.word.meaning));
         var example = sentenceBlock(result.word.example, result.word.example_pl, result.lang, true);
         if (example) block.appendChild(example);

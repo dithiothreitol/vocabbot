@@ -226,7 +226,9 @@ def test_accounts_learn_apart_and_paths_stay_on_the_server(tmp_path: Path) -> No
     )
     graded = service.call(one, ["answer", "--batch", "--stdin"], lines)
     assert graded["ok"], graded
-    assert [result["grade"] for result in graded["results"]] == ["know"] * 4
+    # the plan asks new words at once: a right first answer is a word known before
+    assert all("word" not in item for item in batch["items"])
+    assert [result["grade"] for result in graded["results"]] == ["known"] * 4
     assert service.call(two, ["status"])["error"]["code"] == "no_account_plan"
     status = service.call(one, ["status"])
     assert status["ok"] and str(tmp_path) not in json.dumps(status)
@@ -410,7 +412,11 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             assert "# The daily session" in await _call(client, "vocab_guide", topic="session")
             assert (await _call(client, "vocab_today"))["error"]["code"] == "no_account_plan"
             preview = await _call(
-                client, "vocab_setup", languages=["de:a1", "fr:a1"], new_per_day=6
+                client,
+                "vocab_setup",
+                languages=["de:a1", "fr:a1"],
+                new_per_day=6,
+                settings=["new_words=show"],
             )
             assert preview["ok"] and preview["token"]
             assert live.data.as_posix() not in json.dumps(preview)

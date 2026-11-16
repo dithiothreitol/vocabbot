@@ -194,6 +194,9 @@ def recent_words(
     return out
 
 
+FIRST_ANSWERS_MIN = 20  # first answers in the log before their share replaces the default
+
+
 def _chance(card: str, day: date) -> float:
     digest = hashlib.sha1(f"{card}|{day.isoformat()}".encode()).hexdigest()
     return int(digest[:8], 16) / 0x100000000
@@ -265,6 +268,15 @@ def simulate(
             for entry in catalog.course(item["code"], [level]):
                 for d in directions:
                     level_of[card_id(str(entry["id"]), d)] = (item["code"], level)
+    # the first answer to a new word: a plan that asks new words at once gets a right answer
+    # only for words known before the course; a plan that shows them first, for most words
+    asks = str(plan.get("new_words", "ask")) == "ask"
+    right_first = RATING["known" if asks else "know"]
+    first_answers = [row.grade for row in book.rows if row.kind == "learn"]
+    if len(first_answers) >= FIRST_ANSWERS_MIN:
+        right_share = sum(g in ("know", "known") for g in first_answers) / len(first_answers)
+    else:
+        right_share = 0.2 if asks else 0.8
     remaining_by_level: Counter[tuple[str, str]] = Counter(
         level_of[c] for q in queues.values() for c in q if c in level_of
     )
@@ -332,7 +344,7 @@ def simulate(
                 new_cards += take
         for card in new_cards:
             scheduler = scheduler_for(card[:2])
-            first = RATING["know"] if _chance(card, current) < 0.8 else RATING["dont_know"]
+            first = right_first if _chance(card, current) < right_share else RATING["dont_know"]
             memory[card] = scheduler.first(first)
             last[card] = current
             stamp = spread_key(card, current)

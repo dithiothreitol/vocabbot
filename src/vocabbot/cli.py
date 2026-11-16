@@ -314,9 +314,7 @@ def render_next(data: dict[str, Any]) -> list[str]:
     lines = []
     for n, item in enumerate(data["items"], 1):
         meaning = (
-            describe_word(item["word"])
-            if item["phase"] == "new"
-            else describe_question(item["question"])
+            describe_word(item["word"]) if "word" in item else describe_question(item["question"])
         )
         lines.append(
             assets.text(

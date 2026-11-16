@@ -56,8 +56,12 @@ Say "sesja" or "uczymy się" in the chat, or run `vocabbot drill` in a
 terminal. Both use the same folder and the same order, so a session can start
 in one and end in the other.
 
-- New words are introduced first; say which ones you knew before ("znałem"),
-  and they will not take your daily limit.
+- A new word comes at once as a question, as in SuperMemo. Type it when you
+  know it: a right first answer marks the word as known before the course,
+  and it will not take your daily limit. Type "?" when you do not know it
+  yet: the result shows the word with its forms, pronunciation and example,
+  and the word comes back the same day in the drill. `new_words=show` in the
+  plan shows every new word before its question.
 - Questions show the Polish meaning and a sentence with a gap. Type the word
   with its article for nouns of German, Spanish, French and Italian. "?" or an empty
   answer means you do not know.
@@ -66,7 +70,7 @@ in one and end in the other.
 - In the terminal a right answer is saved at once and folds into one line.
   After a mistake you see your answer next to the right one with the
   differing letters marked; Enter saves the proposed grade and 1, 2 and 3
-  choose another. While introducing new words, z marks one as known. At the
+  choose another (the drill has two grades, 1 and 3). At the
   answer prompt `/znam` marks a new word as known, `/cofnij` changes the grade
   of the previous answer, `/pomoc` lists the commands and `/koniec` (or q at a
   key prompt) ends the session with everything saved.

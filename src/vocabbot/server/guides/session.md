@@ -39,7 +39,8 @@ learner who prefers a list changes it in the plan (`vocab_plan_change` with
 
 Call `vocab_next` without `count`; it returns `batch` items. Keep their order.
 Each item has `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and
-`question`; a new word also has `word`.
+`question`. `new_words` in the result of `vocab_today` says how new words
+come: `ask` (the default) or `show`.
 
 - **The counter.** Every result of `vocab_next`, `vocab_answer`, `vocab_grade`
   and `vocab_regrade` holds `counter`, the line of the day's progress
@@ -50,13 +51,25 @@ Each item has `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and
   the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
   if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
   cards (`question.ask: meaning`) follow the section below.
-- **A new word** (`phase: new`) is introduced before its question: `word`
-  with its gender, forms and IPA, the link to its recording when `word.audio`
-  is there (a Markdown link with the text "🔊 wymowa" to `word.audio`), the
-  Polish meaning, and the example with its translation. End the message
-  there; its question comes in the next message, after the learner says
-  they are ready, so the answer is not on the screen. A learner who knew the word before the course says so, and
-  `vocab_grade` with `known` records it; that card then needs no question.
+- **A new word** (`phase: new`) is asked at once, as any card, under the
+  label "Nowe słowo": this is how SuperMemo introduces a word, and the plan's
+  default (`new_words: ask`). The learner types the word, or "?" when it is
+  not known yet, which goes to the engine as an empty answer. The result is
+  the learner's first contact with the word, so show it in full for every
+  grade: `word.word` with its gender, forms and IPA, the link to its
+  recording when `word.audio` is there (a Markdown link with the text
+  "🔊 wymowa" to `word.audio`), the Polish meaning, and the example with its
+  translation. A right first answer comes back with the grade `known`: the
+  learner knew the word before the course, so write "✓ znane wcześniej", and
+  the engine adds one more new word in its place. A missed word comes back
+  the same day in the drill.
+  A learner who says "znałem" instead of answering gets the same through
+  `vocab_grade` with `known` and `then_next: true`.
+- **A new word shown first** (`new_words: show`; the item holds `word`): show
+  the word in full as above and end the message there; its question comes in
+  the next message, after the learner says "dalej", so the answer is not on
+  the screen. "znałem" goes to `vocab_grade` with `known`, and that card
+  needs no question.
 - **A level set too low.** A result of `vocab_grade` with `level_hint` means
   that most of the learner's last new words (`known` of `of`) were known
   before the course. Say so in one sentence and offer, once, the placement
@@ -69,18 +82,21 @@ Each item has `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and
 - **A result** is one line per card: "✓ wiem", "≈ prawie" with the error
   classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; for
   "prawie" and "nie wiem" add the IPA, the recording link and the example.
+  In the drill the engine has two grades, as SuperMemo does: "✓ wiem" takes
+  the card out, and every other answer is "✗ nie wiem" with its error
+  classes and stays.
   `other_lang` means the learner typed the word of another language being
   learned: name that language. A result with `error` was refused; show its
   message and go on.
 
 **One card at a time (`batch` 1).** Every message holds the result of the
 last answer and then the next card from `next.items` of that result: its
-question, or the introduction of a new word. After a new word's
-introduction the learner's "dalej" brings its question.
+question. With `new_words: show` a new word's introduction takes a message
+of its own, and the learner's "dalej" brings its question.
 
-**Several cards (`batch` 2 or more).** Introduce the new words of the batch
-together and end the message; then ask every remaining card as one numbered
-list. The learner answers by number; when the reply does not map clearly onto
+**Several cards (`batch` 2 or more).** Ask the cards as one numbered list;
+with `new_words: show` introduce the new words of the batch together first
+and end the message. The learner answers by number; when the reply does not map clearly onto
 the numbers, ask once. Send every answer of the list in one `vocab_answer`
 call and show the results of the list, then the next batch from `next`.
 
@@ -145,7 +161,36 @@ same results.
 
 The examples use invented cards; the real ones come from `vocab_next`.
 
-One card at a time: a new word, alone in its message, under the counter.
+One card at a time: a new word, asked at once under the counter.
+
+```
+Postęp: 6/25 · nowe 3/15 · powtórki 3/10
+
+Nowe słowo · DE · pies (rzeczownik, z rodzajnikiem)
+___ ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+
+Wpisz słowo albo „?”, jeśli jeszcze go nie znasz.
+```
+
+Its result, the first contact with the word, and the next card:
+
+```
+✗ nie wiem · der Hund (r.m., l.mn. die Hunde) /hʊnt/ [🔊 wymowa](https://upload.wikimedia.org/…) = pies
+Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+Słowo wróci dziś w utrwalaniu.
+
+ES · stół (rzeczownik, z rodzajnikiem)
+___ es de madera. · Stół jest z drewna.
+```
+
+A new word the learner knew before the course:
+
+```
+✓ znane wcześniej · la mesa (r.ż., l.mn. las mesas) /ˈme.sa/ [🔊 wymowa](https://upload.wikimedia.org/…) = stół
+La mesa es de madera. · Stół jest z drewna.
+```
+
+With `new_words: show`: a new word, alone in its message.
 
 ```
 Postęp: 6/25 · nowe 3/15 · powtórki 3/10
@@ -192,7 +237,7 @@ The end of the day's list, after the summary:
 Dzisiejsza lista jest zrobiona. Możesz wziąć kolejne nowe słowa („więcej słów”), następną turę powtórek („jeszcze powtórki”) albo zakończyć.
 ```
 
-Several cards: the new words together, then a numbered list.
+Several cards as a numbered list:
 
 ```
 1. DE · pies (rzeczownik, z rodzajnikiem)
@@ -244,6 +289,10 @@ recognition cards.
 - After `vocab_grade` use `then_next: true` as well; a separate `vocab_next`
   without `stage` returns to the engine's order.
 - `known_only_first`: "znałem" works only the first time a word is shown.
+- `drill_two_grades`: a drill answer is regraded to `know` or `dont_know`.
+- The order of the reviews is the plan's `review_order`: `due` (most overdue
+  first, the default), `course`, `interval` or `random`; a change goes
+  through `vocab_plan_change` (the topic `start`).
 - An empty answer is graded "nie wiem" with the error class "brak
   odpowiedzi". The words "nie wiem" typed as an answer would be graded as a
   wrong word, so send an empty answer.

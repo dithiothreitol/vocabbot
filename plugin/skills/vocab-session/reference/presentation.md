@@ -4,7 +4,36 @@ The examples use invented cards; the real ones come from `next`.
 
 ## One card at a time (`batch` 1)
 
-A new word, alone in its message, under the counter:
+A new word, asked at once under the counter:
+
+```
+Postęp: 6/25 · nowe 3/15 · powtórki 3/10
+
+Nowe słowo · DE · pies (rzeczownik, z rodzajnikiem)
+___ ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+
+Wpisz słowo albo „?”, jeśli jeszcze go nie znasz.
+```
+
+Its result, the first contact with the word, and the next card:
+
+```
+✗ nie wiem · der Hund (r.m., l.mn. die Hunde) /hʊnt/ [🔊 wymowa](https://upload.wikimedia.org/…) = pies
+Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+Słowo wróci dziś w utrwalaniu.
+
+ES · stół (rzeczownik, z rodzajnikiem)
+___ es de madera. · Stół jest z drewna.
+```
+
+A new word the learner knew before the course:
+
+```
+✓ znane wcześniej · la mesa (r.ż., l.mn. las mesas) /ˈme.sa/ [🔊 wymowa](https://upload.wikimedia.org/…) = stół
+La mesa es de madera. · Stół jest z drewna.
+```
+
+With `new_words: show` in the plan, a new word comes alone in its message:
 
 ```
 Postęp: 6/25 · nowe 3/15 · powtórki 3/10
@@ -60,7 +89,7 @@ Dzisiejsza lista jest zrobiona. Możesz wziąć kolejne nowe słowa („więcej 
 
 ## Several cards (`batch` 2 or more)
 
-### Introducing new words
+### Introducing new words (`new_words: show`)
 
 ```
 Nowe słowa (3):

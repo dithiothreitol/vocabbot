@@ -63,8 +63,9 @@ default, so the session asks one card at a time, as SuperMemo does. A learner
 who prefers a list changes it through `vocab-start` (`plan set batch=5`).
 
 Run `next --json`; it returns `batch` items. Keep their order. Each item has
-`card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and `question`; a
-new word also has `word`. `reference/presentation.md` shows the layout.
+`card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and `question`.
+`new_words` in the result of `today` says how new words come: `ask` (the
+default) or `show`. `reference/presentation.md` shows the layout.
 
 - **The counter.** Every result of `next`, `answer`, `grade` and `regrade`
   holds `counter`, the line of the day's progress ("Postęp: 6/25 · nowe 3/15
@@ -75,14 +76,25 @@ new word also has `word`. `reference/presentation.md` shows the layout.
   the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
   if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
   cards (`question.ask: meaning`) follow `reference/recognition.md`.
-- **A new word** (`phase: new`) is introduced before its question: `word`
-  with its gender, forms and IPA, the link to its recording when `word.audio`
-  is there (a Markdown link with the text "🔊 wymowa" to `word.audio`), the
-  Polish meaning, and the example with its translation. End the message
-  there; its question comes in the next message, after the learner says
-  they are ready, so the answer is not on the screen. A learner who knew the word before the course says so, and
-  `grade --card <card> --grade known --next --json` records it; that card
-  then needs no question, and `next` in the result holds the next cards.
+- **A new word** (`phase: new`) is asked at once, as any card, under the
+  label "Nowe słowo": this is how SuperMemo introduces a word, and the plan's
+  default (`new_words: ask`). The learner types the word, or "?" when it is
+  not known yet, which goes to the engine as an empty answer. The result is
+  the learner's first contact with the word, so show it in full for every
+  grade: `word.word` with its gender, forms and IPA, the link to its
+  recording when `word.audio` is there (a Markdown link with the text
+  "🔊 wymowa" to `word.audio`), the Polish meaning, and the example with its
+  translation. A right first answer comes back with the grade `known`: the
+  learner knew the word before the course, so write "✓ znane wcześniej", and
+  the engine adds one more new word in its place. A missed word comes back
+  the same day in the drill.
+  A learner who says "znałem" instead of answering gets the same through
+  `grade --card <card> --grade known --next --json`.
+- **A new word shown first** (`new_words: show`; the item holds `word`): show
+  the word in full as above and end the message there; its question comes in
+  the next message, after the learner says "dalej", so the answer is not on
+  the screen. "znałem" goes to `grade --card <card> --grade known --next
+  --json`, and that card needs no question.
 - **A level set too low.** A result of `grade` with `level_hint` means that
   most of the learner's last new words (`known` of `of`) were known before the
   course. Say so in one sentence and offer, once, the placement test or the
@@ -101,18 +113,21 @@ new word also has `word`. `reference/presentation.md` shows the layout.
 - **A result** is one line per card: "✓ wiem", "≈ prawie" with the error
   classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; for
   "prawie" and "nie wiem" add the IPA, the recording link and the example.
+  In the drill the engine has two grades, as SuperMemo does: "✓ wiem" takes
+  the card out, and every other answer is "✗ nie wiem" with its error
+  classes and stays.
   `other_lang` means the learner typed the word of another language being
   learned: name that language. A result with `error` was refused; show its
   message and go on.
 
 **One card at a time (`batch` 1).** Every message holds the result of the
 last answer and then the next card from `next.items` of that result: its
-question, or the introduction of a new word. After a new word's
-introduction the learner's "dalej" brings its question.
+question. With `new_words: show` a new word's introduction takes a message
+of its own, and the learner's "dalej" brings its question.
 
-**Several cards (`batch` 2 or more).** Introduce the new words of the batch
-together and end the message; then ask every remaining card as one numbered
-list. The learner answers by number; when the reply does not map clearly onto
+**Several cards (`batch` 2 or more).** Ask the cards as one numbered list;
+with `new_words: show` introduce the new words of the batch together first
+and end the message. The learner answers by number; when the reply does not map clearly onto
 the numbers, ask once. Send every answer of the list in one call and show the
 results of the list, then the next batch from `next`.
 

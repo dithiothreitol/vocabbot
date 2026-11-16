@@ -43,7 +43,16 @@ def program(capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch)
 def test_a_day_through_the_commands(program: Program, tmp_path: Path, catalog: Catalog) -> None:
     folder = tmp_path / "nauka"
     preview = program.run(
-        "init", str(folder), "--lang", "de:a1-a2", "--lang", "es:a1-a2:2", "--new", "6"
+        "init",
+        str(folder),
+        "--set",
+        "new_words=show",
+        "--lang",
+        "de:a1-a2",
+        "--lang",
+        "es:a1-a2:2",
+        "--new",
+        "6",
     )
     assert preview["token"]
     assert not (folder / "registers" / "plan.json").exists()
@@ -120,7 +129,7 @@ def test_setup_where_only_the_working_folder_can_be_written(
     monkeypatch.setenv("VOCABBOT_CONFIG", str(blocked / "config"))
     folder = tmp_path / "nauka"
     monkeypatch.chdir(tmp_path)
-    preview = program.run("init", str(folder), "--lang", "fr:a1-a2")
+    preview = program.run("init", str(folder), "--set", "new_words=show", "--lang", "fr:a1-a2")
     assert (folder / "registers" / ".pending" / f"{preview['token']}.json").is_file()
     assert not (folder / "registers" / "plan.json").exists()
     done = program.run("commit", "--confirm", preview["token"], "--learner", str(folder))
@@ -146,7 +155,7 @@ def test_a_refused_write_is_a_json_error(
 
 def test_use_points_at_an_existing_folder(program: Program, tmp_path: Path) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "de:a1")
+    preview = program.run("init", str(folder), "--set", "new_words=show", "--lang", "de:a1")
     program.run("commit", "--confirm", preview["token"])
     (tmp_path / "config" / "config.json").unlink()
     assert program.run("today", code=1)["error"]["code"] == "no_learner"
@@ -185,11 +194,11 @@ def test_terminal_asks_before_writing(
     replies = iter(["n", "t"])
     monkeypatch.setattr("builtins.input", lambda prompt="": next(replies))
     folder = tmp_path / "nauka"
-    out = program.text("init", str(folder), "--lang", "de:a1")
+    out = program.text("init", str(folder), "--set", "new_words=show", "--lang", "de:a1")
     assert "Bez zmian." in out
     assert not (folder / "registers" / "plan.json").exists()
     assert not list((tmp_path / "config" / "pending").glob("*.json"))
-    out = program.text("init", str(folder), "--lang", "de:a1")
+    out = program.text("init", str(folder), "--set", "new_words=show", "--lang", "de:a1")
     assert "Zapisano: nowy plan nauki (de)" in out
     decisions = (folder / "log" / "decisions.md").read_text("utf-8")
     assert "zatwierdzone w terminalu" in decisions
@@ -197,7 +206,7 @@ def test_terminal_asks_before_writing(
 
 def test_plain_output_in_polish(program: Program, tmp_path: Path) -> None:
     folder = tmp_path / "nauka"
-    token = program.run("init", str(folder), "--lang", "fr:a1")["token"]
+    token = program.run("init", str(folder), "--set", "new_words=show", "--lang", "fr:a1")["token"]
     program.run("commit", "--confirm", token)
     out = program.text("today", "--today", DAY)
     assert "Dzień nauki 2026-11-16 (poniedziałek)" in out
@@ -214,7 +223,7 @@ def test_start_screen(program: Program, tmp_path: Path) -> None:
     out = program.text()
     assert "Folder nauki jeszcze nie istnieje" in out
     folder = tmp_path / "nauka"
-    token = program.run("init", str(folder), "--lang", "de:a1")["token"]
+    token = program.run("init", str(folder), "--set", "new_words=show", "--lang", "de:a1")["token"]
     program.run("commit", "--confirm", token)
     out = program.text()
     assert "Dzień nauki" in out and "vocabbot drill" in out
@@ -224,7 +233,9 @@ def test_one_card_at_a_time_unless_the_plan_says_otherwise(
     program: Program, tmp_path: Path, catalog: Catalog
 ) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "de:a1-a2", "--new", "6")
+    preview = program.run(
+        "init", str(folder), "--set", "new_words=show", "--lang", "de:a1-a2", "--new", "6"
+    )
     program.run("commit", "--confirm", preview["token"])
     learner = ("--learner", str(folder), "--today", DAY)
     assert program.run("today", *learner)["batch"] == 1
@@ -251,7 +262,9 @@ def test_the_counter_adds_up_and_the_day_lists_its_new_words(
     program: Program, tmp_path: Path, catalog: Catalog
 ) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "de:a1-a2", "--new", "4")
+    preview = program.run(
+        "init", str(folder), "--set", "new_words=show", "--lang", "de:a1-a2", "--new", "4"
+    )
     program.run("commit", "--confirm", preview["token"])
     learner = ("--learner", str(folder), "--today", DAY)
     day = program.run("today", *learner)
@@ -284,7 +297,9 @@ def test_the_counter_adds_up_and_the_day_lists_its_new_words(
 
 def test_a_level_set_too_low_is_named_once(program: Program, tmp_path: Path) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "de:a1", "--new", "3")
+    preview = program.run(
+        "init", str(folder), "--set", "new_words=show", "--lang", "de:a1", "--new", "3"
+    )
     program.run("commit", "--confirm", preview["token"])
     learner = ("--learner", str(folder), "--today", DAY)
     hints = []
@@ -308,7 +323,9 @@ def test_a_change_of_levels_during_the_day_keeps_the_daily_limit(
     program: Program, tmp_path: Path
 ) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "en:a1-a2", "--new", "4")
+    preview = program.run(
+        "init", str(folder), "--set", "new_words=show", "--lang", "en:a1-a2", "--new", "4"
+    )
     program.run("commit", "--confirm", preview["token"])
     learner = ("--learner", str(folder), "--today", DAY)
     for _ in range(3):
@@ -333,7 +350,18 @@ def test_a_report_in_one_language_keeps_the_words_shown_in_another(
     program: Program, tmp_path: Path, catalog: Catalog
 ) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "de:a1", "--lang", "es:a1", "--new", "4")
+    preview = program.run(
+        "init",
+        str(folder),
+        "--set",
+        "new_words=show",
+        "--lang",
+        "de:a1",
+        "--lang",
+        "es:a1",
+        "--new",
+        "4",
+    )
     program.run("commit", "--confirm", preview["token"])
     learner = ("--learner", str(folder), "--today", "2026-11-18")
     shown = []
@@ -356,7 +384,9 @@ def test_a_report_in_one_language_keeps_the_words_shown_in_another(
 
 def test_a_reported_card_leaves_the_drill_and_the_counter(program: Program, tmp_path: Path) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "de:a1", "--new", "2")
+    preview = program.run(
+        "init", str(folder), "--set", "new_words=show", "--lang", "de:a1", "--new", "2"
+    )
     program.run("commit", "--confirm", preview["token"])
     learner = ("--learner", str(folder), "--today", DAY)
     card = program.run("next", *learner)["items"][0]["card"]
@@ -372,7 +402,9 @@ def test_the_next_cards_stay_in_the_chosen_stage(
     program: Program, tmp_path: Path, catalog: Catalog
 ) -> None:
     folder = tmp_path / "nauka"
-    preview = program.run("init", str(folder), "--lang", "de:a1-a2", "--new", "3")
+    preview = program.run(
+        "init", str(folder), "--set", "new_words=show", "--lang", "de:a1-a2", "--new", "3"
+    )
     program.run("commit", "--confirm", preview["token"])
     monday = ("--learner", str(folder), "--today", DAY)
     for _ in range(3):
@@ -415,3 +447,30 @@ def test_the_next_cards_stay_in_the_chosen_stage(
     assert "Dodatkowe nowe słowa na dziś: 2." in text
     refused = program.run("today", "--reviews", "-1", *later, code=1)
     assert refused["error"]["code"] == "bad_extra"
+
+
+def test_a_plan_asks_new_words_at_once_and_orders_the_reviews(
+    program: Program, tmp_path: Path, catalog: Catalog
+) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1", "--new", "2")
+    assert any("jak w SuperMemo" in line for line in preview["preview"])
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", DAY)
+    assert program.run("today", *learner)["new_words"] == "ask"
+    item = program.run("next", *learner)["items"][0]
+    assert item["phase"] == "new" and "word" not in item
+    assert "nowe słowo" in program.text("next", *learner)
+    line = json.dumps({"card": item["card"], "answer": ""})
+    missed = program.run("answer", "--batch", "--stdin", "--next", *learner, stdin=line)
+    assert missed["results"][0]["grade"] == "dont_know"
+    assert missed["results"][0]["word"]["meaning"] and missed["next"]["stage"] == "new"
+
+    change = program.run("plan", "set", "new_words=show", "review_order=interval", *learner)
+    program.run("commit", "--confirm", change["token"], *learner)
+    shown = program.run("next", *learner)["items"][0]
+    assert shown["phase"] == "new" and shown["word"]["meaning"]
+    text = program.text("plan", "show", *learner)
+    assert "Kolejność powtórek: od najkrótszych odstępów" in text
+    refused = program.run("plan", "set", "review_order=newest", *learner, code=1)
+    assert refused["error"]["code"] == "plan_invalid"

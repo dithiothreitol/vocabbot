@@ -23,6 +23,7 @@ at least `sibling_distance` positions apart.
 
 from __future__ import annotations
 
+import random
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -148,6 +149,40 @@ def staged(sequence: list[Item], stage: str | None) -> list[Item]:
     phases = STAGES[stage]
     chosen = [item for item in sequence if item.phase in phases]
     return chosen + [item for item in sequence if item.phase not in phases]
+
+
+def ordered_reviews(
+    cards: list[str],
+    order: str,
+    catalog: Catalog,
+    book: Book,
+    schedulers: dict[str, Scheduler],
+    day: date,
+) -> list[str]:
+    """The day's reviews in the order the plan asks for; `cards` come most overdue first.
+
+    "course" follows the order of the course (own words first), "interval"
+    starts with the shortest intervals, and "random" shuffles the same way
+    for the whole day, so an interrupted session resumes in the same order.
+    """
+    if order == "course":
+        place: dict[str, int] = {}
+        for code in sorted({card[:2] for card in cards}):
+            for entry in [*catalog.first(code), *catalog.course(code, list(store.LEVELS))]:
+                place.setdefault(str(entry["id"]), len(place))
+        return sorted(cards, key=lambda card: place.get(split_card(card)[0], len(place)))
+    if order == "interval":
+
+        def interval(card: str) -> int:
+            state = book.cards[card]
+            return (state.due(schedulers[state.lang]) - state.last_day).days
+
+        return sorted(cards, key=interval)
+    if order == "random":
+        shuffled = sorted(cards)
+        random.Random(day.isoformat()).shuffle(shuffled)
+        return shuffled
+    return list(cards)
 
 
 def interleave(cards: list[str], lang_of: dict[str, str], order: list[str]) -> list[str]:
@@ -463,8 +498,16 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     # cards already answered are left out afterwards, so the order of what
     # remains never changes during the day.
     # reviews added during the day join after the planned ones, which keep their order
+    planned_order = ordered_reviews(
+        reviews[:planned_reviews],
+        str(plan.get("review_order", "due")),
+        catalog,
+        before,
+        schedulers,
+        day,
+    )
     full_reviews = spread(
-        arrange([c for c in reviews[:planned_reviews] if entries.get(c)], lang_of, codes),
+        arrange([c for c in planned_order if entries.get(c)], lang_of, codes),
         family,
         distance,
         [],

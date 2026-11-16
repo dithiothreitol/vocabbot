@@ -38,7 +38,13 @@ def card_of(lang: str, number: int, direction: str = "p") -> str:
 
 
 def make_learner(root: Path, languages: list[str], **settings: Any) -> store.Learner:
-    """A learner folder written directly, without the preview of init."""
+    """A learner folder written directly, without the preview of init.
+
+    New words are shown before their question unless a test asks otherwise, so
+    a scripted learner who answers them right learns them (`new_words: ask`,
+    the default of a plan, takes such an answer as a word known before).
+    """
+    settings.setdefault("new_words", "show")
     plan = store.complete_plan(
         {"languages": [store.parse_language(s) for s in languages], **settings}
     )

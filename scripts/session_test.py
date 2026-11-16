@@ -144,7 +144,9 @@ def seed(spec: dict[str, Any], folder: Path, today: date) -> store.Learner:
             **(spec.get("settings") or {}),
         }
     )
-    store.write_text(folder / store.PLAN, store.dump_json(plan))
+    # the history is of a learner who met each word before its first answer, so right
+    # answers there are learned words, not words known before the course
+    store.write_text(folder / store.PLAN, store.dump_json({**plan, "new_words": "show"}))
     store.write_text(folder / store.REVIEWS, "")
     store.write_text(folder / store.DECISIONS, "# decisions\n\n")
     learner = store.Learner(folder)
@@ -164,6 +166,8 @@ def seed(spec: dict[str, Any], folder: Path, today: date) -> store.Learner:
             right = item.phase == "drill" or count % wrong_every
             given = str(item.entry["display"]) if right else "xxx"
             session.answer(learner, catalog, day, moment(day, second), item.card, given)
+    store.write_text(folder / store.PLAN, store.dump_json(plan))
+    learner = store.Learner(folder)
     for step in spec.get("prepare") or []:
         prepare(step, learner, catalog, today)
     return learner
