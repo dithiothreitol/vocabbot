@@ -18,8 +18,9 @@ word as a question, two grades in the drill and the order of reviews) on
 PyPI and deployed it on the server. Stage 11 (handling a card as in the
 SuperMemo application: self-assessment, the sentence's translation on
 request, the review date with the result, switching a word off and a note
-for a word) you accepted, and I carried it out on 16.11.2026 in the local
-repository; its release awaits your approval. The engine, the `vocabbot` program with its new terminal session,
+for a word) you accepted, and I carried it out on 16.11.2026; with your
+approval I released it as `v1.0.0-rc.9` on GitHub and PyPI and deployed it
+on the server. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -1492,7 +1493,8 @@ out, released as `v1.0.0-rc.8` and deployed on 16.11.2026, result below.
 I proposed Stage 11 on 16.11.2026 after your question about the differences
 in handling (apart from the algorithms) between VocabBot and the SuperMemo
 application. Status: accepted with the defaults `answer_mode=type` and
-`sentence_translation=shown` and carried out on 16.11.2026, result below. The scope holds only confirmed differences: the state of
+`sentence_translation=shown`, carried out, released as `v1.0.0-rc.9` and
+deployed on 16.11.2026, result below. The scope holds only confirmed differences: the state of
 VocabBot checked in the repository, the state of SuperMemo seen on your
 screenshots or described literally in the SuperMemo FAQ. The stage fits one
 working session, needs your approval before it starts and ends with version
@@ -1639,6 +1641,8 @@ proposed) and the default of `answer_mode` (`type` as proposed).
 | simulation through the commands | the full courses (de A1–A2, es A1, it A1, 15 new words a day), three days of learning with self-assessment, the translation on request and notes, then a day with the date kept back: 6140 checks without a fault in 199 answers (66 grades of the learner in every variant, 29 notes, 11 words put aside); no `next` held a word or a note, and an answer outside today's session was refused |
 | preview of the card | the test host in Edge in the light and the dark theme: a question with the translation kept back, the answer after "pokaż" with a note and three grades, in the drill with two, a result with its return date |
 | simulation with a model | a local server and Claude Code with the Sonnet model, a plan with `answer_mode=self` and `sentence_translation=hidden`, 8 turns for 1.32 USD (a limit of 2 USD): a question without its translation and with the hint "pokaż", "tłumaczenie" given from the same result without a tool call, "pokaż" (`vocab_reveal`) with the full answer and the question about the grade, "prawie" passed as given to `vocab_grade` (a row without `auto`) with "wróci dziś w utrwalaniu", a note through `vocab_note`, a typed answer through `vocab_answer` with "wróci za 2 dni", "nie chcę tego słowa" (`vocab_flag` with `skip`) without showing the answer, and the word brought back named by its Polish meaning; the one fault: after bringing the word back the model showed the counter from before the change, since the result of `vocab_flag` had no counter; the result of `flag` now holds the day's counter after the change |
+| release and deployment | with your approval of 16.11.2026: the tag `v1.0.0-rc.9`, a pre-release on GitHub with all 9 packages, `vocabbot 1.0.0rc9` on PyPI through trusted publishing with sums matching GitHub, CI green, the plugin in your Codex refreshed to rc.9; server 1.0.0rc9 at `https://vocab.archxs.com`, a read-only smoke test with a short-lived token of the test account, revoked after the test: 23 tools with `vocab_note`, the card on six tools (with `vocab_reveal`), `view` in `vocab_today`, the refusal `reveal_production` with `answer_mode=type`, a recording and an example in `vocab_lookup` |
+| to check | a session from your account in Claude and ChatGPT after changing the plan to `answer_mode=self` and `sentence_translation=hidden`: "pokaż", the "Tłumaczenie" button in the card, "nie chcę tego słowa", "zapisz notatkę: …" |
 
 #### Out of scope until trials
 

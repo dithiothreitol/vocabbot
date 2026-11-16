@@ -14,7 +14,8 @@ jako pytanie, dwie oceny w utrwalaniu i kolejność powtórek) dodałeś
 i w PyPI oraz wdrożyłem na serwer. Etap 11 (obsługa karty jak w aplikacji
 SuperMemo: samoocena, tłumaczenie zdania na żądanie, termin powtórki przy
 wyniku, wyłączenie słowa i notatka do słowa) zaakceptowałeś i zrealizowałem
-16.11.2026 w repozytorium lokalnym; jego wydanie czeka na Twoją zgodę.
+16.11.2026, a za Twoją zgodą wydałem go jako `v1.0.0-rc.9` na GitHubie
+i w PyPI oraz wdrożyłem na serwer.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -1472,7 +1473,8 @@ wydany jako `v1.0.0-rc.8` i wdrożony 16.11.2026, wynik poniżej.
 Etap 11 zaproponowałem 16.11.2026 po Twoim pytaniu o różnice w obsłudze
 (bez algorytmów) między VocabBotem a aplikacją SuperMemo. Stan:
 zaakceptowany z wartościami domyślnymi `answer_mode=type`
-i `sentence_translation=shown` oraz zrealizowany 16.11.2026, wynik poniżej. Zakres obejmuje
+i `sentence_translation=shown`, zrealizowany, wydany jako `v1.0.0-rc.9`
+i wdrożony 16.11.2026, wynik poniżej. Zakres obejmuje
 wyłącznie różnice potwierdzone: stan VocabBota sprawdzony w repozytorium,
 stan SuperMemo widoczny na Twoich zrzutach ekranu albo opisany dosłownie
 w FAQ SuperMemo. Etap mieści się w jednej sesji pracy, wymaga Twojej
@@ -1615,6 +1617,8 @@ propozycji).
 | symulacja przez polecenia | pełne kursy (de A1–A2, es A1, it A1, 15 nowych słów dziennie), trzy dni nauki z samooceną, tłumaczeniem na żądanie i notatkami, potem dzień z ukrytym terminem: 6140 sprawdzeń bez usterki w 199 odpowiedziach (66 ocen uczącego się we wszystkich odmianach, 29 notatek, 11 słów odłożonych); żadne `next` nie zawierało słowa ani notatki, a odpowiedź spoza dzisiejszej sesji została odrzucona |
 | podgląd karty | host testowy w Edge w motywie jasnym i ciemnym: pytanie z ukrytym tłumaczeniem, odpowiedź po „pokaż” z notatką i trzema ocenami, w utrwalaniu z dwiema, wynik z terminem powrotu |
 | symulacja z modelem | lokalny serwer i Claude Code z modelem Sonnet, plan z `answer_mode=self` i `sentence_translation=hidden`, 8 tur za 1,32 USD (limit 2 USD): pytanie bez tłumaczenia z podpowiedzią „pokaż”, „tłumaczenie” podane z tego samego wyniku bez wywołania narzędzia, „pokaż” (`vocab_reveal`) z pełną odpowiedzią i pytaniem o ocenę, „prawie” przekazane dosłownie do `vocab_grade` (wiersz bez `auto`) z terminem „wróci dziś w utrwalaniu”, notatka przez `vocab_note`, wpisana odpowiedź przez `vocab_answer` z terminem „wróci za 2 dni”, „nie chcę tego słowa” (`vocab_flag` ze `skip`) bez pokazania odpowiedzi i przywrócenie słowa nazwanego polskim znaczeniem; jedyna usterka: po przywróceniu słowa model pokazał licznik sprzed zmiany, ponieważ wynik `vocab_flag` nie miał licznika; wynik `flag` zawiera teraz licznik dnia po zmianie |
+| wydanie i wdrożenie | za Twoją zgodą z 16.11.2026: tag `v1.0.0-rc.9`, wydanie przedpremierowe na GitHubie z kompletem 9 paczek, `vocabbot 1.0.0rc9` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.9; serwer 1.0.0rc9 pod `https://vocab.archxs.com`, test dymny tylko do odczytu z krótko ważnym tokenem konta testowego, unieważnionym po teście: 23 narzędzia z `vocab_note`, karta w sześciu narzędziach (z `vocab_reveal`), `view` w `vocab_today`, odmowa `reveal_production` przy `answer_mode=type`, nagranie i przykład w `vocab_lookup` |
+| do sprawdzenia | sesja z Twojego konta w Claude i ChatGPT po zmianie planu na `answer_mode=self` i `sentence_translation=hidden`: „pokaż”, przycisk „Tłumaczenie” w karcie, „nie chcę tego słowa”, „zapisz notatkę: …” |
 
 #### Poza zakresem do czasu prób
 
