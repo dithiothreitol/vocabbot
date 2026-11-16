@@ -1,6 +1,6 @@
 [project]
 name = "vocabbot"
-version = "1.0.0rc6"
+version = "1.0.0rc7"
 description = "Vocabulary in one to three languages at once with spaced repetition, in the terminal and in Claude or Codex."
 readme = "README.md"
 license = "Apache-2.0"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "vocabbot",
-  "version": "1.0.0-rc.6",
+  "version": "1.0.0-rc.7",
   "description": "Vocabulary in one to three languages at once (English, German, Spanish, French, Italian; A1 to B2) for Polish speakers, with spaced repetition: a daily session in the chat or the terminal, typed answers graded by the engine, every due date from the FSRS-6 scheduler.",
   "author": {
     "name": "Dariusz Tyszka",
