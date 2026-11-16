@@ -255,7 +255,7 @@ def test_the_guides_name_only_tools_that_exist(tmp_path: Path) -> None:
     registry = Registry(tmp_path / "accounts.db")
     register(server, Tools(_service(tmp_path), registry))
     names = {tool.name for tool in anyio.run(server.list_tools)}
-    assert len(names) == 22
+    assert len(names) == 23
     mentioned: set[str] = set(re.findall(r"vocab_[a-z_]+", guides.INSTRUCTIONS))
     for topic in guides.TOPICS:
         text = guides.guide(topic)
@@ -381,7 +381,7 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
         ):
             listed = {tool.name: tool for tool in (await client.list_tools()).tools}
             tools = set(listed)
-            assert "vocab_next" in tools and len(tools) == 22
+            assert "vocab_next" in tools and len(tools) == 23
             # the card of MCP Apps: the session's tools name it, the server serves it
             with_card = {name for name, tool in listed.items() if (tool.meta or {}).get("ui")}
             assert with_card == {
@@ -390,6 +390,7 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
                 "vocab_answer",
                 "vocab_grade",
                 "vocab_add_today",
+                "vocab_reveal",
             }
             assert listed["vocab_next"].meta == {
                 "ui": {"resourceUri": CARD},
@@ -462,6 +463,17 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             )
             assert known["next"]["stage"] == "new"
             assert (await client.call_tool("vocab_add_today", {})).is_error
+            # a note for a word, and a word put aside and brought back
+            noted = await _call(client, "vocab_note", card=card, note="moje skojarzenie")
+            assert noted["ok"] and noted["note"] == "moje skojarzenie"
+            assert (await client.call_tool("vocab_note", {"card": card})).is_error
+            aside = await _call(client, "vocab_flag", card=card, skip=True)
+            assert aside["skipped"]
+            status = await _call(client, "vocab_status")
+            assert [w["card"].split("#")[0] for w in status["skipped"]] == [card.split("#")[0]]
+            assert (await _call(client, "vocab_flag", card=card, clear=True))["cleared"]
+            refused = await _call(client, "vocab_reveal", card=card)
+            assert refused["error"]["code"] == "reveal_production"
             refused = await client.call_tool("vocab_plan_change", {"settings": ["--x=1"]})
             assert refused.is_error
             status = await _call(client, "vocab_status")

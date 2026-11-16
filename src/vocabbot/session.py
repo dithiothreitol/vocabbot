@@ -8,7 +8,10 @@ These functions hold the guarantees of the engine:
   knew it before the course ("known"); `new_words: show` introduces it first;
 - the drill has two grades: an answer that is not "know" stays in the drill and
   is logged as "dont_know";
-- `answer` grades a typed answer itself and logs the engine's grade;
+- `answer` grades a typed answer itself and logs the engine's grade; with the
+  plan's `answer_mode: self` a production card may also be revealed (`reveal`)
+  and graded by the learner (`self_grade`), as SuperMemo's "Check" does;
+- a learner's note for a word comes with its answer, never with its question;
 - a new card is accepted only when it is on today's list;
 - a card that is not due is accepted only as a review ahead of time: one of the
   reviews the learner added to the day, or an answer marked `ahead`;
@@ -32,6 +35,11 @@ from vocabbot.errors import VocabError
 from vocabbot.queue import STAGE_OF, STAGES, DayPlan, compute, staged
 
 SELF_GRADES = ("known", "know", "almost", "dont_know")
+# the grades the learner chooses from after `reveal`; the drill has two
+REVEAL_GRADES = ("know", "almost", "dont_know")
+DRILL_GRADES = ("know", "dont_know")
+# the plan's settings of how a session shows a card, given with every result of a session
+VIEW_KEYS = ("new_words", "answer_mode", "sentence_translation", "next_review")
 MAX_GIVEN = 200
 SECONDS = {"review": 10, "new": 25, "drill": 8, "ahead": 10}
 # a level set too low: most of the last new words of a language were known before the course
@@ -85,6 +93,28 @@ def classify(
     if card in dp.new:
         return entry, "learn", None
     raise VocabError("not_in_today", card=card)
+
+
+def view(plan: dict[str, Any]) -> dict[str, str]:
+    """How the session shows a card: the plan's settings a chat, a card and a terminal follow."""
+    return {key: str(plan.get(key, store.DEFAULT_PLAN[key])) for key in VIEW_KEYS}
+
+
+def self_assessed(plan: dict[str, Any]) -> bool:
+    """A production card may be revealed and graded by the learner (`answer_mode: self`)."""
+    return str(plan.get("answer_mode", "type")) == "self"
+
+
+def back_text(day: date, due: date | None, drill: bool) -> str | None:
+    """When a card comes back, as the learner says it: today in the drill, tomorrow, in N days."""
+    if drill:
+        return assets.text("back.today")
+    if due is None or due <= day:
+        return None
+    days = (due - day).days
+    if days == 1:
+        return assets.text("back.tomorrow")
+    return assets.text("back.days", days=days)
 
 
 def asks_new_words(plan: dict[str, Any]) -> bool:
@@ -158,8 +188,9 @@ def progress(dp: DayPlan) -> dict[str, Any]:
 
 
 def day_progress(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any]:
-    """`progress` after the latest answers, for results that changed the day."""
-    return progress(compute(learner, catalog, day))
+    """`progress` after the latest answers, for results that changed the day, with `view`."""
+    dp = compute(learner, catalog, day)
+    return {**progress(dp), "view": view(dp.plan)}
 
 
 def _higher(levels: list[str]) -> list[str]:
@@ -309,6 +340,9 @@ def record(
         "word": presentation(entry),
         "drill": grade in ("almost", "dont_know"),
     }
+    note = learner.notes().get(str(entry["id"]))
+    if note:
+        result["word"]["note"] = note
     if verdict is not None:
         result["auto"] = verdict.grade
         result["errors"] = list(verdict.errors)
@@ -323,6 +357,10 @@ def record(
         result["next_due"] = due.isoformat()
     if interval is not None:
         result["interval_days"] = interval
+    if str(dp.plan.get("next_review", "shown")) == "shown":
+        back = back_text(dp.day, due, result["drill"])
+        if back:
+            result["back"] = back
     return result
 
 
@@ -388,7 +426,7 @@ def self_grade(
     entry, kind, state = classify(dp, catalog, learner, card, ahead=ahead)
     if grade == "known" and kind != "learn":
         raise VocabError("known_only_first", card=card)
-    if grade != "known" and split_card(card)[1] == "p":
+    if grade != "known" and split_card(card)[1] == "p" and not self_assessed(dp.plan):
         raise VocabError("production_needs_answer", card=card)
     grade = logged_grade(dp, kind, grade)
     result = record(learner, dp, card, entry, kind, state, grade, now, source=source, ahead=ahead)
@@ -417,10 +455,12 @@ def lookup(
         raise VocabError("empty_stdin")
     waiting: set[str] = set()
     learning: set[str] = set()
+    notes: dict[str, str] = {}
     if learner is not None and day is not None:
         dp = compute(learner, catalog, day)
         waiting = {item.card.split("#")[0] for item in dp.sequence}
         learning = {card.split("#")[0] for card in dp.book.cards}
+        notes = learner.notes()
     pattern = re.compile(rf"(?<!\w){re.escape(query)}(?!\w)")
     exact: list[dict[str, Any]] = []
     by_meaning: list[dict[str, Any]] = []
@@ -441,25 +481,123 @@ def lookup(
             }
         )
     found = exact + by_meaning
+    for match in found:
+        note = notes.get(match["card"].split("#")[0])
+        if note:
+            match["word"]["note"] = note
     return {"lang": lang, "matches": found[:LOOKUP_MAX], "more": max(0, len(found) - LOOKUP_MAX)}
 
 
-def reveal(catalog: Catalog, card: str) -> dict[str, Any]:
-    """The meaning of a recognition card, shown so the learner can grade the recall.
+def reveal(
+    catalog: Catalog,
+    card: str,
+    learner: store.Learner | None = None,
+    day: date | None = None,
+) -> dict[str, Any]:
+    """The answer of a card, shown so the learner can grade the recall.
 
-    A production card is graded from the typed answer, so its answer appears
-    only in the result of `answer`.
+    A recognition card shows its meaning. A production card shows its word only
+    when the plan lets the learner grade the recall (`answer_mode: self`) and
+    the card waits in today's session; otherwise its answer appears only in the
+    result of `answer`. With the learner's folder the result also holds the
+    card's phase, the grades to choose from (two in the drill) and the note.
     """
     try:
         entry_id, direction = split_card(card)
     except ValueError:
         raise VocabError("bad_card", card=card) from None
-    if direction != "r":
-        raise VocabError("reveal_production", card=card)
+    if learner is None or day is None:
+        if direction != "r":
+            raise VocabError("reveal_production", card=card)
+        entry = catalog.entry(entry_id)
+        if entry is None:
+            raise VocabError("unknown_card", card=card)
+        return {"card": card, "word": presentation(entry)}
     entry = catalog.entry(entry_id)
     if entry is None:
         raise VocabError("unknown_card", card=card)
-    return {"card": card, "word": presentation(entry)}
+    dp = compute(learner, catalog, day)
+    phase = next((item.phase for item in dp.sequence if item.card == card), None)
+    if direction != "r":
+        if not self_assessed(dp.plan):
+            raise VocabError("reveal_production", card=card)
+        if phase is None:
+            raise VocabError("reveal_not_waiting", card=card)
+    out: dict[str, Any] = {"card": card, "lang": entry["lang"], "word": presentation(entry)}
+    if phase is not None:
+        out["phase"] = phase
+        out["stage"] = STAGE_OF[phase]
+        out["grades"] = list(DRILL_GRADES if phase == "drill" else REVEAL_GRADES)
+    note = learner.notes().get(entry_id)
+    if note:
+        out["word"]["note"] = note
+    out.update(progress(dp))
+    out["view"] = view(dp.plan)
+    return out
+
+
+def _entry_of(catalog: Catalog, card: str) -> str:
+    try:
+        entry_id = split_card(card)[0]
+    except ValueError:
+        raise VocabError("bad_card", card=card) from None
+    if catalog.entry(entry_id) is None:
+        raise VocabError("unknown_card", card=card)
+    return entry_id
+
+
+def flag(
+    learner: store.Learner,
+    catalog: Catalog,
+    card: str,
+    now: datetime,
+    *,
+    note: str = "",
+    skip: bool = False,
+    clear: bool = False,
+) -> dict[str, Any]:
+    """A report of a mistake in an entry, a word put aside (`skip`), or either withdrawn.
+
+    Both take the entry out of the queue, the drill and the choice of new words;
+    `clear` brings it back with the date it had.
+    """
+    entry_id = _entry_of(catalog, card)
+    row: dict[str, Any] = {"ts": store.iso(now), "entry": entry_id, "card": card}
+    if clear:
+        row["clear"] = True
+    elif skip:
+        row["skip"] = True
+    else:
+        row["note"] = note.strip()[: store.NOTE_MAX]
+    store.append_jsonl(learner.path(store.FLAGS), row)
+    return {"entry": entry_id, "cleared": clear, "skipped": skip and not clear}
+
+
+def save_note(
+    learner: store.Learner,
+    catalog: Catalog,
+    card: str,
+    now: datetime,
+    text: str = "",
+    *,
+    clear: bool = False,
+) -> dict[str, Any]:
+    """The learner's own note for a word, shown with its answer; `clear` removes it."""
+    entry_id = _entry_of(catalog, card)
+    row: dict[str, Any] = {"ts": store.iso(now), "entry": entry_id}
+    if clear:
+        row["clear"] = True
+    else:
+        text = text.strip()
+        if not text:
+            raise VocabError("empty_note")
+        if len(text) > store.NOTE_MAX:
+            raise VocabError("note_too_long", max=store.NOTE_MAX, length=len(text))
+        row["note"] = text
+    store.append_jsonl(learner.path(store.NOTES), row)
+    if clear:
+        return {"entry": entry_id, "cleared": True}
+    return {"entry": entry_id, "note": row["note"], "cleared": False}
 
 
 def regrade(
@@ -566,7 +704,13 @@ def next_items(
             shown["word"] = presentation(item.entry)
         items.append(shown)
     hide_other_answers(catalog, items)
-    out: dict[str, Any] = {"day": day.isoformat(), "items": items, **progress(dp), "off": dp.off}
+    out: dict[str, Any] = {
+        "day": day.isoformat(),
+        "items": items,
+        **progress(dp),
+        "off": dp.off,
+        "view": view(dp.plan),
+    }
     if sequence:
         out["stage"] = STAGE_OF[sequence[0].phase]
     if stage is not None and out.get("stage") != stage:
@@ -622,6 +766,7 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
         "minutes": round(minutes),
         "batch": int(dp.plan.get("batch", 1)),
         "new_words": str(dp.plan.get("new_words", "ask")),
+        "view": view(dp.plan),
         "warnings": warnings,
     }
     # pacing matters only while the courses still have the words it holds back

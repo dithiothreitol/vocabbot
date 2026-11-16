@@ -12,3 +12,8 @@ the same turn as its preview, and never on a yes given to something else.
 In Claude Code and Cowork the plugin's hook also asks the learner in the
 host's own permission prompt before every `commit`; that prompt comes in
 addition to the question in the conversation, never instead of it.
+
+A note for a word is the learner's own text. `note --card <card> --stdin` saves at once what the
+learner asked to save, as written. A note you wrote (a mnemonic, an
+explanation) is saved only after the learner's yes to that text, in their
+next message.

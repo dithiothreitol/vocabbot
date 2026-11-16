@@ -9,6 +9,7 @@
   explicitly asks for that card ("to była literówka, zalicz"). The log marks
   such a row.
 - `grade --grade known` records that the learner knew a word before the
-  course; it is accepted only at a word's first showing. A recognition card
-  gets the learner's own grade (`know`, `almost`, `dont_know`), never one you
-  chose.
+  course; it is accepted only at a word's first showing. A recognition card,
+  and with `answer_mode: self` a production card after `reveal`, gets the
+  learner's own grade (`know`, `almost`, `dont_know`; in the drill `know` or
+  `dont_know`) exactly as the learner gave it, never one you chose.

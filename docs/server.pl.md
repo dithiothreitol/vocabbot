@@ -14,7 +14,7 @@ korzysta z żadnego modelu.
 
 | Adres | Przeznaczenie |
 |---|---|
-| `/mcp` | punkt MCP z 22 narzędziami; każde wywołanie wymaga tokenu dostępu, który wskazuje konto |
+| `/mcp` | punkt MCP z 23 narzędziami; każde wywołanie wymaga tokenu dostępu, który wskazuje konto |
 | `/.well-known/oauth-protected-resource/mcp` | informacja o źródle tokenów (RFC 9728) |
 | `/.well-known/oauth-authorization-server` | metadane serwera autoryzacji (RFC 8414) |
 | `/register`, `/authorize`, `/token`, `/revoke` | OAuth 2.1: dynamiczna rejestracja klientów, PKCE z S256, tokeny odświeżania wymieniane przy każdym użyciu, wskaźnik zasobu (RFC 8707) i wystawca w odpowiedzi logowania (RFC 9207) |
@@ -126,10 +126,13 @@ dziennie, z opcjonalnym testem poziomującym.
 
 Aplikacje czatu, które obsługują MCP Apps (Claude w przeglądarce
 i w aplikacji desktopowej, ChatGPT), pokazują przy wynikach `vocab_today`,
-`vocab_next`, `vocab_answer`, `vocab_grade` i `vocab_add_today` kartę
-VocabBota: licznik dnia, trzy etapy (powtórki, nowe słowa, utrwalanie)
-z liczbą pozostałych kart, słowo z zapisem IPA i przyciskiem odtwarzania nagrania, pytanie oraz nowe
-słowa dnia. Nagrania pochodzą z Wikimedia Commons (Wikisłownik i Lingua
+`vocab_next`, `vocab_answer`, `vocab_grade`, `vocab_reveal`
+i `vocab_add_today` kartę VocabBota: licznik dnia, trzy etapy (powtórki,
+nowe słowa, utrwalanie) z liczbą pozostałych kart, słowo z zapisem IPA
+i przyciskiem odtwarzania nagrania, notatkę uczącego się, pytanie, oceny do
+wyboru po haśle „pokaż” oraz nowe słowa dnia. Przy ustawieniu planu
+`sentence_translation=hidden` tłumaczenie zdania pokazuje przycisk pod
+zdaniem. Nagrania pochodzą z Wikimedia Commons (Wikisłownik i Lingua
 Libre) i odtwarzają się bezpośrednio z `upload.wikimedia.org`, jedynego
 adresu, z którego karta może pobierać pliki. Słowo albo zdanie bez nagrania
 odczytuje synteza mowy przeglądarki. Pytanie na karcie nie pokazuje ani nie

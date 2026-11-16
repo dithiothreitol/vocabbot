@@ -5,7 +5,11 @@ stop at any card (/koniec, Ctrl+C or the end of input) and lose nothing. The
 day runs in the engine's order (reviews, new words, drill); the learner moves
 to another stage at any card (/nowe, /powtorki, /utrwalanie), asks for more
 new words (/wiecej), and at the end of the day's list chooses between more
-new words, the next round of reviews and the end. The session draws with
+new words, the next round of reviews and the end. The plan's `answer_mode: self`
+lets an empty Enter show the answer for the learner's own grade, as SuperMemo's
+"Check" does; /t shows a sentence's translation the plan keeps back, /pomin
+puts a word aside and /notatka saves a note for the previous word. The session
+draws with
 term.py: colours and symbols where the terminal shows them,
 plain text elsewhere. In an interactive terminal a finished card folds into
 one line, so the screen keeps a short history of the session.
@@ -40,7 +44,11 @@ COMMANDS = {
     "/utrwalanie": "drill",
     "/wiecej": "more",
     "/więcej": "more",
+    "/t": "translation",
+    "/pomin": "skip",
+    "/pomiń": "skip",
 }
+NOTE_COMMAND = "/notatka"
 BATCH = 5
 MORE_NEW = 5  # new words added by /wiecej and by "n" at the end of the day's list
 MORE_REVIEWS = 10  # reviews of the next round, added by "p" at the end of the day's list
@@ -201,17 +209,8 @@ def word_details(word: dict[str, Any]) -> str:
 
 
 def when_back(result: dict[str, Any]) -> str:
-    """When the card comes back, as the learner says it."""
-    if result.get("drill"):
-        return assets.text("drill.back_today")
-    days = result.get("interval_days")
-    if days == 1:
-        return assets.text("drill.back_tomorrow")
-    if days:
-        return assets.text("drill.back_days", days=days)
-    if result.get("next_due"):
-        return assets.text("drill.back_on", day=result["next_due"])
-    return ""
+    """When the card comes back, as the engine says it; empty when the plan keeps it back."""
+    return str(result.get("back") or "")
 
 
 def polish_date(day: date) -> str:
@@ -340,6 +339,27 @@ class Drill:
             return self.add_more(reviews=MORE_REVIEWS)
         return False
 
+    # ------------------------------------------------------------ the plan's view of a card
+
+    def view(self) -> dict[str, str]:
+        return session.view(self.learner.plan())
+
+    def translation(self, polish: str | None) -> str | None:
+        """A sentence's translation, unless the plan keeps it back for /t (or t)."""
+        return polish if self.view()["sentence_translation"] == "shown" else None
+
+    def word_of(self, entry: dict[str, Any]) -> dict[str, Any]:
+        """The word with the learner's note, for the answer side of a card."""
+        word = presentation(entry)
+        note = self.learner.notes().get(str(entry["id"]))
+        if note:
+            word["note"] = note
+        return word
+
+    def note_line(self, word: dict[str, Any], indent: str = "  ") -> None:
+        if word.get("note"):
+            self.screen.show(f"{indent}{assets.text('cli.note_line', note=word['note'])}", "cyan")
+
     def card_head(self, item: Item, label: str) -> str:
         style = self.style
         colour = lang_colour(item.lang)
@@ -376,11 +396,18 @@ class Drill:
                 self.screen.show(f"  {details}", "dim")
             if word.get("also"):
                 self.screen.show(f"  {assets.text('drill.also')} {', '.join(word['also'])}", "dim")
-            self.sentence_lines(word.get("example"), word.get("example_pl"))
-            key = self.screen.key(style(assets.text("drill.intro_keys"), "dim") + " ")
-            while key == "p":
-                self.switch("reviews")  # leaves the word when reviews wait, else says so
-                key = self.screen.key(style(assets.text("drill.intro_keys"), "dim") + " ")
+            polish = self.translation(word.get("example_pl"))
+            self.sentence_lines(word.get("example"), polish)
+            keys = assets.text("drill.intro_keys")
+            if word.get("example_pl") and polish is None:
+                keys += style.sep + assets.text("drill.key_translation")
+            key = self.screen.key(style(keys, "dim") + " ")
+            while key in ("p", "t"):
+                if key == "p":
+                    self.switch("reviews")  # leaves the word when reviews wait, else says so
+                elif word.get("example_pl"):
+                    self.screen.show(f"  {word['example_pl']}", "dim")
+                key = self.screen.key(style(keys, "dim") + " ")
             if key in ("q", "esc"):
                 raise Quit
             if key == "z":
@@ -439,17 +466,29 @@ class Drill:
         self.screen.show(line)
         if q.get("hint"):
             self.screen.show(f"  {q['hint']}", "dim")
-        self.sentence_lines(q.get("sentence"), q.get("sentence_pl"))
+        self.sentence_lines(q.get("sentence"), self.translation(q.get("sentence_pl")))
         start = time.monotonic()
         while True:
             given = self.screen.ask(style(style.glyph("prompt"), "cyan", "bold") + " ")
-            command = COMMANDS.get(given.strip().lower())
+            typed = given.strip()
+            if typed.lower().startswith(NOTE_COMMAND) and (
+                len(typed) == len(NOTE_COMMAND) or typed[len(NOTE_COMMAND)].isspace()
+            ):
+                self.note(typed[len(NOTE_COMMAND) :].strip())
+                continue
+            command = COMMANDS.get(typed.lower())
             if command is None:
                 break
             if command == "quit":
                 raise Quit
             if command == "help":
                 self.help()
+            elif command == "translation":
+                if q.get("sentence_pl"):
+                    self.screen.show(f"  {q['sentence_pl']}", "dim")
+            elif command == "skip":
+                self.skip(item, q)
+                return
             elif command == "undo":
                 self.undo()
             elif command in STAGES:
@@ -463,6 +502,9 @@ class Drill:
                     self.save_known(item, presentation(item.entry))
                     return
                 self.screen.show(f"  {assets.text('drill.known_only_new')}", "yellow")
+        if not given.strip() and self.view()["answer_mode"] == "self":
+            self.self_check(item)
+            return
         ms = int((time.monotonic() - start) * 1000)
         dp = self.compute()
         ahead = item.phase == "ahead"
@@ -475,7 +517,7 @@ class Drill:
             self.failed.add(item.card)
             return
         verdict = session.evaluate(dp, self.catalog, entry, given)
-        word = presentation(entry)
+        word = self.word_of(entry)
         if verdict.grade == "know":
             grade = session.logged_grade(dp, kind, "know")
             result = self.save(dp, item, entry, kind, state, grade, verdict, given, ms, ahead)
@@ -502,6 +544,83 @@ class Drill:
         self.screen.fold(self.line_for(item, grade, summary, when_back(result)))
         if key in ("q", "esc"):
             raise Quit
+
+    def self_check(self, item: Item) -> None:
+        """answer_mode self: the answer shown at an empty Enter and the learner's own grade."""
+        style = self.style
+        try:
+            shown = session.reveal(self.catalog, item.card, self.learner, self.day)
+        except VocabError as exc:
+            self.screen.show(f"  {exc}", "red")
+            self.failed.add(item.card)
+            return
+        word = shown["word"]
+        self.screen.show(
+            f"  {style.glyph('result')} {style(word['word'], 'bold')}{style.sep}{word['meaning']}"
+        )
+        details = word_details(word)
+        if details:
+            self.screen.show(f"    {details}", "dim")
+        self.note_line(word, "    ")
+        drill = shown.get("phase") == "drill"
+        allowed = ("1", "3") if drill else ("1", "2", "3")
+        prompt = assets.text("drill.self_keys_drill" if drill else "drill.self_keys")
+        key = ""
+        while key not in allowed:
+            key = self.screen.key(style(prompt, "dim") + " ")
+            if key in ("q", "esc"):
+                raise Quit
+        try:
+            result = session.self_grade(
+                self.learner,
+                self.catalog,
+                self.day,
+                self.clock(),
+                item.card,
+                KEY_GRADES[key],
+                ahead=item.phase == "ahead",
+                source="cli",
+                with_progress=False,
+            )
+        except VocabError as exc:
+            self.screen.show(f"  {exc}", "red")
+            self.failed.add(item.card)
+            return
+        grade = str(result["grade"])
+        self.counts[grade] += 1
+        self.done += 1
+        self.last = {"card": item.card, "grade": grade, "word": word["word"]}
+        summary = f"{word['meaning']} {style.glyph('arrow')} {word['word']}"
+        back = when_back(result)
+        if grade == "known":
+            back = f"{assets.text('drill.known_saved')}{style.sep}{back}".rstrip(style.sep)
+        self.screen.fold(self.line_for(item, grade, summary, back))
+
+    def skip(self, item: Item, q: dict[str, Any]) -> None:
+        """/pomin: the word leaves the queue without a report; `flag --clear` brings it back."""
+        try:
+            session.flag(self.learner, self.catalog, item.card, self.clock(), skip=True)
+        except VocabError as exc:
+            self.screen.show(f"  {exc}", "red")
+            return
+        self.screen.fold(None)
+        text = assets.text("drill.skipped", meaning=q.get("meaning", ""), card=item.card)
+        self.screen.write(self.style(text, "yellow"))
+
+    def note(self, text: str) -> None:
+        """/notatka: the learner's note for the previous word, shown with its answer."""
+        if self.last is None:
+            self.screen.show(f"  {assets.text('drill.nothing_to_note')}", "yellow")
+            return
+        if not text:
+            self.screen.show(f"  {assets.text('drill.note_usage')}", "yellow")
+            return
+        try:
+            session.save_note(self.learner, self.catalog, self.last["card"], self.clock(), text)
+        except VocabError as exc:
+            self.screen.show(f"  {exc}", "red")
+            return
+        self.screen.show(f"  {assets.text('drill.note_saved', word=self.last['word'])}", "green")
 
     def first_contact(self, word: dict[str, Any]) -> None:
         """A new word answered right at once: its forms and example, seen for the first time."""
@@ -573,6 +692,7 @@ class Drill:
         details = word_details(word)
         if details:
             self.screen.show(f"    {details}", "dim")
+        self.note_line(word, "    ")
         if word.get("example"):
             width = style.width() - 4
             for line in term.wrap(str(word["example"]), width, "    "):
@@ -585,11 +705,12 @@ class Drill:
         key = self.screen.key(style(assets.text("drill.show_meaning"), "dim") + " ")
         if key in ("q", "esc"):
             raise Quit
-        word = presentation(item.entry)
+        word = self.word_of(item.entry)
         self.screen.show(f"  {style.glyph('result')} {style(word['meaning'], 'bold')}")
         details = word_details(word)
         if details:
             self.screen.show(f"    {details}", "dim")
+        self.note_line(word, "    ")
         key = ""
         while key not in KEY_GRADES:
             key = self.screen.key(style(assets.text("drill.recognize_keys"), "dim") + " ")
@@ -622,14 +743,19 @@ class Drill:
     # ------------------------------------------------------------ commands
 
     def help(self) -> None:
-        for key in (
-            "help_answer",
+        view = self.view()
+        keys = [
+            "help_answer_self" if view["answer_mode"] == "self" else "help_answer",
             "help_known",
             "help_undo",
             "help_stages",
             "help_more",
-            "help_quit",
-        ):
+            "help_skip",
+            "help_note",
+        ]
+        if view["sentence_translation"] == "hidden":
+            keys.append("help_translation")
+        for key in [*keys, "help_quit"]:
             self.screen.show(f"  {assets.text(f'drill.{key}', count=MORE_NEW)}", "dim")
 
     def undo(self) -> None:

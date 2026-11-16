@@ -65,7 +65,7 @@ who prefers a list changes it through `vocab-start` (`plan set batch=5`).
 Run `next --json`; it returns `batch` items. Keep their order. Each item has
 `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and `question`.
 `new_words` in the result of `today` says how new words come: `ask` (the
-default) or `show`. `reference/presentation.md` shows the layout.
+default) or `show`. `view` in every result of the session holds the plan's settings of how a card is shown: `new_words`, `answer_mode` (`type` or `self`), `sentence_translation` (`shown` or `hidden`) and `next_review` (`shown` or `hidden`). `reference/presentation.md` shows the layout.
 
 - **The counter.** Every result of `next`, `answer`, `grade` and `regrade`
   holds `counter`, the line of the day's progress ("Postęp: 6/25 · nowe 3/15
@@ -74,8 +74,12 @@ default) or `show`. `reference/presentation.md` shows the layout.
 
 - **A question** shows the language tag (EN, DE, ES, FR, IT), the Polish meaning,
   the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
-  if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
-  cards (`question.ask: meaning`) follow `reference/recognition.md`.
+  if any, and the sentence with its gap `___` and `sentence_pl`. With
+  `view.sentence_translation: hidden` every sentence comes without its
+  translation, as in SuperMemo; when the learner asks for it ("tłumaczenie"),
+  the next message gives it from the same result. With
+  `view.answer_mode: self` a question ends with "Wpisz słowo albo napisz
+  „pokaż”.". Recognition cards (`question.ask: meaning`) follow `reference/recognition.md`.
 - **A new word** (`phase: new`) is asked at once, as any card, under the
   label "Nowe słowo": this is how SuperMemo introduces a word, and the plan's
   default (`new_words: ask`). The learner types the word, or "?" when it is
@@ -109,6 +113,14 @@ default) or `show`. `reference/presentation.md` shows the layout.
   {"card": "de-c01997#p", "answer": "der Hund"}
   EOF
   ```
+- **Show the answer** (`view.answer_mode: self`), as SuperMemo's "Check"
+  does. When the learner says "pokaż" or "sprawdź" instead of an answer,
+  run `reveal --card <card> --json` and show its `word` in full, as a result shows it, with the
+  learner's note, then ask for the grade with the names in `grades`: wiem,
+  prawie or nie wiem, and in the drill wiem or nie wiem. The learner's reply
+  goes to `grade --card <card> --grade <grade> --next --json`, exactly as given: never propose a grade. A first "wiem"
+  for a new word comes back as `known`, as a right first answer does. A typed
+  word still goes to `answer`, and "?" stays an empty answer.
 
 - **A result** is one line per card: "✓ wiem", "≈ prawie" with the error
   classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; for
@@ -116,6 +128,8 @@ default) or `show`. `reference/presentation.md` shows the layout.
   In the drill the engine has two grades, as SuperMemo does: "✓ wiem" takes
   the card out, and every other answer is "✗ nie wiem" with its error
   classes and stays.
+  End the line with `back` when the result holds it ("wróci za 4 dni"). A
+  learner's note (`word.note`) follows the word as "Notatka: …".
   `other_lang` means the learner typed the word of another language being
   learned: name that language. A result with `error` was refused; show its
   message and go on.
@@ -196,6 +210,16 @@ next session or a reminder only as `shared/rules.md` allows.
   `flag --card <card> --stdin --json`; the card leaves the queue until
   `flag --card <card> --clear --json`. Larger corrections belong to
   `vocab-words`.
+- **A word the learner does not want.** "nie chcę tego słowa", "pomiń to
+  słowo": `flag --card <card> --skip --json`, without showing the word, then
+  `next --stage <stage of that card> --json`. The word stays away until the
+  learner asks for it back ("przywróć słowo …"): `lookup` finds its card, and
+  `flag --card <card> --clear --json` brings it back with its date.
+  `status --json` lists the words put aside (`skipped`).
+- **A note.** "zapisz notatkę: …" saves the learner's text as written with
+  `note --card <card> --stdin --json` (the text on standard input) for the
+  card of the last result, or the card `lookup` finds. The note comes with
+  the word's answer and never with its question.
 - **A pause.** Every answer is saved at once. The next `next` call continues
   in the same order, in the chat or in the terminal (`vocabbot drill`).
 

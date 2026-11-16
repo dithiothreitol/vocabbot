@@ -32,7 +32,7 @@ from vocabbot import (
     words,
 )
 from vocabbot.book import ParameterSet
-from vocabbot.courses import Catalog, split_card
+from vocabbot.courses import Catalog
 from vocabbot.errors import VocabError
 from vocabbot.queue import STAGES, compute
 
@@ -351,6 +351,8 @@ def render_answer(data: dict[str, Any]) -> list[str]:
         lines.append(assets.text("cli.other_lang", lang=assets.language_name(data["other_lang"])))
     if data["word"].get("example"):
         lines.append(f"  {data['word']['example']}  {data['word'].get('example_pl', '')}".rstrip())
+    if data["word"].get("note"):
+        lines.append(assets.text("cli.note_line", note=data["word"]["note"]))
     if data.get("next_due"):
         lines.append(assets.text("cli.next_due", due=data["next_due"]))
     if data.get("level_hint"):
@@ -394,6 +396,10 @@ def render_status(data: dict[str, Any]) -> list[str]:
                 )
             )
     lines.append("")
+    for key, name in (("skipped", "cli.status_skipped"), ("reported", "cli.status_reported")):
+        if data.get(key):
+            words = ", ".join(f"{w['word']} ({w['card']})" for w in data[key][:10])
+            lines.append(assets.text(name, words=words))
     lines.append(assets.text("cli.streak", days=data["streak_days"]))
     plan = data.get("schedule")
     if plan:
@@ -669,7 +675,24 @@ def cmd_grade(ctx: Context) -> dict[str, Any]:
 
 
 def cmd_reveal(ctx: Context) -> dict[str, Any]:
-    return session.reveal(ctx.catalog(), ctx.args.card)
+    try:
+        learner: store.Learner | None = ctx.learner()
+        day: date | None = ctx.day()
+    except VocabError:
+        learner, day = None, None
+    return session.reveal(ctx.catalog(), ctx.args.card, learner, day)
+
+
+def cmd_note(ctx: Context) -> dict[str, Any]:
+    learner, catalog = ctx.learner(), ctx.catalog()
+    if ctx.args.clear:
+        return session.save_note(learner, catalog, ctx.args.card, ctx.now, clear=True)
+    return session.save_note(learner, catalog, ctx.args.card, ctx.now, ctx.text())
+
+
+def render_note(data: dict[str, Any]) -> list[str]:
+    key = "cli.note_cleared" if data["cleared"] else "cli.note_saved"
+    return [assets.text(key, entry=data["entry"])]
 
 
 def cmd_lookup(ctx: Context) -> dict[str, Any]:
@@ -693,7 +716,10 @@ def render_lookup(data: dict[str, Any]) -> list[str]:
 
 
 def render_reveal(data: dict[str, Any]) -> list[str]:
-    return [describe_word(data["word"])]
+    lines = [describe_word(data["word"])]
+    if data["word"].get("note"):
+        lines.append(assets.text("cli.note_line", note=data["word"]["note"]))
+    return lines
 
 
 def cmd_regrade(ctx: Context) -> dict[str, Any]:
@@ -796,20 +822,16 @@ def run_quiz(catalog: Catalog, data: dict[str, Any], lenient: bool) -> dict[str,
 
 
 def cmd_flag(ctx: Context) -> dict[str, Any]:
-    learner, catalog = ctx.learner(), ctx.catalog()
-    try:
-        entry_id = split_card(ctx.args.card)[0]
-    except ValueError:
-        raise VocabError("bad_card", card=ctx.args.card) from None
-    if catalog.entry(entry_id) is None:
-        raise VocabError("unknown_card", card=ctx.args.card)
-    row: dict[str, Any] = {"ts": store.iso(ctx.now), "entry": entry_id, "card": ctx.args.card}
-    if ctx.args.clear:
-        row["clear"] = True
-    else:
-        row["note"] = ctx.text().strip()[:500] if ctx.args.stdin else ""
-    store.append_jsonl(learner.path(store.FLAGS), row)
-    return {"entry": entry_id, "cleared": bool(ctx.args.clear)}
+    note = ctx.text() if ctx.args.stdin else ""
+    return session.flag(
+        ctx.learner(),
+        ctx.catalog(),
+        ctx.args.card,
+        ctx.now,
+        note=note,
+        skip=ctx.args.skip,
+        clear=ctx.args.clear,
+    )
 
 
 def cmd_doctor(ctx: Context) -> dict[str, Any]:
@@ -871,6 +893,8 @@ def render_quiz(data: dict[str, Any]) -> list[str]:
 
 def render_flag(data: dict[str, Any]) -> list[str]:
     key = "cli.unflagged" if data["cleared"] else "cli.flagged"
+    if data.get("skipped"):
+        key = "cli.skipped"
     return [assets.text(key, entry=data["entry"])]
 
 
@@ -1100,11 +1124,31 @@ def build_parser(
     )
 
     p = add(
-        "flag", cmd_flag, render_flag, "report a mistake in an entry (the note on standard input)"
+        "flag",
+        cmd_flag,
+        render_flag,
+        "report a mistake in an entry (the note on standard input), or put a word aside",
     )
     p.add_argument("--card", required=True)
-    p.add_argument("--stdin", action="store_true")
-    p.add_argument("--clear", action="store_true", help="withdraw the report")
+    choice = p.add_mutually_exclusive_group()
+    choice.add_argument("--stdin", action="store_true")
+    choice.add_argument(
+        "--skip", action="store_true", help="put the word aside without reporting a mistake"
+    )
+    choice.add_argument(
+        "--clear", action="store_true", help="withdraw the report or bring the word back"
+    )
+
+    p = add(
+        "note",
+        cmd_note,
+        render_note,
+        "the learner's note for a word, shown with its answer (the text on standard input)",
+    )
+    p.add_argument("--card", required=True)
+    choice = p.add_mutually_exclusive_group(required=True)
+    choice.add_argument("--stdin", action="store_true", help="read the note from standard input")
+    choice.add_argument("--clear", action="store_true", help="remove the note")
 
     p = add("doctor", cmd_doctor, render_doctor, "check the learner's folder")
     p.add_argument("--merge", action="store_true", help="join conflict copies (preview first)")

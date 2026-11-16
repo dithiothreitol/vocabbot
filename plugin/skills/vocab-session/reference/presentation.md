@@ -33,6 +33,18 @@ A new word the learner knew before the course:
 La mesa es de madera. · Stół jest z drewna.
 ```
 
+With `view.answer_mode: self`, "pokaż" instead of an answer:
+
+```
+Postęp: 7/25 · nowe 4/15 · powtórki 3/10
+
+der Hund (r.m., l.mn. die Hunde) /hʊnt/ [🔊 wymowa](https://upload.wikimedia.org/…) = pies
+Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+Notatka: Hund brzmi jak angielskie hound.
+
+Jak Ci poszło: wiem, prawie czy nie wiem?
+```
+
 With `new_words: show` in the plan, a new word comes alone in its message:
 
 ```

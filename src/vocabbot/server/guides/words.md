@@ -33,6 +33,8 @@
    queue until the report is withdrawn with `vocab_flag` and `clear: true`.
 3. A correction the learner wants to learn now can be an own word with the
    right meaning (A).
+4. A word without a mistake that the learner does not want to learn goes
+   aside with `vocab_flag` and `skip: true`; `clear: true` brings it back.
 
 ## The format of own words
 

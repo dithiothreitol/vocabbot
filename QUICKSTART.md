@@ -81,6 +81,13 @@ in one and end in the other.
   `/utrwalanie` and `/wiecej`, and after the day's list the session offers n
   (5 more new words), p (the next round of 10 reviews) and Enter (the end).
   Reviews you leave for later stay due and come first on the next day.
+- More controls of a card, as in SuperMemo. With `answer_mode=self` in the
+  plan say "pokaż" (in the terminal press Enter) to see the answer and grade
+  yourself: wiem, prawie or nie wiem. With `sentence_translation=hidden`
+  ask for "tłumaczenie" (in the terminal `/t`). "Nie chcę tego słowa" (in the
+  terminal `/pomin`) puts a word aside; "przywróć słowo …" brings it back.
+  "Zapisz notatkę: …" (in the terminal `/notatka …` after the answer) keeps
+  your note, shown with the word's answer from then on.
 - `vocabbot` without a command shows the plan of the day; Enter starts the
   session.
 - A grade changes only when you ask for it ("to była literówka, zalicz").

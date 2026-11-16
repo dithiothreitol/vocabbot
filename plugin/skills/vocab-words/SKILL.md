@@ -67,6 +67,9 @@ python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" <command> --json
    right meaning (A). Reports stay in the learner's folder
    (`log/flags.jsonl`); to share one with the course authors, the learner
    sends it as an issue in the project's repository.
+4. A word without a mistake that the learner does not want to learn goes
+   aside with `flag --card <card> --skip --json`;
+   `flag --card <card> --clear --json` brings it back.
 
 ## C. Check
 

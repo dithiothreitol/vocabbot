@@ -223,10 +223,14 @@ def register(server: MCPServer, tools: Tools) -> None:
 
     @tool(
         "vocab_reveal",
-        "Znaczenie karty rozpoznawania",
-        "The meaning, forms and example of a recognition card (id ending in #r), after the"
-        " learner tried to recall it.",
+        "Pokaż odpowiedź",
+        "The answer of a card for the learner's own grade, after the learner tried to recall"
+        " it: the meaning of a recognition card (id ending in #r), or, when the plan's"
+        " answer_mode is self, the word of a production card waiting today. The result names"
+        " the grades to choose from (`grades`, two in the drill); the learner's choice goes to"
+        " vocab_grade.",
         READ,
+        card=True,
     )
     async def vocab_reveal(card: Card) -> str:
         return await tools.run(["reveal", "--card", card])
@@ -385,21 +389,44 @@ def register(server: MCPServer, tools: Tools) -> None:
 
     @tool(
         "vocab_flag",
-        "Zgłoszenie błędu",
-        "Report a mistake in a course entry with the learner's note; the card leaves the"
-        " queue until the report is withdrawn with clear true.",
+        "Zgłoszenie błędu albo odłożenie słowa",
+        "Report a mistake in a course entry with the learner's note, or with skip true put a"
+        " word aside that the learner does not want to learn; either way the card leaves the"
+        " queue until clear true brings it back with the date it had.",
         WRITE,
     )
     async def vocab_flag(
         card: Card,
         note: Annotated[str, Field(max_length=500)] = "",
+        skip: bool = False,
         clear: bool = False,
     ) -> str:
         if clear:
             return await tools.run(["flag", "--card", card, "--clear"])
+        if skip:
+            return await tools.run(["flag", "--card", card, "--skip"])
         if note.strip():
             return await tools.run(["flag", "--card", card, "--stdin"], note)
         return await tools.run(["flag", "--card", card])
+
+    @tool(
+        "vocab_note",
+        "Notatka do słowa",
+        "Save the learner's own note for a word (up to 500 characters: an association, a"
+        " usage, a trap), shown with the word's answer and never with its question; clear true"
+        " removes it. Only text the learner wrote or explicitly accepted.",
+        WRITE,
+    )
+    async def vocab_note(
+        card: Card,
+        note: Annotated[str, Field(max_length=500)] = "",
+        clear: bool = False,
+    ) -> str:
+        if clear:
+            return await tools.run(["note", "--card", card, "--clear"])
+        if not note.strip():
+            raise ToolError("give the note's text, or clear true to remove it")
+        return await tools.run(["note", "--card", card, "--stdin"], note)
 
     @tool(
         "vocab_setup",

@@ -1,0 +1,64 @@
+{
+ "name": "session-self-assessment",
+ "skill": "vocab-session",
+ "group": "grades",
+ "about": "with answer_mode self, \"pokaż\" shows the answer and asks for a grade; the learner's grade is logged as given",
+ "learner": {
+  "languages": [
+   "de:b1-b2",
+   "es:b1-b2"
+  ],
+  "new_per_day": 6,
+  "history_days": 4,
+  "wrong_every": 4,
+  "settings": {
+   "answer_mode": "self"
+  }
+ },
+ "turns": [
+  {
+   "say": "Zacznijmy dzisiejszą sesję słówek.",
+   "expect": {
+    "no_answer_leak": true,
+    "log_rows_added": {
+     "max": 0
+    },
+    "plan_unchanged": true
+   }
+  },
+  {
+   "say": "pokaż",
+   "expect": {
+    "reply_matches": [
+     "prawie"
+    ],
+    "log_rows_added": {
+     "max": 0
+    },
+    "plan_unchanged": true
+   }
+  },
+  {
+   "say": "prawie",
+   "expect": {
+    "log_rows_added": {
+     "min": 1,
+     "max": 1
+    },
+    "rows_where": [
+     {
+      "where": {
+       "grade": "almost",
+       "auto": null
+      },
+      "count": {
+       "min": 1,
+       "max": 1
+      }
+     }
+    ],
+    "plan_unchanged": true
+   }
+  }
+ ]
+}

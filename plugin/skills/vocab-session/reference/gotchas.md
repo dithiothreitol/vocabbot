@@ -9,9 +9,16 @@
 - After `grade` use `--next` as well; a separate `next` without `--stage`
   returns to the engine's order.
 - In the terminal session the same choices are `/nowe`, `/powtorki`,
-  `/utrwalanie` and `/wiecej`, and the keys offered at the end of the list.
+  `/utrwalanie` and `/wiecej`, and the keys offered at the end of the list;
+  `/t` shows a sentence's translation, `/pomin` puts a word aside and
+  `/notatka` saves a note for the previous word.
 - `known_only_first`: "znałem" works only the first time a word is shown.
 - `drill_two_grades`: a drill answer is regraded to `know` or `dont_know`.
+- `reveal_production`: the plan's `answer_mode` is `type`, so a production
+  card is answered by typing; `reveal_not_waiting`: the card is not in
+  today's session.
+- A learner's note (`word.note`) comes in results, `reveal` and `lookup`,
+  never in `next`; keep it with the answer.
 - The order of the reviews is the plan's `review_order`: `due` (most overdue
   first, the default), `course`, `interval` or `random`; `vocab-start`
   changes it.

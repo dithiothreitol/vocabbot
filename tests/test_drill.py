@@ -184,3 +184,81 @@ def test_new_words_as_questions_in_the_terminal(tmp_path: Path, catalog: Catalog
     assert result["known"] == 1 and other.rows()[0][0]["grade"] == "known"
     assert any("zapisane jako znane" in line for line in screen.out)
     assert len(compute(other, catalog, MONDAY).new) == 3
+
+
+class Checking(Script):
+    """A learner who presses Enter to see the answer and grades it, and types commands."""
+
+    def __init__(self, catalog: Catalog, keys: list[str], commands: list[str]) -> None:
+        super().__init__(catalog, wrong=set(), known=set())
+        self.keys = keys
+        self.commands = commands
+        self.prompts: list[str] = []
+
+    def _line(self, prompt: str) -> str:
+        if self.commands:
+            return self.commands.pop(0)
+        return ""
+
+    def _key(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        if "Jak dobrze znasz to słowo" in prompt:
+            return self.keys.pop(0) if self.keys else "q"
+        return super()._key(prompt)
+
+
+def test_the_answer_shown_at_enter_and_graded_by_the_learner(
+    tmp_path: Path, catalog: Catalog
+) -> None:
+    learner = make_learner(
+        tmp_path,
+        ["de:a1-a2"],
+        new_per_day=2,
+        new_words="ask",
+        answer_mode="self",
+        sentence_translation="hidden",
+    )
+    first, second = compute(learner, catalog, MONDAY).new
+    # /t shows the translation the plan keeps back; Enter shows the answer, graded 3 or 1;
+    # a first "wiem" is a word known before, so one more new word joins the day
+    screen = Checking(catalog, keys=["3", "1", "3", "1", "1"], commands=["/t"])
+    result = run(learner, catalog, MONDAY, screen)
+    entry = catalog.card(first)
+    assert entry is not None
+    assert any(str(entry["example"]["pl"]) in line for line in screen.out)
+    assert (result["dont_know"], result["known"], result["know"]) == (2, 1, 2)
+    rows = learner.rows()[0]
+    extra = rows[2]["card"]
+    assert extra not in (first, second)
+    assert [(r["card"], r["kind"], r["grade"]) for r in rows] == [
+        (first, "learn", "dont_know"),
+        (second, "learn", "known"),
+        (extra, "learn", "dont_know"),
+        (first, "drill", "know"),
+        (extra, "drill", "know"),
+    ]
+    assert all("auto" not in r for r in rows)
+    drill_prompts = [p for p in screen.prompts if "Jak dobrze" in p]
+    assert "2 prawie" in drill_prompts[0] and "2 prawie" not in drill_prompts[-1]
+
+
+def test_a_word_put_aside_and_a_note_in_the_terminal(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=3, new_words="ask")
+    first, second, third = compute(learner, catalog, MONDAY).new
+    commands = ["/pomin", correct(catalog, second), "/notatka brzmi znajomo", "/notatka"]
+    screen = Checking(catalog, keys=[], commands=commands)
+    screen.quit_after = None
+
+    def lines(prompt: str) -> str:
+        if screen.commands:
+            return screen.commands.pop(0)
+        return drill.QUIT
+
+    screen.read_line = lines  # type: ignore[method-assign]
+    run(learner, catalog, MONDAY, screen)
+    assert learner.skipped() == {first.split("#")[0]}
+    assert learner.notes() == {second.split("#")[0]: "brzmi znajomo"}
+    assert any("Odłożono słowo" in line for line in screen.out)
+    assert any("Zapisano notatkę" in line for line in screen.out)
+    assert any("Po /notatka wpisz" in line for line in screen.out)
+    assert third in compute(learner, catalog, MONDAY).new

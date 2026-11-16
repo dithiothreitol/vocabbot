@@ -112,10 +112,25 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
     while cursor in learned_days:
         streak += 1
         cursor -= timedelta(days=1)
+    states = learner.flag_states()
+    out_of_queue: dict[str, list[dict[str, Any]]] = {"skip": [], "report": []}
+    for entry_id, kind in sorted(states.items()):
+        entry = catalog.entry(entry_id)
+        if entry is not None:
+            out_of_queue[kind].append(
+                {
+                    "card": f"{entry_id}#p",
+                    "lang": entry["lang"],
+                    "word": entry["display"],
+                    "meaning": entry["gloss"]["pl"],
+                }
+            )
     return {
         "day": day.isoformat(),
         "today": summary(learner, catalog, dp),
         "languages": languages,
+        "skipped": out_of_queue["skip"],
+        "reported": out_of_queue["report"],
         "streak_days": streak,
         "target_retention": plan["retention"],
         "schedule": schedule(dp),

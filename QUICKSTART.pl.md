@@ -84,6 +84,14 @@ w drugim.
   proponuje klawisze n (5 kolejnych nowych słów), p (następna tura 10
   powtórek) i Enter (koniec). Powtórki odłożone na później zachowują termin
   i otwierają następny dzień.
+- Karta ma więcej możliwości, tak jak w SuperMemo. Przy ustawieniu planu
+  `answer_mode=self` hasło „pokaż” (w terminalu sam Enter) pokazuje
+  odpowiedź, a Ty oceniasz się: wiem, prawie albo nie wiem. Przy ustawieniu
+  `sentence_translation=hidden` tłumaczenie zdania podaje hasło
+  „tłumaczenie” (w terminalu `/t`). Hasło „nie chcę tego słowa” (w terminalu
+  `/pomin`) odkłada słowo, a „przywróć słowo …” je przywraca. Hasło „zapisz
+  notatkę: …” (w terminalu `/notatka …` po odpowiedzi) zapisuje Twoją
+  notatkę, którą odtąd widać przy odpowiedzi na to słowo.
 - `vocabbot` bez polecenia pokazuje plan dnia, a Enter zaczyna sesję.
 - Ocena zmienia się wyłącznie na wyraźną prośbę („to była literówka,
   zalicz”).

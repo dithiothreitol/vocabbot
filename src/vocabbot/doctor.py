@@ -53,11 +53,11 @@ def check(learner: store.Learner, catalog: Catalog, now: datetime) -> dict[str, 
 
 
 def merge_preview(learner: store.Learner, now: datetime) -> dict[str, Any]:
-    """Join conflict copies of the review log and the flags into the main files."""
+    """Join conflict copies of the review log, the flags and the notes into the main files."""
     changes: list[gate.Change] = []
     lines: list[str] = []
     damaged: list[bytes] = []
-    for name in (store.REVIEWS, store.FLAGS):
+    for name in (store.REVIEWS, store.FLAGS, store.NOTES):
         main = learner.path(name)
         stem = main.name.rsplit(".", 1)[0]
         copies = [
@@ -82,6 +82,9 @@ def merge_preview(learner: store.Learner, now: datetime) -> dict[str, Any]:
             changes.append(gate.Change(copy, "delete"))
         if name == store.REVIEWS:
             rows.sort(key=lambda r: order_key(r) if valid_row(r) else ("", "", ""))
+        else:
+            # the last row of an entry holds, so the rows of every copy go in the order of time
+            rows.sort(key=lambda r: str(r.get("ts", "")))
         text = "".join(store.dump_line(r) + "\n" for r in rows)
         changes.insert(0, gate.Change(main, "write", text))
         lines.append(assets.text("doctor.merge_line", file=name, copies=len(copies), added=added))

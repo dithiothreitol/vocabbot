@@ -8,7 +8,8 @@ serwera, konta ani analityki, a program niczego nie wysyła przez sieć.
 ## Gdzie są przechowywane dane uczącego się
 
 - **Folder nauki.** Plan, dziennik odpowiedzi (z odpowiedziami w wpisanej
-  postaci), własne słowa, zgłoszenia błędów i lista zatwierdzonych zmian
+  postaci), własne słowa, notatki do słów, zgłoszenia błędów, słowa odłożone
+  i lista zatwierdzonych zmian
   znajdują się w folderze wybranym przez uczącego się. VocabBot czyta
   i zapisuje wyłącznie tam oraz w dwóch miejscach folderu `~/.vocabbot/`:
   w pliku `config.json` ze ścieżką folderu nauki i w podfolderze `pending/`,

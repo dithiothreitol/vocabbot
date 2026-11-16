@@ -18,8 +18,8 @@ word as a question, two grades in the drill and the order of reviews) on
 PyPI and deployed it on the server. Stage 11 (handling a card as in the
 SuperMemo application: self-assessment, the sentence's translation on
 request, the review date with the result, switching a word off and a note
-for a word) is a proposal of 16.11.2026 for one working session and awaits
-your acceptance. The engine, the `vocabbot` program with its new terminal session,
+for a word) you accepted, and I carried it out on 16.11.2026 in the local
+repository; its release awaits your approval. The engine, the `vocabbot` program with its new terminal session,
 the A1–B2 courses for four languages (23 095 entries) and the plugin with four
 skills for Claude and Codex work; section 10 describes the results of the
 stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
@@ -468,6 +468,7 @@ complete.
 |---|---|
 | `vocabbot init [FOLDER] --base pl --lang en:b1-b2:2 --lang de:a1-a2 --new 15` | creates the learner's folder and the plan |
 | `vocabbot today` | the plan of the day: reviews, new words and drill for every language |
+| `vocabbot note --card ID --stdin`, `vocabbot flag --card ID --skip` | a note for a word shown with its answer; a word put aside without a report of a mistake, brought back by `flag --clear` (Stage 11) |
 | `vocabbot today --extra N`, `vocabbot today --reviews N` | more new words and the next round of reviews for today; with `--next` the result holds the next cards (Stage 10) |
 | `vocabbot drill` | the interactive session in a terminal |
 | `vocabbot next --count 10 --json` | the next cards without their answers; new words with their full content to show; `--stage reviews\|new\|drill` brings the cards of the chosen stage first (Stage 10) |
@@ -1486,11 +1487,12 @@ out, released as `v1.0.0-rc.8` and deployed on 16.11.2026, result below.
 | release and deployment | with your approval of 16.11.2026: the tag `v1.0.0-rc.8`, a pre-release on GitHub with all 9 packages, `vocabbot 1.0.0rc8` on PyPI through trusted publishing with sums matching GitHub, CI green, the plugin in your Codex refreshed to rc.8; server 1.0.0rc8 at `https://vocab.archxs.com`, a smoke test with a short-lived token of the test account, revoked after the test: 22 tools, the card on five tools (with `vocab_add_today`), the card resource with its CSP and labels, the counter in `vocab_today`, a recording and an example in `vocab_lookup` |
 | to check | a session from your account in Claude and ChatGPT: a new word as a question, the words "nowe", "powtórki", "więcej słów" and "jeszcze powtórki", the card with three stages; the plans of the accounts on the server, the pilot's account too, now have `new_words=ask` |
 
-### Stage 11 (proposal). Handling a card as in the SuperMemo application
+### Stage 11. Handling a card as in the SuperMemo application
 
 I proposed Stage 11 on 16.11.2026 after your question about the differences
 in handling (apart from the algorithms) between VocabBot and the SuperMemo
-application. The scope holds only confirmed differences: the state of
+application. Status: accepted with the defaults `answer_mode=type` and
+`sentence_translation=shown` and carried out on 16.11.2026, result below. The scope holds only confirmed differences: the state of
 VocabBot checked in the repository, the state of SuperMemo seen on your
 screenshots or described literally in the SuperMemo FAQ. The stage fits one
 working session, needs your approval before it starts and ends with version
@@ -1620,6 +1622,23 @@ working session, needs your approval before it starts and ends with version
 
 Decisions at acceptance: the default of `sentence_translation` (`shown` as
 proposed) and the default of `answer_mode` (`type` as proposed).
+
+#### Result of Stage 11 (16.11.2026)
+
+| Criterion | Result |
+|---|---|
+| self-assessment | `answer_mode=self`: `reveal` shows the word of a production card waiting today with its phase, the grades to choose from (two in the drill) and the day's counter, `grade` saves the learner's grade without `auto`; the date is the same as after the same grade of the engine; with `answer_mode=type` both refusals work as before, and their messages name the setting |
+| the sentence's translation | `sentence_translation=hidden`: the card shows a "Tłumaczenie" button under every sentence, the chat gives the translation on "tłumaczenie", the terminal on `/t` at a question and the key `t` at an introduction |
+| the review date | the field `back` in the result of an answer with a text from the common section `back` of `pl.json`; the terminal, the card and the chat show the same text; `next_review=hidden` leaves the field out |
+| settings in the results | `view` in the results of `next`, `answer`, `grade`, `reveal` and `today` (`new_words`, `answer_mode`, `sentence_translation`, `next_review`) |
+| a word put aside | `flag --skip` and `vocab_flag` with `skip`; the word leaves the queue, the drill and the choice of new words, `status` gives `skipped` apart from `reported`, `--clear` brings the word back with its date; the terminal has `/pomin` |
+| a note | `note --card ID --stdin` and `vocab_note` (23 tools); `log/notes.jsonl` only grows and the last row of an entry holds; the note comes back in the result of an answer, in `reveal` and in `lookup`, never in `next`; the terminal has `/notatka`, the coach offers to save a mnemonic and saves it after "tak"; the rule about approval covers notes |
+| a fault found by the tests | `doctor --merge` did not join conflict copies of the notes; it now joins them with the log and the reports, and puts the rows of the reports and the notes in the order of time, since the last row of an entry holds |
+| guides and rules | the guide `session`, the skill `vocab-session` with an example of "pokaż", `coach`, `words`, `start` and `plan-keys`; the rules about the answer after the grade, the engine's grade and approval, with their copy in the server's `rules` guide |
+| tests | 268 on Python 3.15 and 240 on Python 3.10 (1 skipped without wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (8 of 8, the new session `session-self-assessment`) and `claude plugin validate --strict` without remarks; new tests of the engine, the commands, the terminal and the server for each of the five points |
+| simulation through the commands | the full courses (de A1–A2, es A1, it A1, 15 new words a day), three days of learning with self-assessment, the translation on request and notes, then a day with the date kept back: 6140 checks without a fault in 199 answers (66 grades of the learner in every variant, 29 notes, 11 words put aside); no `next` held a word or a note, and an answer outside today's session was refused |
+| preview of the card | the test host in Edge in the light and the dark theme: a question with the translation kept back, the answer after "pokaż" with a note and three grades, in the drill with two, a result with its return date |
+| for decision | a simulation with a model (an estimate of 1–2 USD), the release `v1.0.0-rc.9` and the deployment: each with your separate approval |
 
 #### Out of scope until trials
 

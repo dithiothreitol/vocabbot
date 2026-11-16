@@ -3,6 +3,43 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Added
+
+- Self-assessment beside typing, as SuperMemo's "Check": with the plan's
+  `answer_mode=self` (the default stays `type`) `reveal` shows the word of a
+  production card waiting today, and `grade` takes the learner's `know`,
+  `almost` or `dont_know` for it (in the drill `know` or `dont_know`). The
+  row of such a grade has no `auto`. `reveal` names the card's `phase`, the
+  `grades` to choose from and the day's counter. In the terminal an empty
+  Enter shows the answer for the keys 1, 2, 3.
+- `sentence_translation=hidden` keeps the translation of a sentence back
+  until the learner asks for it: a button under the sentence in the card,
+  "tłumaczenie" in the chat, `/t` (and `t` at an introduction) in the
+  terminal. The engine returns `sentence_pl` as before.
+- `back` in the result of an answer says when the card comes back ("wróci
+  jutro", "wróci za 4 dni", "wróci dziś w utrwalaniu"), the same text in the
+  chat, the card and the terminal; `next_review=hidden` leaves it out.
+- `view` in every result of a session: the plan's `new_words`,
+  `answer_mode`, `sentence_translation` and `next_review`.
+- `flag --skip` puts a word aside without reporting a mistake, and
+  `flag --clear` brings it back with the date it had; `status` lists
+  `skipped` apart from `reported`. The terminal has `/pomin`.
+- `note --card ID --stdin` keeps the learner's own note for a word in
+  `log/notes.jsonl` (up to 500 characters; `--clear` removes it). The note
+  comes as `word.note` in the result of an answer, in `reveal` and in
+  `lookup`, never in `next`. The terminal has `/notatka`, and the coach
+  offers to keep a mnemonic as a note after the learner's yes.
+- The server: `vocab_note` (23 tools), `vocab_flag` with `skip`, and
+  `vocab_reveal` shows the card with the grades to choose from.
+
+### Changed
+
+- `doctor --merge` also joins conflict copies of the notes, and puts the
+  rows of the flags and the notes in the order of time.
+- `session-self-assessment` joins the session tests (8 sessions).
+
 ## 1.0.0-rc.8 - 2026-11-16
 
 ### Added

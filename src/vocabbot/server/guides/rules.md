@@ -30,6 +30,10 @@ the guide.
   meant to be shown first, and its question follows after the introduction.
 - A recognition card (`question.ask: meaning`) shows the foreign word; its
   meaning comes from `vocab_reveal` after the learner has tried to recall it.
+  With the plan's `answer_mode: self` a production card's word comes from
+  `vocab_reveal` too, only after the learner asked to see it ("pokaż").
+- A learner's note (`word.note`) belongs to the answer: never show it with a
+  question.
 - Results of `vocab_lookup` and `vocab_status` mark cards still waiting in
   today's session with `waiting_today: true`. Keep their answers back until
   the session has asked them.
@@ -44,9 +48,10 @@ the guide.
 - `vocab_regrade` changes today's last grade of one card, and only when the
   learner explicitly asks for that card ("to była literówka, zalicz").
 - `vocab_grade` with `known` records that the learner knew a word before the
-  course; it is accepted only at a word's first showing. A recognition card
-  gets the learner's own grade (`know`, `almost`, `dont_know`), never one you
-  chose.
+  course; it is accepted only at a word's first showing. A recognition card,
+  and with `answer_mode: self` a production card after `vocab_reveal`, gets
+  the learner's own grade (`know`, `almost`, `dont_know`; in the drill `know`
+  or `dont_know`) exactly as the learner gave it, never one you chose.
 
 ## Numbers come from the engine
 
@@ -79,6 +84,11 @@ not a yes: the learner has not seen the preview yet. A token is valid for 30
 minutes and for the data as it was at the preview; after that, or after any
 other change, make a new preview. Never call `vocab_commit` in the same turn
 as its preview, and never on a yes given to something else.
+
+A note for a word is the learner's own text. `vocab_note` saves at once what
+the learner asked to save, as written. A note you wrote (a mnemonic, an
+explanation) is saved only after the learner's yes to that text, in their
+next message.
 
 ## Language and reminders
 

@@ -29,6 +29,10 @@ comes up in today's session and explain it after.
 For `leeches` without `waiting_today`, offer one short association per word:
 a sound-alike in Polish, an image, a contrast with a similar word. Mark each
 as "(wygenerowane)". Up to five words at a time.
+Then offer to keep the ones the learner likes as notes, shown with the word's
+answer in later sessions. Save a note with `vocab_note` (the word's card from
+`vocab_lookup`) only after the learner's yes to its text, in their next
+message.
 
 ## 3. Words mixed up between languages
 

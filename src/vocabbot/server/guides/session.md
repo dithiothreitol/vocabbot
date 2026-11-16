@@ -41,6 +41,9 @@ Call `vocab_next` without `count`; it returns `batch` items. Keep their order.
 Each item has `card`, `lang`, `phase` (`review`, `new`, `drill`, `ahead`) and
 `question`. `new_words` in the result of `vocab_today` says how new words
 come: `ask` (the default) or `show`.
+`view` in every result of the session holds the plan's settings of how a card
+is shown: `new_words`, `answer_mode` (`type` or `self`), `sentence_translation`
+(`shown` or `hidden`) and `next_review` (`shown` or `hidden`).
 
 - **The counter.** Every result of `vocab_next`, `vocab_answer`, `vocab_grade`
   and `vocab_regrade` holds `counter`, the line of the day's progress
@@ -49,8 +52,12 @@ come: `ask` (the default) or `show`.
 
 - **A question** shows the language tag (EN, DE, ES, FR, IT), the Polish meaning,
   the part of speech, "z rodzajnikiem" when `with_article` is true, the hint
-  if any, and the sentence with its gap `___` and `sentence_pl`. Recognition
-  cards (`question.ask: meaning`) follow the section below.
+  if any, and the sentence with its gap `___` and `sentence_pl`. With
+  `view.sentence_translation: hidden` every sentence comes without its
+  translation, as in SuperMemo; when the learner asks for it ("tłumaczenie"),
+  the next message gives it from the same result. With
+  `view.answer_mode: self` a question ends with "Wpisz słowo albo napisz
+  „pokaż”.". Recognition cards (`question.ask: meaning`) follow the section below.
 - **A new word** (`phase: new`) is asked at once, as any card, under the
   label "Nowe słowo": this is how SuperMemo introduces a word, and the plan's
   default (`new_words: ask`). The learner types the word, or "?" when it is
@@ -79,12 +86,22 @@ come: `ask` (the default) or `show`.
 - **The answers** go to `vocab_answer` exactly as typed, an unknown one as an
   empty string, with `then_next: true`, so the result also holds the next
   cards (`next`).
+- **Show the answer** (`view.answer_mode: self`), as SuperMemo's "Check"
+  does. When the learner says "pokaż" or "sprawdź" instead of an answer,
+  call `vocab_reveal` with the card and show its `word` in full, as a result shows it, with the
+  learner's note, then ask for the grade with the names in `grades`: wiem,
+  prawie or nie wiem, and in the drill wiem or nie wiem. The learner's reply
+  goes to `vocab_grade` with that grade and `then_next: true`, exactly as given: never propose a grade. A first "wiem"
+  for a new word comes back as `known`, as a right first answer does. A typed
+  word still goes to `vocab_answer`, and "?" stays an empty answer.
 - **A result** is one line per card: "✓ wiem", "≈ prawie" with the error
   classes in Polish (`errors_pl`), or "✗ nie wiem", then `word.word`; for
   "prawie" and "nie wiem" add the IPA, the recording link and the example.
   In the drill the engine has two grades, as SuperMemo does: "✓ wiem" takes
   the card out, and every other answer is "✗ nie wiem" with its error
   classes and stays.
+  End the line with `back` when the result holds it ("wróci za 4 dni"). A
+  learner's note (`word.note`) follows the word as "Notatka: …".
   `other_lang` means the learner typed the word of another language being
   learned: name that language. A result with `error` was refused; show its
   message and go on.
@@ -151,8 +168,8 @@ to `vocab_add_today` and the session goes on with Step 1. Offer the coach
 (`vocab_guide` with the topic `coach`) for the words that went wrong.
 
 Chat applications that show MCP Apps display a card with the results of
-`vocab_next`, `vocab_answer`, `vocab_grade`, `vocab_add_today` and
-`vocab_today`: the counter,
+`vocab_next`, `vocab_answer`, `vocab_grade`, `vocab_reveal`,
+`vocab_add_today` and `vocab_today`: the counter,
 the word with a button that plays its recording, and the question. The
 messages stay the same, since the card only adds sound and a view of the
 same results.
@@ -237,6 +254,18 @@ The end of the day's list, after the summary:
 Dzisiejsza lista jest zrobiona. Możesz wziąć kolejne nowe słowa („więcej słów”), następną turę powtórek („jeszcze powtórki”) albo zakończyć.
 ```
 
+With `view.answer_mode: self`, "pokaż" instead of an answer:
+
+```
+Postęp: 7/25 · nowe 4/15 · powtórki 3/10
+
+der Hund (r.m., l.mn. die Hunde) /hʊnt/ [🔊 wymowa](https://upload.wikimedia.org/…) = pies
+Der Hund ist das treueste aller Tiere. · Pies jest najwierniejszy z wszystkich zwierząt.
+Notatka: Hund brzmi jak angielskie hound.
+
+Jak Ci poszło: wiem, prawie czy nie wiem?
+```
+
 Several cards as a numbered list:
 
 ```
@@ -275,6 +304,15 @@ recognition cards.
   more cards".
 - **A mistake in a card.** The learner's note goes to `vocab_flag`; the card
   leaves the queue until `vocab_flag` with `clear: true`.
+- **A word the learner does not want.** "nie chcę tego słowa", "pomiń to
+  słowo": `vocab_flag` with the card and `skip: true`, without showing the
+  word, then `vocab_next` with the stage of that card. The word stays away
+  until the learner asks for it back ("przywróć słowo …"): `vocab_lookup`
+  finds its card, and `vocab_flag` with `clear: true` brings it back with its
+  date. `vocab_status` lists the words put aside (`skipped`).
+- **A note.** "zapisz notatkę: …" saves the learner's text as written with
+  `vocab_note` for the card of the last result (or the card `vocab_lookup`
+  finds). The note comes with the word's answer and never with its question.
 - **A pause.** Every answer is saved at once. The next `vocab_next` continues
   in the same order, in this conversation or in a new one.
 
@@ -290,6 +328,9 @@ recognition cards.
   without `stage` returns to the engine's order.
 - `known_only_first`: "znałem" works only the first time a word is shown.
 - `drill_two_grades`: a drill answer is regraded to `know` or `dont_know`.
+- `reveal_production`: the plan's `answer_mode` is `type`, so a production
+  card is answered by typing; `reveal_not_waiting`: the card is not in
+  today's session.
 - The order of the reviews is the plan's `review_order`: `due` (most overdue
   first, the default), `course`, `interval` or `random`; a change goes
   through `vocab_plan_change` (the topic `start`).

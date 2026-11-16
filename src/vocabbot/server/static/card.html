@@ -65,6 +65,10 @@
   .sentence { margin-top: 6px; display: flex; gap: 8px; align-items: flex-start; }
   .sentence p { margin: 0; }
   .sentence .pl { color: var(--vb-muted); font-size: 13px; }
+  .link { background: none; border: 0; padding: 0; margin: 2px 0 0; font: inherit; font-size: 12px; color: var(--vb-muted); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .note-line { margin-top: 6px; font-size: 13px; }
+  .note-line b { font-weight: 600; margin-right: 4px; }
+  .prompt { margin-top: 10px; font-size: 13px; font-weight: 600; }
   .grade { font-weight: 600; }
   .grade.know, .grade.known { color: var(--vb-ok); }
   .grade.almost { color: var(--vb-warn); }
@@ -106,6 +110,8 @@
   var nextId = 1;
   var pending = {};
   var current = null;
+  // the plan's settings of how a card is shown, from the latest result (`view`)
+  var VIEW = {};
 
   function text(key, params) {
     var value = (L.card && L.card[key]) || "";
@@ -210,9 +216,46 @@
     }
     var body = el("div");
     body.appendChild(el("p", null, sentence));
-    if (polish) body.appendChild(el("p", "pl", polish));
+    if (polish) {
+      var translated = el("p", "pl", polish);
+      if (VIEW.sentence_translation === "hidden") {
+        // as in SuperMemo, the translation waits under the sentence until asked for
+        translated.hidden = true;
+        var show = el("button", "link", text("translation"));
+        show.type = "button";
+        show.addEventListener("click", function () {
+          translated.hidden = !translated.hidden;
+          reportSize();
+        });
+        body.appendChild(show);
+      }
+      body.appendChild(translated);
+    }
     box.appendChild(body);
     return box;
+  }
+  function noteLine(word) {
+    if (!word || !word.note) return null;
+    var line = el("div", "note-line");
+    line.appendChild(el("b", null, text("note") + ":"));
+    line.appendChild(document.createTextNode(word.note));
+    return line;
+  }
+  function renderReveal(data) {
+    // the answer shown before the learner's own grade (answer_mode self, or a recognition card)
+    var block = el("div", "block");
+    block.appendChild(tag(data.lang || String(data.card).slice(0, 2), data.phase));
+    block.appendChild(wordLine(data.word, data.lang));
+    block.appendChild(el("div", "meaning", data.word.meaning));
+    var example = sentenceBlock(data.word.example, data.word.example_pl, data.lang, true);
+    if (example) block.appendChild(example);
+    var note = noteLine(data.word);
+    if (note) block.appendChild(note);
+    if (data.grades && data.grades.length) {
+      var names = data.grades.map(function (grade) { return label("grades", grade); });
+      block.appendChild(el("div", "prompt", text("grade_prompt", { grades: names.join(" · ") })));
+    }
+    return block;
   }
   function tag(lang, phase) {
     var parts = [String(lang || "").toUpperCase()];
@@ -261,6 +304,7 @@
     var grade = el("span", "grade " + result.grade, (GLYPHS[result.grade] || "") + " " + (result.grade_pl || ""));
     head.appendChild(grade);
     if (result.errors_pl && result.errors_pl.length) head.appendChild(el("span", "details", " (" + result.errors_pl.join(", ") + ")"));
+    if (result.back) head.appendChild(el("span", "details", " · " + result.back));
     block.appendChild(head);
     if (result.word) {
       block.appendChild(wordLine(result.word, result.lang));
@@ -270,6 +314,8 @@
         var example = sentenceBlock(result.word.example, result.word.example_pl, result.lang, true);
         if (example) block.appendChild(example);
       }
+      var note = noteLine(result.word);
+      if (note) block.appendChild(note);
     }
     return block;
   }
@@ -326,12 +372,15 @@
     var data = parse(params);
     clear();
     if (!data) { document.getElementById("note").textContent = text("empty"); return; }
+    VIEW = data.view || (data.next && data.next.view) || {};
     var results = Array.isArray(data.results) ? data.results : (data.grade && data.word ? [data] : []);
+    var revealed = !data.grade && data.word && data.card ? data : null;
     var items = Array.isArray(data.items) ? data.items : (data.next && Array.isArray(data.next.items) ? data.next.items : []);
     var latest = data.next && data.next.counter ? data.next : data;
     counter(latest);
     var resultsBox = document.getElementById("results");
     results.forEach(function (result) { resultsBox.appendChild(renderResult(result)); });
+    if (revealed) resultsBox.appendChild(renderReveal(revealed));
     if (data.level_hint) resultsBox.appendChild(el("div", "hint", text("level_hint", data.level_hint)));
     var itemsBox = document.getElementById("items");
     items.forEach(function (item) { itemsBox.appendChild(item.phase === "new" && item.word ? renderNewWord(item) : renderQuestion(item)); });
@@ -341,7 +390,7 @@
     var left = data.left || {};
     var nothingLeft = !left.reviews && !left["new"] && !left.drill;
     if (data.error && !results.length) note.textContent = data.error.message || "";
-    else if (items.length) note.textContent = "";
+    else if (items.length || revealed) note.textContent = "";
     else if (typeof data.minutes === "number" && data.minutes > 0 && !nothingLeft) note.textContent = text("minutes", { minutes: data.minutes });
     else if (data.off && nothingLeft) note.textContent = text("off");
     else if (data.left && nothingLeft && !results.length) note.textContent = text("done");

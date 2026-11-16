@@ -14,7 +14,7 @@ server itself uses no model.
 
 | Address | Purpose |
 |---|---|
-| `/mcp` | the MCP endpoint with 22 tools; every call needs an access token, which names the account |
+| `/mcp` | the MCP endpoint with 23 tools; every call needs an access token, which names the account |
 | `/.well-known/oauth-protected-resource/mcp` | where the tokens come from (RFC 9728) |
 | `/.well-known/oauth-authorization-server` | the authorization server's metadata (RFC 8414) |
 | `/register`, `/authorize`, `/token`, `/revoke` | OAuth 2.1: dynamic client registration, PKCE with S256, refresh tokens that change at every use, the resource indicator (RFC 8707) and the issuer in the sign-in response (RFC 9207) |
@@ -125,10 +125,13 @@ words a day, with an optional placement test.
 
 Chat applications that support MCP Apps (Claude on the web and in the
 desktop application, ChatGPT) show VocabBot's card with the results of
-`vocab_today`, `vocab_next`, `vocab_answer`, `vocab_grade` and
-`vocab_add_today`: the day's counter, the three stages (reviews, new words,
-drill) with the cards left in each, the word with its IPA and a button that plays its recording, the
-question, and the new words of the day. The recordings come from Wikimedia
+`vocab_today`, `vocab_next`, `vocab_answer`, `vocab_grade`, `vocab_reveal`
+and `vocab_add_today`: the day's counter, the three stages (reviews, new
+words, drill) with the cards left in each, the word with its IPA and a
+button that plays its recording, the learner's note, the question, the
+grades to choose after "pokaż", and the new words of the day. With the
+plan's `sentence_translation=hidden` a button under a sentence shows its
+translation. The recordings come from Wikimedia
 Commons (Wiktionary and Lingua Libre) and play straight from
 `upload.wikimedia.org`, the only address the card may load. A word or a
 sentence without a recording is read by the browser's speech synthesis. The

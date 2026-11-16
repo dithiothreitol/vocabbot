@@ -13,8 +13,8 @@ jako pytanie, dwie oceny w utrwalaniu i kolejność powtórek) dodałeś
 16.11.2026; za Twoją zgodą wydałem go jako `v1.0.0-rc.8` na GitHubie
 i w PyPI oraz wdrożyłem na serwer. Etap 11 (obsługa karty jak w aplikacji
 SuperMemo: samoocena, tłumaczenie zdania na żądanie, termin powtórki przy
-wyniku, wyłączenie słowa i notatka do słowa) jest propozycją z 16.11.2026
-na jedną sesję pracy i czeka na Twoją akceptację.
+wyniku, wyłączenie słowa i notatka do słowa) zaakceptowałeś i zrealizowałem
+16.11.2026 w repozytorium lokalnym; jego wydanie czeka na Twoją zgodę.
 Silnik, program `vocabbot` z nową sesją w terminalu, kursy A1–B2 dla czterech
 języków (23 095 haseł) oraz wtyczka z czterema umiejętnościami dla Claude'a
 i Codexa działają; wyniki etapów opisuje rozdział 10. Wydanie `v1.0.0-rc.3`
@@ -459,6 +459,7 @@ dzienne obciążenie oraz datę ukończenia wybranych poziomów.
 |---|---|
 | `vocabbot init [FOLDER] --base pl --lang en:b1-b2:2 --lang de:a1-a2 --new 15` | tworzy folder nauki i plan |
 | `vocabbot today` | plan dnia: powtórki, nowe słowa i utrwalanie dla każdego języka |
+| `vocabbot note --card ID --stdin`, `vocabbot flag --card ID --skip` | notatka do słowa pokazywana przy jego odpowiedzi; słowo odłożone bez zgłoszenia błędu, przywracane przez `flag --clear` (Etap 11) |
 | `vocabbot today --extra N`, `vocabbot today --reviews N` | kolejne nowe słowa i kolejna tura powtórek na dziś; z `--next` wynik zawiera następne karty (Etap 10) |
 | `vocabbot drill` | sesja interaktywna w terminalu |
 | `vocabbot next --count 10 --json` | kolejne karty bez odpowiedzi; nowe słowa z pełną treścią do pokazania; `--stage reviews\|new\|drill` podaje najpierw karty wybranego etapu (Etap 10) |
@@ -1466,10 +1467,12 @@ wydany jako `v1.0.0-rc.8` i wdrożony 16.11.2026, wynik poniżej.
 | wydanie i wdrożenie | za Twoją zgodą z 16.11.2026: tag `v1.0.0-rc.8`, wydanie przedpremierowe na GitHubie z kompletem 9 paczek, `vocabbot 1.0.0rc8` w PyPI przez zaufane publikowanie z sumami zgodnymi z GitHubem, CI zielone, wtyczka w Twoim Codexie odświeżona do rc.8; serwer 1.0.0rc8 pod `https://vocab.archxs.com`, test dymny z krótko ważnym tokenem konta testowego, unieważnionym po teście: 22 narzędzia, karta w pięciu narzędziach (z `vocab_add_today`), zasób karty z CSP i etykietami, licznik w `vocab_today`, nagranie i przykład w `vocab_lookup` |
 | do sprawdzenia | sesja z Twojego konta w Claude i ChatGPT: nowe słowo jako pytanie, hasła „nowe”, „powtórki”, „więcej słów” i „jeszcze powtórki”, karta z trzema etapami; plany kont na serwerze, także konta z pilotażu, mają teraz `new_words=ask` |
 
-### Etap 11 (propozycja). Obsługa karty jak w aplikacji SuperMemo
+### Etap 11. Obsługa karty jak w aplikacji SuperMemo
 
 Etap 11 zaproponowałem 16.11.2026 po Twoim pytaniu o różnice w obsłudze
-(bez algorytmów) między VocabBotem a aplikacją SuperMemo. Zakres obejmuje
+(bez algorytmów) między VocabBotem a aplikacją SuperMemo. Stan:
+zaakceptowany z wartościami domyślnymi `answer_mode=type`
+i `sentence_translation=shown` oraz zrealizowany 16.11.2026, wynik poniżej. Zakres obejmuje
 wyłącznie różnice potwierdzone: stan VocabBota sprawdzony w repozytorium,
 stan SuperMemo widoczny na Twoich zrzutach ekranu albo opisany dosłownie
 w FAQ SuperMemo. Etap mieści się w jednej sesji pracy, wymaga Twojej
@@ -1595,6 +1598,23 @@ akceptacji przed rozpoczęciem i kończy się wersją `1.0.0-rc.9`.
 Decyzje przy akceptacji: wartość domyślna `sentence_translation` (`shown`
 według propozycji) oraz wartość domyślna `answer_mode` (`type` według
 propozycji).
+
+#### Wynik Etapu 11 (16.11.2026)
+
+| Kryterium | Wynik |
+|---|---|
+| samoocena | `answer_mode=self`: `reveal` pokazuje słowo karty produkcji czekającej dziś w sesji z fazą, ocenami do wyboru (w utrwalaniu dwie) i licznikiem dnia, `grade` zapisuje ocenę uczącego się bez pola `auto`; termin jest taki sam jak po tej samej ocenie silnika; przy `answer_mode=type` obie odmowy działają jak dotąd, a ich komunikaty wskazują ustawienie |
+| tłumaczenie zdania | `sentence_translation=hidden`: karta pokazuje przycisk „Tłumaczenie” pod każdym zdaniem, czat podaje tłumaczenie na hasło „tłumaczenie”, terminal na `/t` przy pytaniu i klawisz `t` przy prezentacji słowa |
+| termin powtórki | pole `back` w wyniku odpowiedzi z tekstem ze wspólnej sekcji `back` w `pl.json`; terminal, karta i czat pokazują ten sam tekst; `next_review=hidden` usuwa pole |
+| ustawienia w wynikach | `view` w wynikach `next`, `answer`, `grade`, `reveal` i `today` (`new_words`, `answer_mode`, `sentence_translation`, `next_review`) |
+| odłożone słowo | `flag --skip` i `vocab_flag` ze `skip`; słowo opuszcza kolejkę, utrwalanie i wybór nowych słów, `status` podaje `skipped` osobno od `reported`, `--clear` przywraca słowo z dotychczasowym terminem; terminal ma `/pomin` |
+| notatka | `note --card ID --stdin` i `vocab_note` (23 narzędzia); `log/notes.jsonl` tylko rośnie, obowiązuje ostatni wiersz hasła; notatka wraca w wyniku odpowiedzi, w `reveal` i w `lookup`, nigdy w `next`; terminal ma `/notatka`, trener proponuje zapis skojarzenia i zapisuje je po „tak”; reguła o zgodzie opisuje notatki |
+| usterka znaleziona w testach | `doctor --merge` nie scalał kopii konfliktowych notatek; teraz scala je razem z dziennikiem i zgłoszeniami, a wiersze zgłoszeń i notatek układa według czasu, bo obowiązuje ostatni wiersz hasła |
+| przewodniki i reguły | przewodnik `session`, umiejętność `vocab-session` z przykładem „pokaż”, `coach`, `words`, `start` i `plan-keys`; reguły o odpowiedzi po ocenie, o ocenie silnika i o zgodzie, z kopią w przewodniku `rules` serwera |
+| testy | 268 na Pythonie 3.15 i 240 na Pythonie 3.10 (1 pominięty bez wordfreq); ruff, mypy, `validate.py`, `session_test.py --check` (8 z 8, nowa sesja `session-self-assessment`) i `claude plugin validate --strict` bez uwag; nowe testy silnika, poleceń, terminala i serwera dla każdego z pięciu punktów |
+| symulacja przez polecenia | pełne kursy (de A1–A2, es A1, it A1, 15 nowych słów dziennie), trzy dni nauki z samooceną, tłumaczeniem na żądanie i notatkami, potem dzień z ukrytym terminem: 6140 sprawdzeń bez usterki w 199 odpowiedziach (66 ocen uczącego się we wszystkich odmianach, 29 notatek, 11 słów odłożonych); żadne `next` nie zawierało słowa ani notatki, a odpowiedź spoza dzisiejszej sesji została odrzucona |
+| podgląd karty | host testowy w Edge w motywie jasnym i ciemnym: pytanie z ukrytym tłumaczeniem, odpowiedź po „pokaż” z notatką i trzema ocenami, w utrwalaniu z dwiema, wynik z terminem powrotu |
+| do decyzji | symulacja z modelem (szacunkowo 1–2 USD), wydanie `v1.0.0-rc.9` i wdrożenie: każda czynność za Twoją osobną zgodą |
 
 #### Poza zakresem do czasu prób
 

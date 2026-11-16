@@ -623,3 +623,140 @@ def test_reviews_come_in_the_order_the_plan_names(tmp_path: Path, catalog: Catal
     place = {str(e["id"]): n for n, e in enumerate(catalog.course("de", ["a1", "a2"]))}
     assert orders["course"] == sorted(orders["course"], key=lambda c: place[c.split("#")[0]])
     assert len({tuple(cards) for cards in orders.values()}) == 4
+
+
+# ---------------------------------------------------------------- handling a card as in SuperMemo
+
+
+def test_self_assessment_shows_the_answer_and_keeps_the_learners_grade(
+    tmp_path: Path, catalog: Catalog
+) -> None:
+    typing = make_learner(tmp_path / "type", ["de:a1-a2"], new_per_day=3)
+    card = compute(typing, catalog, MONDAY).new[0]
+    for call, code in (
+        (lambda: session.reveal(catalog, card, typing, MONDAY), "reveal_production"),
+        (
+            lambda: session.self_grade(typing, catalog, MONDAY, moment(MONDAY), card, "know"),
+            "production_needs_answer",
+        ),
+    ):
+        with pytest.raises(VocabError) as error:
+            call()
+        assert error.value.code == code
+    typed = session.answer(typing, catalog, MONDAY, moment(MONDAY), card, correct(catalog, card))
+
+    learner = make_learner(tmp_path / "self", ["de:a1-a2"], new_per_day=3, answer_mode="self")
+    first = session.next_items(learner, catalog, MONDAY, count=1)
+    assert first["view"]["answer_mode"] == "self" and first["items"][0]["card"] == card
+    shown = session.reveal(catalog, card, learner, MONDAY)
+    assert shown["word"]["word"] == correct(catalog, card)
+    assert (shown["phase"], shown["grades"]) == ("new", ["know", "almost", "dont_know"])
+    assert shown["counter"].startswith("Postęp: 0/3") and shown["stage"] == "new"
+    result = session.self_grade(learner, catalog, MONDAY, moment(MONDAY), card, "know")
+    assert (result["kind"], result["grade"]) == ("learn", "know")
+    row = learner.rows()[0][-1]
+    assert row["grade"] == "know" and "auto" not in row
+    # the learner's grade schedules the card as the engine's grade would
+    assert (result["next_due"], result["interval_days"]) == (
+        typed["next_due"],
+        typed["interval_days"],
+    )
+
+    # a missed word: the drill has two grades, and "almost" stays there as "nie wiem"
+    missed = compute(learner, catalog, MONDAY).new[1]
+    session.self_grade(learner, catalog, MONDAY, moment(MONDAY, 1), missed, "dont_know")
+    drill = session.reveal(catalog, missed, learner, MONDAY)
+    assert (drill["phase"], drill["grades"]) == ("drill", ["know", "dont_know"])
+    again = session.self_grade(learner, catalog, MONDAY, moment(MONDAY, 2), missed, "almost")
+    assert (again["kind"], again["grade"]) == ("drill", "dont_know")
+    done = session.self_grade(learner, catalog, MONDAY, moment(MONDAY, 3), missed, "know")
+    assert done["left"]["drill"] == 0
+
+    # only a card waiting today shows its answer
+    later = compute(learner, catalog, MONDAY).before.cards
+    assert not later
+    outside = card_of("de", 30)
+    assert outside not in [i.card for i in compute(learner, catalog, MONDAY).sequence]
+    with pytest.raises(VocabError) as error:
+        session.reveal(catalog, outside, learner, MONDAY)
+    assert error.value.code == "reveal_not_waiting"
+
+
+def test_the_result_says_when_the_card_comes_back(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=3)
+    right, wrong, _ = compute(learner, catalog, MONDAY).new
+    known = session.answer(learner, catalog, MONDAY, moment(MONDAY), right, correct(catalog, right))
+    days = known["interval_days"]
+    assert known["back"] == ("wróci jutro" if days == 1 else f"wróci za {days} dni")
+    missed = session.answer(learner, catalog, MONDAY, moment(MONDAY, 1), wrong, "xxx")
+    assert missed["back"] == "wróci dziś w utrwalaniu"
+    drill = session.answer(
+        learner, catalog, MONDAY, moment(MONDAY, 2), wrong, correct(catalog, wrong)
+    )
+    assert drill["kind"] == "drill" and drill["back"].startswith("wróci ")
+
+    hidden = make_learner(tmp_path / "hidden", ["de:a1-a2"], new_per_day=1, next_review="hidden")
+    card = compute(hidden, catalog, MONDAY).new[0]
+    result = session.answer(hidden, catalog, MONDAY, moment(MONDAY), card, correct(catalog, card))
+    assert "back" not in result and result["next_due"]
+    assert result["view"]["next_review"] == "hidden"
+
+
+def test_a_word_put_aside_leaves_the_queue_until_it_comes_back(
+    tmp_path: Path, catalog: Catalog
+) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=3)
+    learn_day(learner, catalog, MONDAY)
+    day = MONDAY + timedelta(days=2)
+    before = compute(learner, catalog, day)
+    review, new = before.reviews[0], before.new[0]
+    session.flag(learner, catalog, review, moment(day), skip=True)
+    session.flag(learner, catalog, new, moment(day), note="zła liczba mnoga")
+    after = compute(learner, catalog, day)
+    assert review not in after.reviews and new not in after.new
+    assert len(after.new) == 3  # another word takes the place of the one reported
+    report = progress.status(learner, catalog, day)
+    assert [w["card"] for w in report["skipped"]] == [review.split("#")[0] + "#p"]
+    assert [w["card"] for w in report["reported"]] == [new.split("#")[0] + "#p"]
+    assert learner.skipped() == {review.split("#")[0]}
+    with pytest.raises(VocabError) as error:
+        session.answer(learner, catalog, day, moment(day), review, correct(catalog, review))
+    assert error.value.code == "card_suspended"
+    cleared = session.flag(learner, catalog, review, moment(day, 1), clear=True)
+    assert cleared == {"entry": review.split("#")[0], "cleared": True, "skipped": False}
+    back = compute(learner, catalog, day)
+    assert review in back.reviews
+    assert back.before.cards[review].due(back.scheduler) == before.before.cards[review].due(
+        before.scheduler
+    )
+
+
+def test_a_note_comes_with_the_answer_and_never_with_the_question(
+    tmp_path: Path, catalog: Catalog
+) -> None:
+    learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=3, answer_mode="self")
+    card = compute(learner, catalog, MONDAY).new[0]
+    saved = session.save_note(learner, catalog, card, moment(MONDAY), "  brzmi jak hound  ")
+    assert saved == {"entry": card.split("#")[0], "note": "brzmi jak hound", "cleared": False}
+    session.save_note(learner, catalog, card, moment(MONDAY, 1), "Hund jak hound")
+    assert learner.notes() == {card.split("#")[0]: "Hund jak hound"}
+    for code, text in (("empty_note", "   "), ("note_too_long", "x" * 501)):
+        with pytest.raises(VocabError) as error:
+            session.save_note(learner, catalog, card, moment(MONDAY), text)
+        assert error.value.code == code
+
+    shown = session.next_items(learner, catalog, MONDAY, count=10)
+    assert "Hund jak hound" not in json.dumps(shown, ensure_ascii=False)
+    assert session.reveal(catalog, card, learner, MONDAY)["word"]["note"] == "Hund jak hound"
+    entry = catalog.card(card)
+    assert entry is not None
+    found = session.lookup(learner, catalog, MONDAY, "de", str(entry["display"]))
+    assert found["matches"][0]["word"]["note"] == "Hund jak hound"
+    result = session.answer(learner, catalog, MONDAY, moment(MONDAY, 2), card, "")
+    assert result["word"]["note"] == "Hund jak hound"
+    following = session.next_items(learner, catalog, MONDAY, count=10)
+    assert "Hund jak hound" not in json.dumps(following, ensure_ascii=False)
+
+    session.save_note(learner, catalog, card, moment(MONDAY, 3), clear=True)
+    assert learner.notes() == {}
+    assert "note" not in session.reveal(catalog, card, learner, MONDAY)["word"]

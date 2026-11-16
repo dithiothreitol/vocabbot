@@ -65,6 +65,14 @@ def describe(plan: dict[str, Any]) -> list[str]:
             "plan.review_order",
             value=assets.text(f"review_order.{plan.get('review_order', 'due')}"),
         ),
+        *(
+            assets.text(f"plan.{key}", value=assets.text(f"{key}.{plan.get(key, default)}"))
+            for key, default in (
+                ("answer_mode", "type"),
+                ("sentence_translation", "shown"),
+                ("next_review", "shown"),
+            )
+        ),
     ]
     own = sorted((plan.get("parameters") or {}).keys())
     lines.append(

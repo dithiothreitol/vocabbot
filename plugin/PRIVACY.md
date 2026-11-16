@@ -9,7 +9,8 @@ over the network.
 ## Where the learner's data is kept
 
 - **The learner's folder.** The plan, the log of answers (with the answers as
-  typed), own words, reports of mistakes and the list of approved changes
+  typed), own words, notes for words, reports of mistakes and words put
+  aside, and the list of approved changes
   live in a folder the learner chooses. VocabBot reads and writes there,
   apart from two places in `~/.vocabbot/`: `config.json` with the path of the
   folder, and `pending/`, where the preview of a new folder waits for the

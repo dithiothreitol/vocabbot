@@ -12,6 +12,10 @@
   meant to be shown first, and its question follows after the introduction.
 - A recognition card (`question.ask: meaning`) shows the foreign word; its
   meaning comes from `reveal` after the learner has tried to recall it.
+  With the plan's `answer_mode: self` a production card's word comes from
+  `reveal` too, only after the learner asked to see it ("pokaż").
+- A learner's note (`word.note`) belongs to the answer: never show it with a
+  question.
 - Results of `lookup` and `status` mark cards still waiting in today's
   session with `waiting_today: true`. Keep their answers back until the
   session has asked them.

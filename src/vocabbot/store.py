@@ -5,7 +5,8 @@
     registers/.pending/        previews waiting for a confirm token
     log/reviews.jsonl          one row per graded answer, never rewritten
     log/decisions.md           one line per approved change of the plan or a course
-    log/flags.jsonl            reported mistakes in course entries
+    log/flags.jsonl            reported mistakes in course entries and words put aside
+    log/notes.jsonl            the learner's own notes for words
     courses/<lang>/own.jsonl   the learner's own words
 
 Files are written with LF line endings and UTF-8; the plan is replaced
@@ -30,6 +31,8 @@ PENDING = "registers/.pending"
 REVIEWS = "log/reviews.jsonl"
 DECISIONS = "log/decisions.md"
 FLAGS = "log/flags.jsonl"
+NOTES = "log/notes.jsonl"
+NOTE_MAX = 500
 OWN = "courses/{lang}/own.jsonl"
 CONFIG = "config.json"
 
@@ -62,6 +65,13 @@ DEFAULT_PLAN: dict[str, Any] = {
     # the order of the day's reviews: most overdue first, course order, shortest
     # interval first, or random
     "review_order": "due",
+    # a production card: the learner types the word (the engine grades it), or may also
+    # show the answer and grade the recall, as SuperMemo's "Check" does
+    "answer_mode": "type",
+    # the Polish translation of a sentence: shown with it, or on request
+    "sentence_translation": "shown",
+    # the day a card comes back, with the result of an answer
+    "next_review": "shown",
     "parameters": {},
     "parameters_info": {},
 }
@@ -83,6 +93,9 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "presence": ("on", "off"),
     "new_words": ("ask", "show"),
     "review_order": ("due", "course", "interval", "random"),
+    "answer_mode": ("type", "self"),
+    "sentence_translation": ("shown", "hidden"),
+    "next_review": ("shown", "hidden"),
 }
 PARAMETER_COUNT = 21
 
@@ -224,6 +237,7 @@ def conflict_copies(root: Path) -> list[Path]:
     found: list[Path] = []
     checks = [(root / "registers", "plan", ".json"), (root / "log", "reviews", ".jsonl")]
     checks.append((root / "log", "flags", ".jsonl"))
+    checks.append((root / "log", "notes", ".jsonl"))
     courses = root / "courses"
     if courses.is_dir():
         checks += [
@@ -448,14 +462,43 @@ class Learner:
     def flags(self) -> list[dict[str, Any]]:
         return read_jsonl(self.path(FLAGS))[0]
 
-    def suspended(self) -> set[str]:
-        """Entries the learner reported as wrong and has not cleared."""
-        state: dict[str, bool] = {}
+    def flag_states(self) -> dict[str, str]:
+        """Entries out of the queue: "report" (a mistake reported) or "skip" (put aside).
+
+        The last row of an entry holds; a row with `clear` brings the entry back.
+        """
+        state: dict[str, str] = {}
         for row in self.flags():
             entry = row.get("entry")
-            if isinstance(entry, str):
-                state[entry] = not row.get("clear", False)
-        return {entry for entry, on in state.items() if on}
+            if not isinstance(entry, str):
+                continue
+            if row.get("clear", False):
+                state.pop(entry, None)
+            else:
+                state[entry] = "skip" if row.get("skip") else "report"
+        return state
+
+    def suspended(self) -> set[str]:
+        """Entries the learner reported as wrong or put aside, and has not brought back."""
+        return set(self.flag_states())
+
+    def skipped(self) -> set[str]:
+        """Entries the learner put aside without reporting a mistake."""
+        return {entry for entry, kind in self.flag_states().items() if kind == "skip"}
+
+    def notes(self) -> dict[str, str]:
+        """The learner's notes by entry: the last row of an entry holds, `clear` removes it."""
+        notes: dict[str, str] = {}
+        for row in read_jsonl(self.path(NOTES))[0]:
+            entry = row.get("entry")
+            if not isinstance(entry, str):
+                continue
+            text = row.get("note")
+            if row.get("clear") or not isinstance(text, str) or not text.strip():
+                notes.pop(entry, None)
+            else:
+                notes[entry] = text
+        return notes
 
     def _day_setting(self, day: date, key: str) -> int:
         try:

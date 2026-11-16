@@ -164,6 +164,7 @@ def card() -> str:
         "forms": texts["forms"],
         "phases": texts["phases"],
         "pos": texts["pos"],
+        "grades": texts["grades"],
     }
     blob = json.dumps(labels, ensure_ascii=False).replace("</", "<\\/")
     template = (resources.files("vocabbot.server") / "static" / "card.html").read_text("utf-8")

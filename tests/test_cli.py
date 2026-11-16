@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from vocabbot import cli
+from vocabbot import cli, store
 from vocabbot.courses import Catalog
 
 DAY = "2026-11-16"
@@ -474,3 +474,64 @@ def test_a_plan_asks_new_words_at_once_and_orders_the_reviews(
     assert "Kolejność powtórek: od najkrótszych odstępów" in text
     refused = program.run("plan", "set", "review_order=newest", *learner, code=1)
     assert refused["error"]["code"] == "plan_invalid"
+
+
+def test_the_card_as_in_supermemo_through_the_commands(
+    program: Program, tmp_path: Path, catalog: Catalog
+) -> None:
+    folder = tmp_path / "nauka"
+    preview = program.run("init", str(folder), "--lang", "de:a1", "--new", "3")
+    assert any(
+        "Odpowiedź na kartę: wpisanie słowa, ocena silnika" in line for line in preview["preview"]
+    )
+    program.run("commit", "--confirm", preview["token"])
+    learner = ("--learner", str(folder), "--today", DAY)
+    settings = ("answer_mode=self", "sentence_translation=hidden", "next_review=hidden")
+    change = program.run("plan", "set", *settings, *learner)
+    program.run("commit", "--confirm", change["token"], *learner)
+    text = program.text("plan", "show", *learner)
+    assert "Tłumaczenie zdania: na żądanie, tak jak w SuperMemo" in text
+    assert program.run("today", *learner)["view"] == {
+        "new_words": "ask",
+        "answer_mode": "self",
+        "sentence_translation": "hidden",
+        "next_review": "hidden",
+    }
+
+    item = program.run("next", *learner)["items"][0]
+    note = program.run("note", "--card", item["card"], "--stdin", *learner, stdin="mój skrót\n")
+    assert note["note"] == "mój skrót"
+    shown = program.run("reveal", "--card", item["card"], *learner)
+    assert shown["word"]["note"] == "mój skrót" and shown["grades"][1] == "almost"
+    assert "Notatka: mój skrót" in program.text("reveal", "--card", item["card"], *learner)
+    graded = program.run(
+        "grade", "--card", item["card"], "--grade", "dont_know", "--next", *learner
+    )
+    assert graded["grade"] == "dont_know" and "back" not in graded
+    assert graded["word"]["note"] == "mój skrót"
+
+    skipped = program.run("flag", "--card", graded["next"]["items"][0]["card"], "--skip", *learner)
+    assert skipped["skipped"]
+    out = program.text("status", *learner)
+    assert "Odłożone słowa:" in out
+    program.run("note", "--card", item["card"], "--clear", *learner)
+    assert store.Learner(folder).notes() == {}
+    refused = program.run("note", "--card", item["card"], "--stdin", *learner, stdin=" ", code=1)
+    assert refused["error"]["code"] == "empty_stdin"
+
+
+def test_conflict_copies_of_the_notes_are_joined(program: Program, tmp_path: Path) -> None:
+    folder = tmp_path / "nauka"
+    token = program.run("init", str(folder), "--lang", "de:a1")["token"]
+    program.run("commit", "--confirm", token)
+    learner = ("--learner", str(folder), "--today", DAY)
+    program.run("note", "--card", "de-c90001#p", "--stdin", *learner, stdin="na powitanie")
+    copy = folder / "log" / "notes (konflikt).jsonl"
+    copy.write_text(
+        '{"ts": "2026-11-16T10:00:00.000000Z", "entry": "de-c90002", "note": "rano"}\n',
+        encoding="utf-8",
+    )
+    preview = program.run("doctor", "--merge", *learner)
+    program.run("commit", "--confirm", preview["token"], *learner)
+    assert not copy.exists()
+    assert store.Learner(folder).notes() == {"de-c90001": "na powitanie", "de-c90002": "rano"}
