@@ -18,6 +18,12 @@ classifiers = [
 ]
 dependencies = []
 
+[project.urls]
+Homepage = "https://vocabbot.run"
+Repository = "https://github.com/dithiothreitol/vocabbot"
+Issues = "https://github.com/dithiothreitol/vocabbot/issues"
+Changelog = "https://github.com/dithiothreitol/vocabbot/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 # the remote MCP server with accounts (vocabbot-server); the engine needs none of it
 server = [
