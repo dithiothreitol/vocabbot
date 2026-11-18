@@ -45,15 +45,23 @@ if [ -n "${SMTP_HOST:-}" ]; then
     esac
   fi
   : "${password:?SMTP_PASSWORD is not set and .env has none}"
+  # docker compose fills in $NAME in an env file, except inside single quotes; a value
+  # with a single quote of its own goes unquoted with every $ doubled instead
+  envline() {
+    case "$2" in
+      *\'*) printf '%s=%s\n' "$1" "${2//\$/\$\$}" ;;
+      *) printf "%s='%s'\n" "$1" "$2" ;;
+    esac
+  }
   (
     umask 077
     {
-      echo "VOCABBOT_SERVER_SMTP_HOST=$SMTP_HOST"
-      echo "VOCABBOT_SERVER_SMTP_PORT=${SMTP_PORT:-465}"
-      echo "VOCABBOT_SERVER_SMTP_USER=${SMTP_USER:?SMTP_USER}"
-      echo "VOCABBOT_SERVER_SMTP_PASSWORD=$password"
-      echo "VOCABBOT_SERVER_SMTP_FROM=${SMTP_FROM:-$SMTP_USER}"
-      echo "VOCABBOT_SERVER_SMTP_SECURITY=${SMTP_SECURITY:-ssl}"
+      envline VOCABBOT_SERVER_SMTP_HOST "$SMTP_HOST"
+      envline VOCABBOT_SERVER_SMTP_PORT "${SMTP_PORT:-465}"
+      envline VOCABBOT_SERVER_SMTP_USER "${SMTP_USER:?SMTP_USER}"
+      envline VOCABBOT_SERVER_SMTP_PASSWORD "$password"
+      envline VOCABBOT_SERVER_SMTP_FROM "${SMTP_FROM:-$SMTP_USER}"
+      envline VOCABBOT_SERVER_SMTP_SECURITY "${SMTP_SECURITY:-ssl}"
     } > "$work/smtp.env"
   )
   scp -q "$work/smtp.env" "$VPS:/opt/vocabbot/smtp.env"
