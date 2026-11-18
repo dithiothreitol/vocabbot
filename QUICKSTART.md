@@ -119,14 +119,38 @@ already learn them. Nothing is saved before your yes.
   on the later part of the log; `vocabbot plan fit` saves the fitted
   parameters for a language only where they predict better, after your yes.
 
-## 6. Two computers
+## 6. Several devices
 
-Keep the learning folder in a synced folder. On the other computer,
-`vocabbot use <folder>` points the program at it once; `--learner <folder>`
-or the variable `VOCABBOT_HOME` do the same for one call or one shell. When
-the sync makes conflict copies of the log,
-`vocabbot doctor` finds them and `vocabbot doctor --merge` joins them after
-your yes; the merged log gives the same schedule.
+The recommended way is an account on a VocabBot server, which keeps your
+record for every device:
+
+- **A computer.** `vocabbot login` signs the program in through the browser
+  and links your learning folder to the account. When the folder and the
+  account have different plans, choose with `--plan folder` or
+  `--plan account`; the link is a preview with the numbers of answers on both
+  sides, saved after your yes. On a computer without a folder, `vocabbot
+  login` downloads the account into `~/VocabBot`. Without a browser on that
+  computer, `vocabbot login --code` shows a code to confirm on your phone.
+- **Every day.** The folder synchronises by itself: it fetches before
+  `today`, `next`, `drill` and `status`, and sends after every answer.
+  Without a network the answers wait in the folder; `vocabbot status` shows
+  the last synchronisation and what waits, and `vocabbot sync` synchronises
+  at once.
+- **A phone.** The chat application connected to the server, or the
+  server's session page (`https://<server>/app/`) in the browser, which you
+  can add to the home screen. A session begun on one device goes on on
+  another at the same card.
+- **The account page** (`/account`) lists the connected applications and
+  computers and disconnects them, gives your data as a zip
+  (`vocabbot import <file.zip>` opens it as a folder), keeps an optional
+  e-mail address for password recovery and removes the account.
+  `vocabbot logout` ends a computer's connection.
+
+Without an account, keep the learning folder in a synced folder. On the
+other computer, `vocabbot use <folder>` points the program at it once;
+`--learner <folder>` or the variable `VOCABBOT_HOME` do the same for one
+call or one shell. Rows of the conflict copies the sync makes count at once;
+`vocabbot doctor --merge` tidies the files after your yes.
 
 ## 7. Removing it
 

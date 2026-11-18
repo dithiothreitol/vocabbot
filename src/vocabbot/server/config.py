@@ -8,6 +8,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
+from vocabbot.store import zone_problem
+
 SCOPE = "vocab"
 # hosts a chat application sends the learner back to after the sign-in; the
 # loopback hosts serve Claude Code, Codex and other programs on the learner's computer
@@ -16,12 +18,29 @@ LOOPBACK = ("localhost", "127.0.0.1", "::1")
 
 
 @dataclass(frozen=True)
+class Mail:
+    """The SMTP account that sends the links of password recovery; empty: no recovery by mail."""
+
+    host: str = ""
+    port: int = 587
+    user: str = ""
+    password: str = ""
+    sender: str = ""
+    security: str = "starttls"  # starttls, ssl or none
+
+    @property
+    def ready(self) -> bool:
+        return bool(self.host and self.sender)
+
+
+@dataclass(frozen=True)
 class Settings:
     url: str  # the public address, e.g. https://vocab.example.org
     data: Path  # accounts.db and learners/<account>/
-    timezone: str = "Europe/Warsaw"  # the learning day of every account starts in this zone
+    timezone: str = "Europe/Warsaw"  # the learning day of an account without its own zone
     redirect_hosts: tuple[str, ...] = REDIRECT_HOSTS
     open_signup: bool = False  # True: an account needs no invitation
+    mail: Mail = Mail()
 
     def __post_init__(self) -> None:
         parts = urlsplit(self.url)
@@ -32,6 +51,9 @@ class Settings:
         if parts.path not in ("", "/") or parts.query or parts.fragment:
             raise ValueError("the server address is a scheme and a host, without a path")
         object.__setattr__(self, "url", f"{parts.scheme}://{parts.netloc}")
+        problem = zone_problem(self.timezone)
+        if problem:
+            raise ValueError(f"the server's {problem}")
         self.tzinfo()
 
     @property
@@ -42,6 +64,11 @@ class Settings:
     @property
     def host(self) -> str:
         return urlsplit(self.url).netloc
+
+    @property
+    def secure(self) -> bool:
+        """The server answers over https, so its cookies carry Secure."""
+        return self.url.startswith("https://")
 
     @property
     def database(self) -> Path:

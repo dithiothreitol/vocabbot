@@ -1,8 +1,10 @@
 """Accounts, invitations and the OAuth records of the server, in one SQLite file.
 
-Passwords are kept as scrypt hashes; invitation codes, sign-in requests,
-authorization codes and tokens only as SHA-256 hashes, so a copy of the file
-opens no account and no connection.
+Passwords and the optional e-mail address for password recovery are kept as
+scrypt hashes; invitation codes, sign-in requests, authorization codes,
+tokens, device codes, browser sessions and recovery links only as SHA-256
+hashes, so a copy of the file opens no account and no connection and names no
+address.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import re
 import secrets
 import sqlite3
@@ -71,7 +74,41 @@ CREATE TABLE IF NOT EXISTS tokens (
 );
 CREATE INDEX IF NOT EXISTS tokens_grant ON tokens (grant_id);
 CREATE INDEX IF NOT EXISTS tokens_account ON tokens (account);
+CREATE TABLE IF NOT EXISTS grants (
+    id TEXT PRIMARY KEY,
+    account TEXT NOT NULL,
+    client TEXT NOT NULL,
+    created REAL NOT NULL,
+    used REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS grants_account ON grants (account);
+CREATE TABLE IF NOT EXISTS sessions (
+    hash TEXT PRIMARY KEY,
+    account TEXT NOT NULL,
+    created REAL NOT NULL,
+    expires REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS devices (
+    hash TEXT PRIMARY KEY,
+    user_code TEXT NOT NULL UNIQUE,
+    client TEXT NOT NULL,
+    account TEXT,
+    expires REAL NOT NULL,
+    polled REAL
+);
+CREATE TABLE IF NOT EXISTS resets (
+    hash TEXT PRIMARY KEY,
+    account TEXT NOT NULL,
+    expires REAL NOT NULL
+);
 """
+# columns added to tables of an earlier version, with their definitions
+COLUMNS = (("accounts", "email", "TEXT"), ("accounts", "timezone", "TEXT"))
+SESSION_TTL = 30 * 86400
+DEVICE_TTL = 900
+DEVICE_INTERVAL = 5
+RESET_TTL = 1800
+EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}\.[^@\s]{2,}$")
 
 
 class SignupError(Exception):
@@ -96,6 +133,17 @@ class Invite:
     expires: float
     uses: int
     note: str
+
+
+@dataclass(frozen=True)
+class Grant:
+    """One connection of an account: a chat application, the program on a computer."""
+
+    id: str
+    client: str
+    name: str
+    created: float
+    used: float
 
 
 @dataclass(frozen=True)
@@ -156,6 +204,20 @@ def normalize_invite(code: str) -> str:
     return "".join(ch for ch in code.lower() if ch in INVITE_ALPHABET)
 
 
+def normalize_email(address: str) -> str:
+    return address.strip().lower()
+
+
+def valid_email(address: str) -> bool:
+    return bool(EMAIL.match(normalize_email(address)))
+
+
+def short_code(length: int = 8) -> str:
+    """A code to type: ABCD-EFGH, without letters and digits that look alike."""
+    raw = "".join(secrets.choice(INVITE_ALPHABET) for _ in range(length))
+    return "-".join(raw[i : i + 4] for i in range(0, length, 4)).upper()
+
+
 @contextmanager
 def _transaction(db: sqlite3.Connection) -> Iterator[None]:
     db.execute("BEGIN IMMEDIATE")
@@ -176,6 +238,17 @@ class Registry:
         with self._db() as db:
             db.execute("PRAGMA journal_mode=WAL")
             db.executescript(SCHEMA)
+            for table, column, kind in COLUMNS:
+                present = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+                if column not in present:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
+            # connections made before the account page existed are listed on it too
+            now = time.time()
+            db.execute(
+                "INSERT OR IGNORE INTO grants (id, account, client, created, used)"
+                " SELECT grant_id, account, client, ?, ? FROM tokens GROUP BY grant_id",
+                (now, now),
+            )
 
     @contextmanager
     def _db(self) -> Iterator[sqlite3.Connection]:
@@ -254,13 +327,58 @@ class Registry:
         stored = hash_password(password)
         with self._db() as db, _transaction(db):
             db.execute("UPDATE accounts SET password = ? WHERE id = ?", (stored, account_id))
-            # a new password ends every connection made with the old one
-            db.execute("DELETE FROM tokens WHERE account = ?", (account_id,))
+            # a new password ends every connection and browser session made with the old one
+            for table in ("tokens", "grants", "sessions", "resets", "devices"):
+                db.execute(f"DELETE FROM {table} WHERE account = ?", (account_id,))
 
     def delete_account(self, account_id: str) -> None:
         with self._db() as db, _transaction(db):
-            db.execute("DELETE FROM tokens WHERE account = ?", (account_id,))
+            for table in ("tokens", "grants", "sessions", "resets", "devices"):
+                db.execute(f"DELETE FROM {table} WHERE account = ?", (account_id,))
             db.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
+
+    # ------------------------------------------------------------ e-mail and time zone
+
+    def set_email(self, account_id: str, address: str | None) -> None:
+        """Keep a hash of the address for password recovery, or with None forget it."""
+        if address is not None and not valid_email(address):
+            raise SignupError("bad_email")
+        stored = hash_password(normalize_email(address)) if address else None
+        with self._db() as db:
+            db.execute("UPDATE accounts SET email = ? WHERE id = ?", (stored, account_id))
+
+    def has_email(self, account_id: str) -> bool:
+        with self._db() as db:
+            row = db.execute("SELECT email FROM accounts WHERE id = ?", (account_id,)).fetchone()
+        return bool(row and row[0])
+
+    def match_email(self, login: str, address: str) -> Account | None:
+        """The account when the address is the one kept for it; as slow for any login."""
+        with self._db() as db:
+            row = db.execute(
+                "SELECT id, login, created, seen, email FROM accounts WHERE login = ?",
+                (normalize_login(login),),
+            ).fetchone()
+        if row is None or not row[4]:
+            check_password(normalize_email(address), _dummy())
+            return None
+        if not check_password(normalize_email(address), row[4]):
+            return None
+        return Account(row[0], row[1], row[2], row[3])
+
+    def set_timezone(self, account_id: str, zone: str, *, only_empty: bool = False) -> None:
+        if not zone:
+            return
+        query = "UPDATE accounts SET timezone = ? WHERE id = ?"
+        if only_empty:
+            query += " AND (timezone IS NULL OR timezone = '')"
+        with self._db() as db:
+            db.execute(query, (zone, account_id))
+
+    def timezone(self, account_id: str) -> str:
+        with self._db() as db:
+            row = db.execute("SELECT timezone FROM accounts WHERE id = ?", (account_id,)).fetchone()
+        return str(row[0]) if row and row[0] else ""
 
     def touch(self, account_id: str, now: float) -> None:
         with self._db() as db:
@@ -393,12 +511,184 @@ class Registry:
     def drop_grant(self, grant: str) -> None:
         with self._db() as db:
             db.execute("DELETE FROM tokens WHERE grant_id = ?", (grant,))
+            db.execute("DELETE FROM grants WHERE id = ?", (grant,))
+
+    def drop_grant_tokens(self, grant: str) -> None:
+        """End the tokens of a connection and keep the connection (a refresh issues new ones)."""
+        with self._db() as db:
+            db.execute("DELETE FROM tokens WHERE grant_id = ?", (grant,))
+
+    # ------------------------------------------------------------ connections (grants)
+
+    def track_grant(self, grant: str, account: str, client: str, now: float) -> None:
+        """Remember a connection when its first tokens are issued, and its latest use."""
+        with self._db() as db:
+            db.execute(
+                "INSERT INTO grants (id, account, client, created, used) VALUES (?, ?, ?, ?, ?)"
+                " ON CONFLICT(id) DO UPDATE SET used = excluded.used",
+                (grant, account, client, now, now),
+            )
+
+    def use_grant(self, grant: str, now: float) -> None:
+        with self._db() as db:
+            db.execute(
+                "UPDATE grants SET used = ? WHERE id = ? AND used < ?", (now, grant, now - 60)
+            )
+
+    def grants(self, account_id: str) -> list[Grant]:
+        """The account's connections, the latest used first, with the application's name."""
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT g.id, g.client, c.info, g.created, g.used FROM grants g"
+                " LEFT JOIN clients c ON c.id = g.client"
+                " WHERE g.account = ? AND EXISTS"
+                " (SELECT 1 FROM tokens t WHERE t.grant_id = g.id AND t.expires > ?)"
+                " ORDER BY g.used DESC",
+                (account_id, time.time()),
+            ).fetchall()
+        out = []
+        for grant_id, client, info, created, used in rows:
+            name = str(client)
+            if info:
+                try:
+                    name = str(json.loads(info).get("client_name") or client)
+                except (ValueError, AttributeError):
+                    name = str(client)
+            out.append(Grant(str(grant_id), str(client), name, float(created), float(used)))
+        return out
+
+    def drop_account_grant(self, account_id: str, grant: str) -> bool:
+        """End one connection of the account; False for a connection of another account."""
+        with self._db() as db:
+            row = db.execute(
+                "SELECT 1 FROM grants WHERE id = ? AND account = ?", (grant, account_id)
+            ).fetchone()
+        if row is None:
+            return False
+        self.drop_grant(grant)
+        return True
+
+    # ------------------------------------------------------------ browser sessions
+
+    def open_session(self, account_id: str, now: float | None = None) -> str:
+        now = time.time() if now is None else now
+        token = secrets.token_urlsafe(32)
+        with self._db() as db:
+            db.execute(
+                "INSERT INTO sessions (hash, account, created, expires) VALUES (?, ?, ?, ?)",
+                (digest(token), account_id, now, now + SESSION_TTL),
+            )
+        return token
+
+    def session(self, token: str) -> Account | None:
+        if not token:
+            return None
+        with self._db() as db:
+            row = db.execute(
+                "SELECT a.id, a.login, a.created, a.seen FROM sessions s"
+                " JOIN accounts a ON a.id = s.account WHERE s.hash = ? AND s.expires > ?",
+                (digest(token), time.time()),
+            ).fetchone()
+        return Account(*row) if row else None
+
+    def close_session(self, token: str) -> None:
+        with self._db() as db:
+            db.execute("DELETE FROM sessions WHERE hash = ?", (digest(token),))
+
+    # ------------------------------------------------------------ device codes (RFC 8628)
+
+    def start_device(self, client_id: str, now: float | None = None) -> tuple[str, str]:
+        """A device code for the program and a short code for the learner to confirm."""
+        now = time.time() if now is None else now
+        device_code = secrets.token_urlsafe(32)
+        user_code = short_code()
+        with self._db() as db:
+            db.execute(
+                "INSERT INTO devices (hash, user_code, client, expires) VALUES (?, ?, ?, ?)",
+                (
+                    digest(device_code),
+                    digest(normalize_invite(user_code)),
+                    client_id,
+                    now + DEVICE_TTL,
+                ),
+            )
+        return device_code, user_code
+
+    def device_waiting(self, user_code: str) -> bool:
+        with self._db() as db:
+            row = db.execute(
+                "SELECT 1 FROM devices WHERE user_code = ? AND account IS NULL AND expires > ?",
+                (digest(normalize_invite(user_code)), time.time()),
+            ).fetchone()
+        return row is not None
+
+    def approve_device(self, user_code: str, account_id: str) -> bool:
+        with self._db() as db:
+            done = db.execute(
+                "UPDATE devices SET account = ? WHERE user_code = ? AND account IS NULL"
+                " AND expires > ?",
+                (account_id, digest(normalize_invite(user_code)), time.time()),
+            )
+            return done.rowcount == 1
+
+    def poll_device(self, device_code: str, client_id: str, now: float | None = None) -> str:
+        """`pending`, `slow_down`, `expired`, or the account that confirmed the code (once)."""
+        now = time.time() if now is None else now
+        key = digest(device_code)
+        with self._db() as db, _transaction(db):
+            row = db.execute(
+                "SELECT client, account, expires, polled FROM devices WHERE hash = ?", (key,)
+            ).fetchone()
+            if row is None or row[0] != client_id or row[2] <= now:
+                return "expired"
+            if row[1]:
+                db.execute("DELETE FROM devices WHERE hash = ?", (key,))
+                return str(row[1])
+            db.execute("UPDATE devices SET polled = ? WHERE hash = ?", (now, key))
+            if row[3] is not None and now - row[3] < DEVICE_INTERVAL - 1:
+                return "slow_down"
+            return "pending"
+
+    # ------------------------------------------------------------ password recovery
+
+    def start_reset(self, account_id: str, now: float | None = None) -> str:
+        now = time.time() if now is None else now
+        token = secrets.token_urlsafe(32)
+        with self._db() as db:
+            db.execute(
+                "INSERT INTO resets (hash, account, expires) VALUES (?, ?, ?)",
+                (digest(token), account_id, now + RESET_TTL),
+            )
+        return token
+
+    def reset_account(self, token: str) -> Account | None:
+        """The account of a recovery link that still works, without using the link."""
+        with self._db() as db:
+            row = db.execute(
+                "SELECT a.id, a.login, a.created, a.seen FROM resets r"
+                " JOIN accounts a ON a.id = r.account WHERE r.hash = ? AND r.expires > ?",
+                (digest(token), time.time()),
+            ).fetchone()
+        return Account(*row) if row else None
+
+    def take_reset(self, token: str) -> Account | None:
+        """Use a recovery link: once, and within its half an hour."""
+        found = self.reset_account(token)
+        if found is None:
+            return None
+        with self._db() as db:
+            done = db.execute("DELETE FROM resets WHERE hash = ?", (digest(token),))
+        return found if done.rowcount == 1 else None
 
     def purge(self, now: float | None = None) -> int:
-        """Remove expired sign-in requests, codes and tokens."""
+        """Remove expired sign-in requests, codes, tokens, sessions and links."""
         now = time.time() if now is None else now
         removed = 0
         with self._db() as db:
-            for table in ("requests", "codes", "tokens"):
+            for table in ("requests", "codes", "tokens", "sessions", "devices", "resets"):
                 removed += db.execute(f"DELETE FROM {table} WHERE expires <= ?", (now,)).rowcount
+            removed += db.execute(
+                "DELETE FROM grants WHERE NOT EXISTS"
+                " (SELECT 1 FROM tokens t WHERE t.grant_id = grants.id)"
+            ).rowcount
         return removed

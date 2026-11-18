@@ -4,6 +4,11 @@
 #   VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
 #   CADDY=proxy-caddy-1 [CADDY_SITES=/opt/caddy/conf.d] scripts/deploy_vps.sh
 #
+# Password recovery by e-mail: SMTP_HOST, SMTP_USER and SMTP_FROM (with SMTP_PORT, default
+# 465, and SMTP_SECURITY, default ssl) name the account, and the password comes from
+# SMTP_PASSWORD in the environment or in the repository's .env, never from a command line.
+# Without SMTP_HOST the server keeps the SMTP settings it has.
+#
 # The image is built here and sent over SSH (`docker save | ssh docker load`), so the
 # server holds no code. Its tag is the version and the commit, with `-dirty` for
 # uncommitted changes. The domain's A record must point at the server before Caddy can
@@ -31,6 +36,30 @@ trap 'rm -rf "$work"' EXIT
 sed "s/@DOMAIN@/$DOMAIN/" deploy/vps/vocabbot.caddy.in > "$work/vocabbot.caddy"
 ssh "$VPS" 'mkdir -p /opt/vocabbot'
 scp -q deploy/vps/compose.yml deploy/vps/backup.sh "$work/vocabbot.caddy" "$VPS:/opt/vocabbot/"
+if [ -n "${SMTP_HOST:-}" ]; then
+  password=${SMTP_PASSWORD:-}
+  if [ -z "$password" ] && [ -f .env ]; then
+    password=$(sed -n 's/^SMTP_PASSWORD=//p' .env | tail -1 | tr -d '\r')
+    case "$password" in
+      \"*\" | \'*\') password=${password:1:${#password}-2} ;;
+    esac
+  fi
+  : "${password:?SMTP_PASSWORD is not set and .env has none}"
+  (
+    umask 077
+    {
+      echo "VOCABBOT_SERVER_SMTP_HOST=$SMTP_HOST"
+      echo "VOCABBOT_SERVER_SMTP_PORT=${SMTP_PORT:-465}"
+      echo "VOCABBOT_SERVER_SMTP_USER=${SMTP_USER:?SMTP_USER}"
+      echo "VOCABBOT_SERVER_SMTP_PASSWORD=$password"
+      echo "VOCABBOT_SERVER_SMTP_FROM=${SMTP_FROM:-$SMTP_USER}"
+      echo "VOCABBOT_SERVER_SMTP_SECURITY=${SMTP_SECURITY:-ssl}"
+    } > "$work/smtp.env"
+  )
+  scp -q "$work/smtp.env" "$VPS:/opt/vocabbot/smtp.env"
+  ssh "$VPS" 'chmod 600 /opt/vocabbot/smtp.env'
+  echo "SMTP: $SMTP_USER at $SMTP_HOST:${SMTP_PORT:-465} (${SMTP_SECURITY:-ssl})"
+fi
 
 ssh "$VPS" "VOCABBOT_IMAGE='$image' VOCABBOT_DOMAIN='$DOMAIN' VOCABBOT_PROXY_NETWORK='$PROXY_NETWORK' CADDY='$CADDY' CADDY_SITES='$CADDY_SITES' bash -s" < deploy/vps/remote.sh
 

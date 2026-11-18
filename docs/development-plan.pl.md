@@ -26,8 +26,11 @@ z modelem przechodzą 7 z 7. Etap 5 (harmonogram dopasowany do uczącego się)
 zakończył się wydaniem `v1.0.0-rc.4` na GitHubie i w PyPI (15.11.2026).
 Etap 6 (serwer dla aplikacji czatu) zakończył się wydaniem `v1.0.0-rc.5` na
 GitHubie i w PyPI (15.11.2026), a serwer działa pod `https://vocab.archxs.com`.
-Do wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską planu zawiera
-`development-plan.md`.
+Etapy 12 i 13 (konto jako wspólny rekord nauki na wszystkich urządzeniach
+oraz sesja w przeglądarce telefonu) zaakceptowałeś 18.11.2026 i tego samego
+dnia zrealizowałem je razem jako wersję `1.0.0-rc.11` (commit, wydanie
+i wdrożenie czekają na Twoją zgodę). Do wersji 1.0 pozostaje pilotaż według
+`docs/pilot.pl.md`. Wersję angielską planu zawiera `development-plan.md`.
 
 ---
 
@@ -61,6 +64,10 @@ Wersja 1.0 jest ukończona, gdy spełnione są wszystkie warunki:
    `claude plugin validate --profile directory --strict`.
 7. Pilotaż, czyli Twoja nauka przez co najmniej dwa tygodnie w dwóch lub
    trzech językach, kończy się bez błędów blokujących.
+8. Uczący się kontynuuje naukę na innym urządzeniu bez ręcznych kroków:
+   folder połączony z kontem synchronizuje się sam, a sesja działa
+   w przeglądarce telefonu bez aplikacji czatu (Etapy 12 i 13, warunek
+   dodany 18.11.2026).
 
 ---
 
@@ -1654,7 +1661,392 @@ pokazał odpowiedź karty czekającej w sesji.
 | drugie zdanie, kolokacje, nagrania zdań | policzenie pokrycia w źródłach (Wikisłownik, Tatoeba) i licencji nagrań; wycena przebiegu modelu przed uruchomieniem |
 | obrazy przy hasłach | próba trafności doboru na próbce haseł |
 | podsumowanie tygodnia i kalendarz powtórek jako ekrany | wygląd tych ekranów w aplikacji SuperMemo znam tylko z opisów |
-| własna strona sesji pod `vocab.archxs.com` | wynik prób karty; osobny, większy etap |
+| własna strona sesji pod `vocab.archxs.com` | od 18.11.2026 Etap 13, na Twoją decyzję przed wersją 1.0 |
+
+### Etap 12. Konto jako wspólny rekord nauki
+
+Etap 12 zaproponowałem 18.11.2026 po Twoim pytaniu o wspólny folder dla
+komputera i telefonu oraz o najwygodniejszą kontynuację nauki na wielu
+urządzeniach. Stan: zaakceptowany i zrealizowany 18.11.2026 razem z Etapem
+13 jako wersja `1.0.0-rc.11`, wynik poniżej Etapu 13. Twoje decyzje z tego dnia: konto na serwerze jest drogą
+zalecaną, a folder bez konta zostaje dla osób, które nie chcą serwera;
+synchronizacja po połączeniu działa samoczynnie; Etap 13 wchodzi przed
+wersją 1.0; odzyskiwanie hasła korzysta z opcjonalnego adresu e-mail. Etap
+kończy się wersją `1.0.0-rc.11`.
+
+Po etapie konto na serwerze jest wspólnym miejscem rekordu, a folder nauki
+na komputerze jego kopią, która działa bez sieci i sama się synchronizuje.
+Terminal, wtyczka i czat w telefonie pokazują wtedy ten sam stan.
+
+#### Podstawa zakresu
+
+| Zagadnienie | Stan w rc.10 | Źródło |
+|---|---|---|
+| dwa rekordy | folder nauki (terminal, wtyczka) i konto na serwerze (czat w przeglądarce, w aplikacji i w telefonie) nie mają połączenia; serwer nie ma importu ani eksportu | `store.py`, `server/service.py`, `docs/server.pl.md` |
+| dwa komputery | dysk synchronizowany, `vocabbot use` i ręczne `doctor --merge`; oba komputery piszą do jednego `log/reviews.jsonl`, więc dysk tworzy kopie konfliktowe | `QUICKSTART.pl.md`, `doctor.py` |
+| scalanie | `book._apply` układa wiersze według dnia, czasu i karty i sam wylicza rodzaj wiersza, więc suma wierszy z dowolnych urządzeń daje jeden harmonogram; zgłoszenia i notatki stosują ostatni wiersz hasła | `book.py`, `store.py` |
+| kolejność wierszy w pliku | `session._next_ts` bierze największy czas w dzienniku, a nie ostatni wiersz pliku; `presence.py` czyta 500 ostatnich wierszy, a `queue.py` dzieli wiersze dla `extend`, więc te dwa miejsca wymagają sprawdzenia | kod |
+| identyfikatory | hasło kursu ma identyfikator `<język>-<pojęcie>` z pojęciem trzymanym na stałe w `concepts.tsv`; własne słowo dostaje losowy identyfikator `<język>-u<6 znaków>`, więc dwa urządzenia nie nadają tego samego | `tools/courses/build.py`, `words.py` |
+| dzień nauki | komputer liczy dzień w swojej strefie, a serwer w jednej strefie dla wszystkich kont; `_next_ts` odrzuca odpowiedź, gdy dziennik ma wiersz z późniejszego dnia | `store.learning_day`, `session.py` |
+| logowanie programu | serwer odsyła po logowaniu także na `localhost` i `127.0.0.1` | `server/config.py` |
+| hasło | nowe hasło nadaje wyłącznie administrator; serwer nie zna adresu e-mail | `docs/server.pl.md` |
+
+#### Zakres
+
+1. **Synchronizacja na serwerze.** Adres `/sync` przyjmuje token dostępu
+   konta, ten sam co `/mcp`. Urządzenie wysyła wiersze dopisane od
+   poprzedniej synchronizacji i podaje, ile wierszy konta już ma. Serwer
+   dopisuje wiersze, których nie ma, i zwraca te, których nie ma urządzenie.
+   - Wiersz rozpoznaje jego pełna treść, tak jak w `doctor --merge`, więc
+     powtórzone wysłanie niczego nie podwaja.
+   - Serwer przyjmuje wiersz dziennika, gdy przechodzi `valid_row`, jego
+     karta istnieje w kursie albo we własnych słowach konta, a jego czas nie
+     leży w przyszłości. Żądanie ma limit rozmiaru i częstości.
+   - Narzędzia i synchronizacja jednego konta wykonują się po kolei, pod tą
+     samą blokadą konta.
+2. **Sposób łączenia danych.**
+
+   | Dane | Sposób łączenia |
+   |---|---|
+   | `log/reviews.jsonl`, `log/flags.jsonl`, `log/notes.jsonl` | suma wierszy; pobrane wiersze dopisują się na końcu pliku, więc dziennik nadal tylko rośnie, a `Learner.rows()` zwraca wiersze w porządku dziennika niezależnie od kolejności w pliku |
+   | `courses/<język>/own.jsonl`, `log/decisions.md` | suma wierszy |
+   | plan | każda zatwierdzona zmiana dostaje wiersz w nowym `log/plan.jsonl` (czas i zmienione ustawienia); dla każdego ustawienia obowiązuje ostatni wiersz, a `registers/plan.json` jest po synchronizacji przeliczany z tych wierszy i sprawdzany przez `plan_problems` |
+   | `registers/day.json` | większa z liczb dla tego samego dnia |
+   | `registers/.pending/` | zostaje na urządzeniu |
+
+3. **Logowanie programu.** `vocabbot login [ADRES]` otwiera stronę logowania
+   serwera w przeglądarce i odbiera wynik na `127.0.0.1` (OAuth z PKCE).
+   W środowisku bez przeglądarki program pokazuje adres i krótki kod do
+   potwierdzenia na innym urządzeniu. Hasło uczący się wpisuje wyłącznie na
+   stronie serwera. Tokeny trafiają do `~/.vocabbot/` z prawami tylko dla
+   właściciela, nigdy do folderu nauki ani do wyniku polecenia.
+   `vocabbot logout` odłącza folder od konta i unieważnia tokeny.
+4. **Synchronizacja samoczynna.** Program pobiera przed `today`, `next`,
+   `drill` i `status`, a wysyła po każdym zapisie (`answer`, `grade`,
+   `regrade`, `flag`, `note`, `commit`, `today --extra`). Sesja w terminalu
+   wysyła w tle, pojedyncze polecenie czeka najwyżej kilka sekund. Bez sieci
+   program działa jak dotąd, a zaległe wiersze wysyła następne polecenie.
+   `status` i `doctor` podają czas ostatniej synchronizacji i liczbę
+   czekających wierszy; `vocabbot sync` synchronizuje na żądanie.
+5. **Pierwsze połączenie i nowy komputer.** Połączenie folderu, który ma już
+   dziennik, z kontem, które ma już dziennik, powstaje jako podgląd: liczba
+   wierszy po obu stronach, liczba po połączeniu i wybór planu (z folderu
+   albo z konta). Zapis następuje po potwierdzeniu, więc to samo polecenie
+   importuje dotychczasową naukę z folderu na konto. `vocabbot login` na
+   komputerze bez folderu nauki pobiera konto do `~/VocabBot`.
+6. **Strona konta i przenoszenie danych.** Strona `/account` po zalogowaniu
+   pokazuje połączone urządzenia i aplikacje z datą ostatniego użycia
+   i odłączaniem, pobranie danych jako archiwum w formacie folderu nauki,
+   adres e-mail do odzyskiwania hasła i usunięcie konta. Program dostaje
+   `vocabbot export PLIK` i `vocabbot import PLIK` (import jako podgląd),
+   więc rekord przechodzi także między serwerami.
+7. **Odzyskiwanie hasła przez opcjonalny e-mail.** Uczący się może podać
+   adres przy zakładaniu konta albo na stronie konta. Serwer trzyma
+   wyłącznie skrót adresu (scrypt z solą konta). Strona „nie pamiętam hasła”
+   pyta o login i adres; gdy skrót się zgadza, serwer wysyła na wpisany
+   adres jednorazowy odnośnik ważny 30 minut. Odpowiedź strony jest taka
+   sama dla każdego loginu i adresu. Nowe hasło kończy połączenia konta, tak
+   jak `vocabbot-server password`. Wysyłka korzysta z `smtplib` i ustawień
+   `VOCABBOT_SERVER_SMTP_*`; serwer bez tych ustawień nie pyta o adres,
+   a hasło zmienia administrator jak dotąd.
+8. **Strefa czasowa konta.** Ustawienie planu `timezone` (nazwa strefy IANA,
+   na przykład `Europe/Warsaw`) wyznacza dzień nauki na serwerze i na każdym
+   połączonym urządzeniu. Strona zakładania konta odczytuje strefę
+   z przeglądarki, a konta sprzed etapu dostają strefę serwera. Program
+   czyta strefę przez `zoneinfo`; gdy system nie ma danych stref (Windows
+   bez pakietu `tzdata`), liczy dzień w strefie komputera jak dotąd.
+9. **Zgodność wersji.** Żądanie `/sync` podaje wersję programu i kursu.
+   Urządzenie ze starszym kursem zachowuje wiersze kart, których nie zna,
+   pomija je w kolejce i radzi aktualizację w `status`.
+10. **Ścieżka bez konta.** Program czyta kopie konfliktowe dziennika,
+    zgłoszeń i notatek razem z plikami głównymi, więc folder w dysku
+    synchronizowanym nie wymaga ręcznego scalenia. `doctor --merge` zostaje
+    do uporządkowania plików.
+11. **Umiejętności, przewodniki i dokumenty.** `vocab-start` proponuje
+    połączenie folderu z kontem i prowadzi przez `login`; reguły w `rules/`
+    obejmują stan synchronizacji jako liczby z silnika; przewodniki serwera
+    idą za umiejętnościami. `README`, `QUICKSTART`, `docs/server`,
+    `plugin/PRIVACY` i strona `/privacy` opisują konto jako drogę zalecaną,
+    dane wysyłane na serwer (wiersze dziennika z wpisanymi odpowiedziami,
+    notatki, własne słowa) i opcjonalny adres e-mail.
+
+Skutki łączenia, które dokumenty opisują wprost:
+
+- Ta sama karta oceniona na dwóch urządzeniach bez sieci: wcześniejsza
+  odpowiedź przesuwa termin, późniejsza liczy się jako utrwalanie.
+- Dwa urządzenia bez sieci mogą razem wprowadzić więcej nowych słów niż
+  dzienna liczba z planu; po synchronizacji `today` podaje faktyczną liczbę.
+- Dwie zmiany tego samego ustawienia planu bez sieci: obowiązuje późniejsza.
+
+#### Do sprawdzenia na początku etapu
+
+- `presence.py` i `queue.py` po dopisaniu wierszy z wcześniejszym czasem na
+  końcu pliku.
+- Dostęp `vocabbot.pyz` do sieci w piaskownicach Coworka i Codexa. Gospodarz
+  bez sieci zostawia folder lokalny, a umiejętność proponuje łącznik serwera.
+- Logowanie krótkim kodem w serwerze autoryzacji z SDK MCP. Gdy SDK go nie
+  udostępnia, program loguje się wyłącznie przez `127.0.0.1`, a kod dochodzi
+  jako własne adresy serwera.
+
+#### Pliki
+
+| Warstwa | Pliki |
+|---|---|
+| silnik | nowy `sync.py` (żądanie przez `urllib`, kursory, łączenie), `store.py` (porządek wierszy, kopie konfliktowe w odczycie, `log/plan.jsonl`, `timezone`), `gate.py` i `plans.py` (wiersz zmiany planu), `session.py`, `doctor.py`, `progress.py`, `cli.py` (`login`, `logout`, `sync`, `export`, `import`), `data/i18n/pl.json` |
+| terminal | `drill.py` (wysyłanie w tle, stan synchronizacji w podsumowaniu) |
+| serwer | `server/app.py` (`/sync`, `/account`, odzyskiwanie hasła), `server/service.py`, `server/accounts.py` (skrót adresu, odnośniki, urządzenia), `server/oauth.py`, `server/pages.py`, `server/config.py` (SMTP), `deploy/example.env` |
+| wtyczka | `rules/`, `vocab-start` (`SKILL.md`, `reference/`), przewodniki `server/guides/`, pliki generowane przez `scripts/build.py skills` |
+| dokumenty | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/README`, `plugin/PRIVACY`, `CHANGELOG`, ten plan; każdy dokument po angielsku i po polsku |
+| testy | nowy `tests/test_sync.py`, `test_engine.py`, `test_cli.py`, `test_drill.py`, `test_server.py`, sesja dla `session_test.py --check` |
+
+#### Kryteria ukończenia
+
+| Kryterium | Sprawdzenie |
+|---|---|
+| zbieżność | test losowy: trzy urządzenia i konto; odpowiedzi, notatki, zgłoszenia, własne słowa i zmiany planu w losowej kolejności z synchronizacją w losowych chwilach; po ostatniej synchronizacji każda strona ma te same wiersze, ten sam stan kart i tę samą kolejkę co jeden dziennik |
+| powtarzalność | przerwane i powtórzone wysłanie nie podwaja wierszy; synchronizacja od zera daje ten sam stan |
+| dziennik tylko rośnie | po każdej synchronizacji wcześniejsza treść każdego dziennika jest początkiem nowej |
+| praca bez sieci | przy niedostępnym serwerze polecenia i sesja działają, `status` podaje liczbę czekających wierszy, a następna synchronizacja je wysyła |
+| ciągłość sesji | sesja zaczęta w terminalu kończy się przez narzędzia serwera na tej samej karcie i odwrotnie |
+| ta sama karta na dwóch urządzeniach | wcześniejsza odpowiedź przesuwa termin, późniejsza jest utrwalaniem; termin jest ten sam po obu stronach |
+| pierwsze połączenie | podgląd z liczbami wierszy i wyborem planu; bez potwierdzenia żadna strona się nie zmienia |
+| nowy komputer | `vocabbot login` w pustym środowisku daje folder, którego `today` zgadza się z kontem |
+| zabezpieczenia `/sync` | odmowa dla wiersza nieznanej karty, wiersza z przyszłości, żądania ponad limit i tokenu innego konta; token nie występuje w folderze nauki ani w wyniku polecenia |
+| strefa czasowa | urządzenie i serwer w różnych strefach liczą ten sam dzień nauki; brak danych stref daje dzień komputera bez błędu |
+| eksport i import | archiwum konta otwarte jako folder nauki i zaimportowane na drugie konto daje ten sam stan kart |
+| odzyskiwanie hasła | ta sama odpowiedź dla każdego loginu i adresu; odnośnik działa raz i przez 30 minut; baza zawiera wyłącznie skrót adresu; nowe hasło kończy połączenia konta |
+| ścieżka bez konta | kopia konfliktowa dziennika wchodzi do stanu kart bez `doctor --merge` |
+| kontrole repozytorium | `ruff`, `mypy`, `pytest` na Pythonie 3.15 i 3.10, `validate.py`, `session_test.py --check`, `claude plugin validate --strict`; silnik zostaje na bibliotece standardowej |
+
+#### Koszty i decyzje
+
+| Pozycja | Koszt | Zgoda |
+|---|---|---|
+| implementacja i testy | brak kosztów modeli | akceptacja etapu 18.11.2026 |
+| symulacja z modelem: połączenie folderu z kontem przez umiejętność i dokończenie sesji w czacie | szacunkowo 1–2 USD (Sonnet w Claude Code, limit 2 USD) | osobna |
+| konto SMTP serwera dla odzyskiwania hasła | według dostawcy poczty; ustawienia podajesz przy wdrożeniu | osobna, przy wdrożeniu |
+| push, tag, wydanie na GitHubie, PyPI, wdrożenie | brak | osobna dla każdej czynności |
+
+### Etap 13. Sesja w przeglądarce telefonu
+
+Etap 13 zaproponowałem 18.11.2026 razem z Etapem 12. Stan: zaakceptowany
+18.11.2026 z Twoją decyzją, że wchodzi przed wersją 1.0, i zrealizowany tego
+samego dnia razem z Etapem 12. Na Twoje polecenie wykonania całego planu
+w jak najmniejszej liczbie sesji oba etapy weszły do jednej wersji
+`1.0.0-rc.11` zamiast `rc.11` i `rc.12`.
+
+W rc.10 telefon ma sesję wyłącznie w aplikacji czatu: każda karta kosztuje
+turę modelu i zużywa limit subskrypcji uczącego się. Strona sesji daje to
+samo co `vocabbot drill`, w przeglądarce i bez modelu. Silnik ocenia wpisaną
+odpowiedź, a samoocena jest od rc.10 wartością domyślną, więc sesja nie
+potrzebuje modelu.
+
+#### Zakres
+
+1. **Strona sesji `/app`.** Uczący się loguje się kontem, w tej samej sesji
+   przeglądarki co strona konta z Etapu 12. Karta ma układ `card.html`:
+   licznik dnia, trzy etapy z liczbą kart, polskie znaczenie i zdanie
+   z luką, pole odpowiedzi, „pokaż” z trzema ocenami (w utrwalaniu dwiema),
+   tłumaczenie zdania pod przyciskiem, nagranie, notatka, odłożenie słowa,
+   zmiana oceny poprzedniej odpowiedzi, kolejne nowe słowa, kolejna tura
+   powtórek i podsumowanie dnia.
+2. **Adresy `/api/…`.** Każdy adres wykonuje polecenie silnika przez
+   `Service.call`, tak jak narzędzie MCP, więc gwarancje zostają: pytanie
+   bez odpowiedzi, ocena z silnika, zmiana planu przez podgląd i token.
+   Sesja przeglądarki korzysta z ciasteczka `HttpOnly`, `Secure`
+   i `SameSite=Strict`, a każdy zapis wymaga żetonu CSRF. Polityka CSP
+   dopuszcza poza serwerem tylko nagrania z `upload.wikimedia.org`.
+3. **Plan i postęp.** Pierwszy plan (języki, poziomy, liczba nowych słów,
+   dni wolne, opcjonalny test poziomujący z `quiz`) i jego zmiany powstają
+   w formularzu jako podgląd z potwierdzeniem. Wyniki `status` i `forecast`
+   mają własny ekran.
+4. **Ekran główny telefonu.** Manifest aplikacji internetowej i ikony
+   z awatara pozwalają dodać stronę do ekranu głównego. Przeglądarka
+   przechowuje same pliki strony; odpowiedzi wymagają sieci.
+5. **Układ.** Strona powstaje najpierw dla szerokości telefonu. Na
+   komputerze działa klawiatura (Enter, 1, 2, 3). Motyw jasny i ciemny idą
+   za systemem, a każdy tekst pochodzi z `pl.json`.
+6. **Bez modelu.** Wyjaśnienia trenera oraz własne słowa z tekstu i ze zdjęć
+   zostają w czacie.
+
+#### Pliki
+
+| Warstwa | Pliki |
+|---|---|
+| serwer | `server/app.py` (`/app`, `/api/…`), nowy `server/web.py` (sesja przeglądarki, CSRF), `server/pages.py`, `server/static/` (strona sesji, manifest, ikony), `data/i18n/pl.json` |
+| dokumenty | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/PRIVACY`, `CHANGELOG`, ten plan; każdy dokument po angielsku i po polsku |
+| testy | `tests/test_server.py` oraz nowy `tests/test_web.py` |
+
+#### Kryteria ukończenia
+
+| Kryterium | Sprawdzenie |
+|---|---|
+| ten sam dziennik | pełny dzień nauki przez `/api` daje te same wiersze co te same odpowiedzi przez polecenia |
+| pytanie bez odpowiedzi | żadna odpowiedź `/api` z pytaniem nie zawiera słowa ani notatki, dla wszystkich kart dnia |
+| sesja przeglądarki | zapis bez żetonu CSRF i żądanie z obcego źródła są odrzucane; drugie konto nie widzi danych pierwszego; wylogowanie kończy sesję |
+| ciągłość | sesja przerwana na stronie kończy się w terminalu po synchronizacji i odwrotnie |
+| plan | formularz zapisuje plan dopiero po potwierdzeniu podglądu |
+| układ | przejście sesji w przeglądarce przy szerokości 360 px i na komputerze, w motywie jasnym i ciemnym, bez przewijania w poziomie |
+| telefon | Twoje sprawdzenie: dodanie do ekranu głównego, sesja i nagrania na Twoim telefonie |
+| kontrole repozytorium | `ruff`, `mypy`, `pytest` na Pythonie 3.15 i 3.10, `validate.py`, `session_test.py --check`, `claude plugin validate --strict` |
+
+#### Koszty i decyzje
+
+| Pozycja | Koszt | Zgoda |
+|---|---|---|
+| implementacja, testy, przejście w przeglądarce | brak kosztów modeli | akceptacja etapu 18.11.2026 |
+| push, tag, wydanie na GitHubie, PyPI, wdrożenie | brak | osobna dla każdej czynności |
+
+#### Poza zakresem do czasu prób
+
+| Temat | Brakujące potwierdzenie |
+|---|---|
+| sesja na stronie bez sieci | wymaga listy dnia z odpowiedziami w telefonie i oceny po stronie przeglądarki; wiersze przyjąłby `/sync` z Etapu 12; decyzja po Twojej nauce na stronie |
+| przypomnienia o powtórkach w telefonie | próba powiadomień przeglądarki na Twoim telefonie |
+| aplikacja ze sklepu | wynik pilotażu strony sesji |
+
+#### Wynik Etapów 12 i 13 (18.11.2026, wersja 1.0.0-rc.11)
+
+Oba etapy powstały w jednej sesji pracy. Silnik dostał moduły `sync.py`
+(strumienie wierszy, strona konta i strona folderu, eksport i import)
+i `remote.py` (logowanie programu, tokeny, połączenie z `/sync`,
+synchronizacja wokół poleceń), a serwer moduły `web.py` (strony
+przeglądarki i `/api`) i `mail.py` (odnośnik odzyskiwania hasła).
+
+| Kryterium | Wynik |
+|---|---|
+| zbieżność | test losowy w zestawie (3 przebiegi) oraz jednorazowe sprawdzenie 60 dalszych przebiegów: trzy urządzenia i konto, odpowiedzi, notatki, słowa odłożone i przywrócone, własne słowa i zmiany planu w losowej kolejności z synchronizacją w losowych chwilach; po ostatniej synchronizacji każda strona ma te same wiersze, te same stany kart, tę samą kolejkę dnia, ten sam plan, notatki i zgłoszenia |
+| powtarzalność | to samo żądanie wysłane ponownie nie zmienia dziennika konta; synchronizacja od zera (bez kursorów i epoki) nie zmienia żadnego dziennika |
+| dziennik tylko rośnie | po każdej synchronizacji wcześniejsza treść dziennika na urządzeniach i na koncie jest początkiem nowej |
+| praca bez sieci | przy niedostępnym serwerze `remote.auto` zapisuje niepowodzenie w powiązaniu, `status` podaje liczbę czekających wierszy, przez minutę polecenia nie czekają na sieć, a następna synchronizacja wysyła wiersze |
+| ciągłość sesji | testy silnika, HTTP i e2e: karta, którą pokazałby telefon, jest następną kartą w terminalu; odpowiedź z przeglądarki dociera do folderu przed jego kolejnym poleceniem |
+| ta sama karta na dwóch urządzeniach | wcześniejsza odpowiedź przesuwa termin, późniejsza jest utrwalaniem; stan jest ten sam po obu stronach |
+| pierwsze połączenie | podgląd z liczbami odpowiedzi, notatek i zgłoszeń po obu stronach i po połączeniu oraz z planem, który zostaje; przed potwierdzeniem nie powstaje nawet powiązanie; przy różnych planach `login` kończy się błędem `choose_plan` z oboma planami, a w terminalu program pyta sam |
+| nowy komputer | `vocabbot login` w pustym środowisku pobiera konto i zapisuje wskaźnik folderu, a licznik `today` zgadza się z kontem |
+| zabezpieczenia `/sync` | odmowa dla wiersza nieznanej karty, z przyszłości, uszkodzonego, niebędącego wierszem, ponad 5000 wierszy jednego pliku w jednym żądaniu, bez tokenu i z fałszywym tokenem; drugie konto nie widzi danych pierwszego; tokeny są tylko w `~/.vocabbot/credentials.json`, nigdy w wyniku polecenia |
+| strefa czasowa | ustawienie planu `timezone` wyznacza dzień nauki w programie i na serwerze; nowe konto dostaje strefę z przeglądarki, a połączenie folderu bez strefy daje mu strefę konta |
+| eksport i import | archiwum ze strony konta otwarte poleceniem `vocabbot import` daje te same wiersze i stany kart; import do folderu z planem dodaje tylko brakujące wiersze i zostawia plan |
+| odzyskiwanie hasła | ta sama strona dla każdego loginu i adresu; odnośnik działa raz i przez 30 minut; baza ma tylko skrót adresu; nowe hasło kończy połączenia i sesje przeglądarki |
+| ścieżka bez konta | wiersze kopii konfliktowych dziennika, notatek i zgłoszeń liczą się bez `doctor --merge` |
+| ten sam dziennik przez `/api` | dzień nauki przez stronę sesji i te same odpowiedzi przez polecenia dają te same karty, oceny, rodzaje wierszy, klasy błędów i dni |
+| pytanie bez odpowiedzi | żadna odpowiedź `/api/next` nie zawiera słowa ani notatki karty |
+| sesja przeglądarki | zapis bez żetonu formularza albo z obcym pochodzeniem jest odrzucany; drugie konto nie widzi danych pierwszego; wylogowanie kończy sesję |
+| układ | przejście w Chromium przy szerokości 375 px w motywie jasnym i ciemnym od założenia konta i pierwszego planu przez pytanie, „Pokaż” z kafelkami ocen, wynik, notatkę, zmianę etapu, postępy i zmianę planu do ekranu końca dnia: bez przewijania w poziomie i bez błędów skryptu |
+| e2e | osobne procesy serwera i programu na dwóch „komputerach” z własnymi katalogami konfiguracji oraz „telefon” przez HTTP: konto z zaproszeniem, plan i odpowiedzi na stronie sesji, pobranie konta kodem potwierdzonym na telefonie, ta sama karta w terminalu, połączenie drugiego folderu z planem konta, trzy jednakowe dzienniki, eksport i import, wylogowanie widoczne na stronie konta |
+| kontrole repozytorium | ruff, mypy, `validate.py`, `build.py skills --check`, `session_test.py --check` (8 z 8) i `claude plugin validate --strict` bez uwag; testy: 304 na Pythonie 3.15 i 276 na 3.10 (1 pominięty bez wordfreq) |
+
+Usterki znalezione w testach i poprawione:
+
+1. Kolejność własnych słów zależała od kolejności wierszy w `own.jsonl`,
+   inna na każdym urządzeniu. Teraz wynika z rangi wiersza, rodzaju wiersza
+   i identyfikatora, a słowo kursu przesunięte na początek dostaje własną
+   rangę.
+2. Urządzenie, którego zmiana planu przegrała z późniejszą zmianą innego
+   urządzenia, mogło zostać przy własnym planie. Każda synchronizacja
+   przelicza teraz plan z historii.
+3. Chrome wysyła `Origin: null` przy polityce `no-referrer`, więc kontrola
+   pochodzenia odrzucała formularze z własnych stron serwera. Strony mają
+   teraz `Referrer-Policy: same-origin`, a przy `Origin: null` serwer
+   sprawdza `Sec-Fetch-Site`.
+4. Formularz unieważnienia tokenu w SDK MCP wymaga pola `client_secret`
+   także od klienta publicznego; program wysyła je puste.
+
+Przegląd kodu (`/code-review`, 12 kierunków wyszukiwania, każda usterka
+sprawdzona osobno) zgłosił 15 głównych usterek i ponad 30 drobniejszych.
+Poprawiłem wszystkie główne, każdą z testem:
+
+1. Wiersz dopisany podczas trwającej wymiany (odpowiedź w terminalu przy
+   wysyłaniu w tle) był zapisywany jako wysłany i nigdy nie trafiał na konto.
+   Folder uznaje teraz za wysłane tylko to, co faktycznie poszło, oraz
+   wiersze pobrane, gdy plik ma dokładnie oczekiwany układ.
+2. Zalogowanie programu na inne konto tego samego serwera łączyło po cichu
+   zapisy dwóch osób. Folder podaje teraz swoje konto, a serwer i program
+   odmawiają wymiany z innym kontem (`other_account`).
+3. Konto albo folder z dziennikiem, ale bez planu (plan konta odrzucony przez
+   kontrolę), mogło zostać wyczyszczone przez nowy plan albo import. Nowy plan
+   zostawia istniejące dzienniki, import do takiego folderu odmawia
+   (`folder_not_empty`), a pobranie konta z planem nie do przyjęcia kończy się
+   błędem `account_plan_invalid` z prośbą o aktualizację programu.
+4. Wiersze odrzucone z przyczyny przejściowej (zegar przed serwerem, kurs albo
+   wersja, których konto jeszcze nie ma) przepadały. Wracają teraz z każdą
+   synchronizacją, aż konto je przyjmie, i liczą się jako czekające.
+5. Wiersz z nieistniejącym dniem (`2026-02-30`) albo wiersz planu z wartością
+   złego typu psuł każde późniejsze odtworzenie dziennika. Silnik pomija taki
+   wiersz w odtworzeniu, serwer go nie przyjmuje, a błąd jednego konta nie
+   kończy wywołania błędem serwera.
+6. Treść żądań `/api` i `/sync` była czytana w całości przed sprawdzeniem
+   rozmiaru. Serwer czyta ją teraz strumieniowo do limitu.
+7. Kopie konfliktowe historii planu blokowały zmiany planu, kopia dziennika
+   dłuższa niż jedno żądanie nie dochodziła na konto w całości, a eksport
+   pomijał wiersze kopii. Kopie historii planu liczą się teraz jak inne
+   dzienniki i łączy je `doctor --merge`, kopie idą w kolejnych żądaniach,
+   a eksport zawiera ich wiersze.
+8. Adres e-mail do odzyskiwania hasła zmieniało samo ciasteczko sesji.
+   Zmiana i usunięcie adresu wymagają teraz hasła.
+9. Strefa czasowa przyjęta na jednym systemie mogła zostać odrzucona na
+   innym i zatrzymać plan. Nazwa strefy musi teraz mieć dokładną pisownię
+   z listy IANA, serwer sprawdza swoją strefę przy starcie, a nieznana strefa
+   wypada z planu zamiast go zatrzymywać.
+10. Zmiany dwóch różnych języków planu na dwóch urządzeniach nadpisywały się
+    nawzajem. Historia planu zapisuje teraz zmianę każdego języka osobno.
+11. Wiersz planu z ustawieniem nowszej wersji był odrzucany w całości.
+    Nieznane ustawienia zostają w historii i są pomijane przy wyliczaniu
+    planu.
+12. Na stronie sesji drugi Enter po „Pokaż” wybierał ocenę „wiem”, a na
+    ekranie końca dnia dodawał nowe słowa. Enter działa teraz tylko tam,
+    gdzie przejście dalej jest bezpieczne.
+13. Karta postępów pokazywała trudne słowa czekające dziś w sesji razem
+    z odpowiedzią. Takie słowa nie są teraz wyświetlane.
+14. Sesja uruchomiona z ekranu startowego (`vocabbot`, Enter) i zmiany
+    zatwierdzane od razu w terminalu nie były synchronizowane. Obie drogi
+    korzystają teraz z tej samej synchronizacji.
+15. Pierwsza synchronizacja połączenia mogła przyjąć plan konta wbrew
+    wyborowi „plan folderu”, a każda nieudana próba dopisywała kolejny wiersz
+    połączenia. Wiersz połączenia powstaje teraz raz, a wysyłanie w tle czeka
+    na pierwszą pełną synchronizację.
+
+Poprawiłem też większość drobniejszych uwag, między innymi: jedną
+synchronizację folderu naraz w procesie, plik tokenów tworzony od razu tylko
+dla właściciela, porównywanie adresu serwera bez względu na wielkość liter,
+stronę powrotu po nieudanym logowaniu, datę połączenia zachowaną przy
+odświeżeniu tokenu, unieważnianie kodów urządzeń przy zmianie hasła, licznik
+odzyskiwania hasła liczony dla adresu i loginu razem, wspólny licznik
+nieudanych logowań, połączenia sprzed aktualizacji widoczne na stronie konta,
+komunikaty błędów `/api`, odczyt archiwum z limitem i bez powtórzonych nazw,
+podział wierszy importu wyłącznie po LF, decyzję importu bez lokalnej
+ścieżki, przeładowanie strony sesji po wygaśnięciu sesji, brak strony konta
+w pamięci service workera i odczyt kursów tylko przy zmianie planu.
+Bez zmian zostały: kolejność zgłoszeń i notatek przy cofniętym zegarze,
+kolejność starych wierszy `own.jsonl` bez rangi, strona `/device` bez nazwy
+programu proszącego o kod oraz czas pierwszego połączenia bardzo dużego
+dziennika.
+
+Zmiany względem zakresu:
+
+- SDK MCP nie ma przepływu urządzenia, więc kod potwierdzany na innym
+  urządzeniu działa na własnych adresach serwera (`/device`,
+  `/device/authorize`, `/device/token`), tak jak przewidywał punkt „Do
+  sprawdzenia na początku etapu”.
+- Odczyt dziennika w kolejności dziennika (`Learner.rows()`) usunął
+  zależność `presence.py` i `queue.py` od kolejności wierszy w pliku.
+- `status` podaje `activity`, czyli liczbę odpowiedzi z każdego z ostatnich
+  84 dni, z której korzysta mapa aktywności strony sesji.
+- Wygląd strony sesji przeprojektowałem 18.11.2026 na Twoją prośbę według
+  wzorców Vercel (Geist): pierścień postępu dnia, przełącznik etapów
+  z liczbami, kafelki ocen z ikonami i klawiszami zamiast pełnych kolorowych
+  przycisków, pasek wyniku z terminem powrotu, karty statystyk, mapa
+  aktywności z 12 tygodni, pierścień trwałości z kreską celu, wykres
+  prognozy, wybór języków kafelkami i ikony w kartach nawigacji.
+
+Do sprawdzenia poza sesją pracy:
+
+| Temat | Potrzebne |
+|---|---|
+| telefon | Twoje sprawdzenie strony `/app/` na telefonie: dodanie do ekranu głównego, sesja i nagrania |
+| piaskownice gospodarzy | czy Cowork i Codex pozwalają `vocabbot.pyz` łączyć się z serwerem; bez sieci folder działa lokalnie, a synchronizacja czeka |
+| poczta | konto SMTP serwera i jedna prawdziwa wiadomość odzyskiwania; testy używają podstawionego nadawcy |
+| wydanie i wdrożenie | Twoja zgoda na push, tag `v1.0.0-rc.11`, PyPI i wdrożenie serwera |
+| sesja z modelem | symulacja połączenia folderu przez umiejętność `vocab-start` (koszt modeli, osobna zgoda) |
 
 ---
 
@@ -1675,9 +2067,10 @@ pokazał odpowiedź karty czekającej w sesji.
 | Powtórki mieszane z kilku kursów | tak | ustawienie domyślne z regułami dla rodzin kart |
 | Statystyki nauki | tak | `status` |
 | Rozmowa z asystentem na poznanym słownictwie | tak | `vocab-coach` |
-| Synchronizacja między komputerami | tak | folder nauki w dysku synchronizowanym, scalanie dzienników w `doctor` |
+| Synchronizacja między urządzeniami | tak | konto na serwerze jako wspólny rekord z samoczynną synchronizacją folderu (Etap 12); bez konta folder nauki w dysku synchronizowanym |
 | Obrazy, nagrania lektora, rozpoznawanie mowy | po 1.0 | rozdział 14 |
-| Aplikacja na telefon | po 1.0 | rozdział 14 |
+| Sesja w telefonie | tak | czat przez serwer (Etap 6) i strona sesji w przeglądarce (Etap 13) |
+| Aplikacja na telefon ze sklepu | po 1.0 | rozdział 14 |
 
 Funkcje wykraczające poza kursy SuperMemo: wagi języków, odstęp między
 językami dla jednego pojęcia, wykrywanie odpowiedzi w innym języku,
@@ -1714,6 +2107,10 @@ zestawienia słów mylonych między językami, własne słowa z dowolnego tekstu
 | Etap 8, symulacje sesji z modelem przez lokalny serwer | 2,86 USD (9 i 6 tur, model Sonnet w Claude Code) | w ramach polecenia z 16.11.2026 |
 | Etap 10, symulacja sesji z modelem przez lokalny serwer | 1,79 USD (10 tur, model Sonnet w Claude Code; szacunek 1–2 USD) | zatwierdzona 16.11.2026 |
 | Etap 11, symulacja sesji z modelem przez lokalny serwer | 1,32 USD (8 tur, model Sonnet w Claude Code; limit 2 USD) | zatwierdzona 16.11.2026 |
+| Etap 12, konto jako wspólny rekord nauki | brak | akceptacja etapu 18.11.2026 |
+| Etap 12, symulacja z modelem: połączenie folderu z kontem i dokończenie sesji w czacie | szacunkowo 1–2 USD (Sonnet w Claude Code, limit 2 USD) | osobna |
+| Etap 12, konto SMTP serwera dla odzyskiwania hasła | brak kosztów modeli; opłata według dostawcy poczty | osobna, przy wdrożeniu |
+| Etap 13, sesja w przeglądarce telefonu | brak | akceptacja etapu 18.11.2026 |
 | Repozytorium GitHub, tag, wydanie, PyPI | brak | osobna dla każdej czynności |
 
 Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
@@ -1736,6 +2133,11 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 | ChatGPT w planach Plus i Pro udostępnia własnym łącznikom tylko odczyt | Claude jako pierwsza aplikacja pilotażu; 16.11.2026 konto pilotażysty w ChatGPT zapisało plan i 18 odpowiedzi przez serwer dodany we Wtyczkach |
 | Zdanie wygenerowane przez model ma błąd albo inne znaczenie słowa | przegląd przykładów jak dla zdań z Tatoeby, próbka 40 haseł przed pełnym przebiegiem, źródło `generated` w haśle, zgłoszenia `flag` |
 | Nagranie w Commons zmienia nazwę albo znika | nazwy odświeżane przy każdej budowie kursu; hasło bez nagrania pokazuje sam zapis IPA |
+| Zegar albo strefa czasowa urządzenia różni się od konta | dzień nauki w strefie konta, odmowa serwera dla wierszy z przyszłości, dotychczasowa odmowa `day_before_last` |
+| Urządzenia mają różne wersje programu albo kursu | stałe identyfikatory haseł; `/sync` podaje wersje; starsze urządzenie zachowuje wiersze nieznanych kart i radzi aktualizację |
+| Token programu wycieka z komputera | token w `~/.vocabbot/` z prawami tylko dla właściciela, poza folderem nauki; odłączenie urządzenia na stronie konta; token odświeżania wymieniany przy każdym użyciu |
+| Adres e-mail powiększa zakres danych osobowych | adres opcjonalny, na serwerze wyłącznie jego skrót; `PRIVACY` i `/privacy` opisują zmianę |
+| Strona sesji otwiera serwer na ataki przez przeglądarkę | ciasteczko `HttpOnly`, `Secure` i `SameSite=Strict`, żeton CSRF przy zapisie, polityka CSP, dotychczasowy limit prób logowania |
 
 ---
 
@@ -1744,8 +2146,8 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 - Wymowa w sesji w terminalu (odtwarzanie nagrań i synteza mowy systemu
   operacyjnego); nagrania w czacie obejmuje Etap 8, kartę z odtwarzaniem
   Etap 9.
-- Sesja na telefonie poza aplikacjami czatu: strona w sieci domowej albo na
-  serwerze z Etapu 6, korzystająca z tego samego folderu nauki.
+- Sesja na stronie z Etapu 13 bez sieci, przypomnienia o powtórkach
+  w telefonie i aplikacja ze sklepu.
 - Kolejne języki nauki i angielski jako drugi język bazowy.
 - Karty rozpoznawania i karty ze zdaniem jako ustawienie domyślne dla
   poziomu B1–B2.

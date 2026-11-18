@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime
+import json
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -74,6 +76,10 @@ def describe(plan: dict[str, Any]) -> list[str]:
             )
         ),
     ]
+    zone = plan.get("timezone") or ""
+    lines.append(
+        assets.text("plan.timezone", value=zone) if zone else assets.text("plan.timezone_local")
+    )
     own = sorted((plan.get("parameters") or {}).keys())
     lines.append(
         assets.text(
@@ -83,6 +89,11 @@ def describe(plan: dict[str, Any]) -> list[str]:
         )
     )
     return lines
+
+
+def plan_copies(root: Path) -> list[Path]:
+    """Conflict copies of registers/plan.json (copies of the plan's history count as rows)."""
+    return [p for p in store.conflict_copies(root) if p.parent.name == "registers"]
 
 
 def _check(plan: dict[str, Any], catalog: Catalog) -> None:
@@ -124,11 +135,17 @@ def init_preview(
     _check(plan, catalog)
     changes = [
         gate.Change(folder / store.PLAN, "write", store.dump_json(plan)),
-        gate.Change(folder / store.REVIEWS, "write", ""),
-        gate.Change(
-            folder / store.DECISIONS, "write", assets.text("gate.decisions_header") + "\n\n"
-        ),
+        history_change(folder, None, plan, now),
     ]
+    # logs the folder already holds (an account's rows a plan could not be made for) stay
+    if not (folder / store.REVIEWS).exists():
+        changes.append(gate.Change(folder / store.REVIEWS, "write", ""))
+    if not (folder / store.DECISIONS).exists():
+        changes.append(
+            gate.Change(
+                folder / store.DECISIONS, "write", assets.text("gate.decisions_header") + "\n\n"
+            )
+        )
     if pointer:
         # the pointer is a convenience: a sandbox may forbid writing outside the folder
         changes.append(
@@ -182,6 +199,10 @@ def _value(key: str, raw: str) -> Any:
         return [part.strip().lower() for part in raw.split(",") if part.strip()]
     if key in store.CHOICES:
         return raw.lower()
+    if key == "timezone":
+        if raw.lower() in ("none", "brak", "local", ""):
+            return ""
+        return "UTC" if raw.upper() == "UTC" else raw
     if key == "parameters":
         if raw.lower() not in ("default", "fsrs6", "none"):
             raise VocabError("bad_value", key=key, value=raw)
@@ -283,7 +304,7 @@ def fit_preview(learner: store.Learner, catalog: Catalog, now: datetime) -> dict
     """
     from vocabbot import replay
 
-    if any(p.name.startswith("plan") for p in store.conflict_copies(learner.root)):
+    if plan_copies(learner.root):
         raise VocabError("conflict_copies")
     old = learner.plan()
     rows, _ = learner.rows()
@@ -321,17 +342,240 @@ def fit_preview(learner: store.Learner, catalog: Catalog, now: datetime) -> dict
         learner.path(store.PENDING),
         summary,
         lines,
-        [gate.Change(learner.path(store.PLAN), "write", store.dump_json(new))],
+        [
+            gate.Change(learner.path(store.PLAN), "write", store.dump_json(new)),
+            history_change(learner.root, old, new, now),
+        ],
         now,
         learner.path(store.DECISIONS),
     )
+
+
+# ---------------------------------------------------------------- the plan's history
+#
+# Every approved change of the plan adds a row to log/plan.jsonl: its time and the
+# settings it set. Devices joined to one account join these rows like any log, and
+# the plan is the last value of every setting (`fold`), so a change made on one
+# device and another change made on a second device both hold.
+
+
+def history_rows(root: Path) -> list[dict[str, Any]]:
+    """The valid rows of the plan's history (with its conflict copies), in the order of time."""
+    rows, _ = store.read_joined(root / store.PLAN_LOG, store.copies_of(root, store.PLAN_LOG))
+    good = [row for row in rows if valid_history_row(row)]
+    return sorted(good, key=lambda row: str(row["ts"]))
+
+
+def _language_ok(item: Any) -> bool:
+    return (
+        isinstance(item, dict)
+        and isinstance(item.get("code"), str)
+        and isinstance(item.get("levels"), list)
+        and all(isinstance(level, str) for level in item["levels"])
+    )
+
+
+def _setting_ok(key: str, value: Any) -> bool:
+    """A value of a known setting has the type the plan needs (its range is checked later)."""
+    if key == "languages":
+        return isinstance(value, list) and all(_language_ok(item) for item in value)
+    if key in ("days_off", "directions"):
+        return isinstance(value, list) and all(isinstance(item, str) for item in value)
+    if key == "review_limit":
+        return value is None or (isinstance(value, int) and not isinstance(value, bool))
+    if key in ("parameters", "parameters_info"):
+        return isinstance(value, dict)
+    if key in store.NUMBERS or key == "schema":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, str)
+
+
+def valid_history_row(row: Any) -> bool:
+    """A row of the history this version can apply.
+
+    Settings this version does not know are kept for newer versions and left out
+    of the plan here, so devices on different versions keep each other's rows.
+    """
+    if not isinstance(row, dict) or not isinstance(row.get("ts"), str):
+        return False
+    try:
+        store.parse_iso(row["ts"])
+    except ValueError:
+        return False
+    settings = row.get("set")
+    unset = row.get("unset", [])
+    langs = row.get("langs", {})
+    return (
+        isinstance(settings, dict)
+        and all(
+            _setting_ok(key, value) for key, value in settings.items() if key in store.DEFAULT_PLAN
+        )
+        and isinstance(unset, list)
+        and all(isinstance(key, str) for key in unset)
+        and isinstance(langs, dict)
+        and all(
+            item is None or (_language_ok(item) and item["code"] == code)
+            for code, item in langs.items()
+        )
+    )
+
+
+def fold(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The plan the history gives: the last value of every setting; None without rows.
+
+    A change of one language (`langs`) changes only that language, so changes of
+    two languages made on two devices both hold.
+    """
+    plan: dict[str, Any] = {}
+    for row in sorted(rows, key=lambda r: str(r["ts"])):
+        for key, value in row["set"].items():
+            if key in store.DEFAULT_PLAN:
+                plan[key] = copy.deepcopy(value)
+        for key in row.get("unset", []):
+            plan.pop(key, None)
+        for code, item in row.get("langs", {}).items():
+            languages = [dict(entry) for entry in plan.get("languages", []) if _language_ok(entry)]
+            at = next((i for i, entry in enumerate(languages) if entry["code"] == code), None)
+            if item is None:
+                if at is not None:
+                    languages.pop(at)
+            elif at is not None:
+                languages[at] = copy.deepcopy(item)
+            else:
+                languages.append(copy.deepcopy(item))
+            plan["languages"] = languages
+    return plan or None
+
+
+def change_row(
+    old: dict[str, Any] | None, new: dict[str, Any], now: datetime
+) -> dict[str, Any] | None:
+    """The row of one change: the settings whose value changed (all of them for a new plan).
+
+    A change of the languages is kept per language (`langs`: the language as it
+    is now, or None for a language taken out).
+    """
+    settings = {
+        key: copy.deepcopy(value)
+        for key, value in new.items()
+        if (old is None or key not in old or old[key] != value)
+        and (old is None or key != "languages")
+    }
+    unset = sorted(key for key in (old or {}) if key not in new)
+    langs: dict[str, Any] = {}
+    if old is not None:
+        before = {i["code"]: i for i in old.get("languages", []) if _language_ok(i)}
+        after = {i["code"]: i for i in new.get("languages", []) if _language_ok(i)}
+        for code, item in after.items():
+            if before.get(code) != item:
+                langs[code] = copy.deepcopy(item)
+        for code in before:
+            if code not in after:
+                langs[code] = None
+    if not settings and not unset and not langs:
+        return None
+    row: dict[str, Any] = {"ts": store.iso(now), "set": settings}
+    if unset:
+        row["unset"] = unset
+    if langs:
+        row["langs"] = langs
+    return row
+
+
+def base_row(root: Path, before: datetime | None = None) -> dict[str, Any] | None:
+    """A first row for a plan saved before its history began: the whole plan at its time.
+
+    With `before`, the row comes before that moment (the change that follows it).
+    """
+    path = root / store.PLAN
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        moment = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+    except (OSError, ValueError):
+        return None
+    if before is not None:
+        moment = min(moment, before - timedelta(microseconds=1))
+    if not isinstance(raw, dict):
+        return None
+    settings = {key: value for key, value in raw.items() if key in store.DEFAULT_PLAN}
+    return {"ts": store.iso(moment), "set": settings, "base": True}
+
+
+def history_change(
+    root: Path, old: dict[str, Any] | None, new: dict[str, Any], now: datetime
+) -> gate.Change:
+    """The rows a change of the plan adds to its history, with the first row when it is missing."""
+    rows: list[dict[str, Any]] = []
+    if old is not None and not history_rows(root):
+        start = base_row(root, now)
+        if start is not None:
+            rows.append(start)
+    row = change_row(old, new, now)
+    if row is not None:
+        rows.append(row)
+    content = "".join(store.dump_line(row) + "\n" for row in rows)
+    return gate.Change(root / store.PLAN_LOG, "append", content)
+
+
+def ensure_history(root: Path, now: datetime | None = None) -> bool:
+    """Give a plan without a history its first row; True when a row was written.
+
+    With `now`, the row is not later than that moment, so a change made at `now`
+    (a link's choice of plan) comes after it.
+    """
+    if not (root / store.PLAN).is_file() or history_rows(root):
+        return False
+    start = base_row(root, now + timedelta(microseconds=1) if now is not None else None)
+    if start is None:
+        return False
+    store.append_jsonl(root / store.PLAN_LOG, start)
+    return True
+
+
+def apply_history(
+    root: Path,
+    installed: dict[str, list[str]] | Callable[[], dict[str, list[str]]],
+) -> dict[str, Any]:
+    """Write registers/plan.json from the history when it gives another valid plan.
+
+    Returns {"changed": bool} and, for a plan that fails its check, the problems:
+    the plan in force then stays as it was. `installed` may be a function, called
+    only when the plan changes (reading every course takes a moment). A time zone
+    this system does not know is left out rather than holding back every later
+    change, since the zone data of systems differ.
+    """
+    folded = fold(history_rows(root))
+    if folded is None:
+        return {"changed": False}
+    try:
+        plan = store.complete_plan(folded)
+    except (TypeError, KeyError, AttributeError, ValueError):
+        return {"changed": False, "problems": ["the plan's history cannot be read"]}
+    notes: list[str] = []
+    zone_issue = store.zone_problem(plan.get("timezone", ""))
+    if zone_issue:
+        plan["timezone"] = ""
+        notes.append(zone_issue)
+    path = root / store.PLAN
+    try:
+        current = store.complete_plan(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError, AttributeError, TypeError):
+        current = None
+    if current == plan:
+        return {"changed": False, **({"notes": notes} if notes else {})}
+    courses = installed() if callable(installed) else installed
+    problems = store.plan_problems(plan, courses)
+    if problems:
+        return {"changed": False, "problems": problems}
+    store.write_text(path, store.dump_json(plan))
+    return {"changed": True, **({"notes": notes} if notes else {})}
 
 
 def set_preview(
     learner: store.Learner, catalog: Catalog, assignments: list[str], now: datetime
 ) -> dict[str, Any]:
     """Preview of a change of the plan."""
-    if any(p.name.startswith("plan") for p in store.conflict_copies(learner.root)):
+    if plan_copies(learner.root):
         raise VocabError("conflict_copies")
     old = learner.plan()
     new = copy.deepcopy(old)
@@ -346,7 +590,10 @@ def set_preview(
         learner.path(store.PENDING),
         summary,
         changes,
-        [gate.Change(learner.path(store.PLAN), "write", store.dump_json(new))],
+        [
+            gate.Change(learner.path(store.PLAN), "write", store.dump_json(new)),
+            history_change(learner.root, old, new, now),
+        ],
         now,
         learner.path(store.DECISIONS),
     )

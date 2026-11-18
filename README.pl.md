@@ -60,6 +60,12 @@ samą sesję w czacie.
   trwałość i kolejność języków są ustawieniami planu. Każda zmiana planu
   i własnych słów powstaje najpierw jako podgląd i trafia do folderu nauki
   dopiero po potwierdzeniu.
+- **Urządzenia.** Konto na serwerze VocabBota jest zapisem nauki na każdym
+  urządzeniu. `vocabbot login` łączy z nim folder nauki na komputerze, a folder
+  synchronizuje się potem sam i działa bez sieci; strona sesji serwera
+  (`/app/`) prowadzi tę samą sesję w przeglądarce telefonu, bez aplikacji
+  czatu. Sesja zaczęta na jednym urządzeniu toczy się dalej na innym od tej
+  samej karty.
 
 ## Kursy
 
@@ -113,7 +119,9 @@ Serwer dla aplikacji czatu, z kontami dla wielu uczących się, działa na
 Twojej maszynie w Dockerze, a Claude w przeglądarce i w telefonie, ChatGPT,
 Claude Code oraz Codex łączą się z nim jak ze zdalnym serwerem MCP.
 W Claude i ChatGPT sesja pokazuje też kartę z licznikiem dnia i przyciskiem,
-który odtwarza nagranie słowa. [docs/server.pl.md](docs/server.pl.md) opisuje
+który odtwarza nagranie słowa. Ten sam serwer ma stronę sesji w przeglądarce
+(`/app/`, także w telefonie), stronę konta oraz synchronizację folderów nauki
+(`vocabbot login`). [docs/server.pl.md](docs/server.pl.md) opisuje
 uruchomienie i podłączenie.
 
 ## Dokumenty

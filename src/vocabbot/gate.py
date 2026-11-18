@@ -28,7 +28,7 @@ TOKEN = re.compile(r"^[0-9a-f]{16}$")
 @dataclass(frozen=True)
 class Change:
     path: Path
-    action: str  # write, append or delete
+    action: str  # write, append (JSON lines), append_text (lines of text) or delete
     content: str = ""
     optional: bool = False  # skipped when its place cannot be written (a sandbox)
 
@@ -124,6 +124,8 @@ def commit(token: str, folders: list[Path], now: datetime, via: str) -> dict[str
             for line in change["content"].splitlines():
                 if line.strip():
                     store.append_jsonl(path, json.loads(line))
+        elif change["action"] == "append_text":
+            store.append_lines(path, [line for line in change["content"].splitlines() if line])
         elif change["action"] == "delete":
             if path.is_file():
                 path.unlink()

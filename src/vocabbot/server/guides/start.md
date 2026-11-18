@@ -125,3 +125,21 @@ after a change call it again.
 - `lang.<code>=off` removes a language from the plan but keeps its log: a
   later `lang.<code>=<levels>` brings its cards back with their history.
 - `vocab_quiz` and `vocab_forecast` write nothing, so they need no preview.
+
+## Other devices
+
+The account is the learner's record on every device, so a session begun
+here goes on anywhere else at the same card:
+
+- **The session page.** The server's own page, `/app/` at the server's
+  address (the address is in the server's instructions), runs the day's
+  cards, progress and the plan in a browser, also on a phone, without a chat
+  application. On a phone it can be added to the home screen.
+- **The terminal program.** On a computer, `vocabbot login` links a learning
+  folder to this account, or downloads the account into a new folder; the
+  folder then synchronises by itself and works without a network. The
+  learner runs it in their own terminal, and `vocabbot login --code` shows a
+  code to confirm on the phone when the computer has no browser.
+- **The account page.** `/account` lists the connected applications and
+  computers, gives the data as a zip, keeps an optional e-mail address for
+  password recovery and removes the account.

@@ -1,7 +1,9 @@
 """The vocabbot program: plain output for a person, --json for the skills.
 
 Text written by the learner (answers, own words, notes) comes on standard
-input, never on the command line.
+input, never on the command line. A folder linked to an account on a server
+(`vocabbot login`) synchronises around the commands: before `today`, `next`,
+`drill` and `status`, and after every command that writes.
 """
 
 from __future__ import annotations
@@ -9,10 +11,11 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import os
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,9 +28,11 @@ from vocabbot import (
     plans,
     progress,
     quiz,
+    remote,
     replay,
     session,
     store,
+    sync,
     term,
     words,
 )
@@ -66,7 +71,8 @@ class Context:
                 return date.fromisoformat(self.args.today)
             except ValueError:
                 raise VocabError("bad_day", value=self.args.today) from None
-        return store.learning_day(self.now, int(self.learner().plan()["day_starts_at"]))
+        learner = self.learner()
+        return store.learning_day(self.now, int(learner.plan()["day_starts_at"]), learner.zone())
 
     def interactive(self) -> bool:
         return not self.args.json and sys.stdin.isatty() and sys.stdout.isatty()
@@ -298,6 +304,8 @@ def render_summary(data: dict[str, Any]) -> list[str]:
                 "cyan",
             )
         )
+    if data.get("sync"):
+        lines.append(style(sync_line(data["sync"]), "dim"))
     for warning in data["warnings"]:
         if warning["code"] == "conflict_copies":
             lines.append(assets.text("cli.warning_conflict"))
@@ -308,6 +316,36 @@ def render_summary(data: dict[str, Any]) -> list[str]:
         elif warning["code"] == "review_limit":
             lines.append(assets.text("cli.warning_limit", count=warning["count"]))
     return lines
+
+
+def _when(stamp: Any) -> str:
+    try:
+        moment = store.parse_iso(str(stamp)).replace(tzinfo=timezone.utc).astimezone()
+    except ValueError:
+        return "-"
+    return f"{moment.day:02d}.{moment.month:02d} {moment.hour:02d}:{moment.minute:02d}"
+
+
+def sync_line(info: dict[str, Any]) -> str:
+    """The link of the folder in one line: the account, the last synchronisation, what waits."""
+    if not info.get("signed_in"):
+        return assets.text("cli.sync_signed_out", server=info["server"])
+    line = assets.text(
+        "cli.sync_line",
+        login=info.get("login") or "?",
+        server=info["server"],
+        last=_when(info.get("last")) if info.get("last") else "-",
+        pending=info.get("pending", 0),
+    )
+    failed = info.get("failed")
+    if isinstance(failed, dict):
+        line += " · " + assets.text("cli.sync_failed", code=failed.get("code", "?"))
+    server_version = info.get("server_version")
+    if server_version and server_version != info.get("version"):
+        line += " · " + assets.text(
+            "cli.sync_versions", server=server_version, program=info.get("version")
+        )
+    return line
 
 
 def render_next(data: dict[str, Any]) -> list[str]:
@@ -523,11 +561,12 @@ def render_check(data: dict[str, Any]) -> list[str]:
 def render_doctor(data: dict[str, Any]) -> list[str]:
     if "token" in data or "applied" in data:
         return render_preview(data)
+    tail = [sync_line(data["sync"])] if data.get("sync") else []
     if data["ok"]:
-        return [assets.text("doctor.ok")]
+        return [assets.text("doctor.ok"), *tail]
     lines = [assets.text("doctor.problems", count=len(data["problems"]))]
     lines += ["  " + json.dumps(problem, ensure_ascii=False) for problem in data["problems"]]
-    return lines
+    return [*lines, *tail]
 
 
 def render_simple(key: str) -> Renderer:
@@ -569,7 +608,11 @@ def cmd_today(ctx: Context) -> dict[str, Any]:
         added = session.add_extra(learner, catalog, day, ctx.args.extra, ctx.args.reviews)
         # the cards just added come next: the reviews when both were asked for
         return with_next(ctx, added, "reviews" if ctx.args.reviews else "new")
-    return session.summary(learner, catalog, compute(learner, catalog, day))
+    out = session.summary(learner, catalog, compute(learner, catalog, day))
+    linked = remote.describe(learner.root)
+    if linked is not None:
+        out["sync"] = linked
+    return out
 
 
 def cmd_next(ctx: Context) -> dict[str, Any]:
@@ -736,7 +779,12 @@ def cmd_regrade(ctx: Context) -> dict[str, Any]:
 
 
 def cmd_status(ctx: Context) -> dict[str, Any]:
-    return progress.status(ctx.learner(), ctx.catalog(), ctx.day())
+    out = progress.status(ctx.learner(), ctx.catalog(), ctx.day())
+    linked = remote.describe(ctx.learner().root)
+    if linked is not None:
+        out["sync"] = linked
+        out["today"]["sync"] = linked
+    return out
 
 
 def cmd_forecast(ctx: Context) -> dict[str, Any]:
@@ -844,15 +892,263 @@ def cmd_doctor(ctx: Context) -> dict[str, Any]:
         return finish_preview(ctx, doctor.merge_preview(learner, ctx.now))
     if ctx.args.repair:
         return finish_preview(ctx, doctor.repair_preview(learner, ctx.now))
-    return doctor.check(learner, ctx.catalog(), ctx.now)
+    out = doctor.check(learner, ctx.catalog(), ctx.now)
+    linked = remote.describe(learner.root)
+    if linked is not None:
+        out["sync"] = linked
+    return out
 
 
 def cmd_drill(ctx: Context) -> dict[str, Any]:
+    return run_drill(
+        ctx.learner(),
+        ctx.catalog(),
+        ctx.day(),
+        lambda: ctx.courses().installed(),
+        ahead=ctx.args.ahead,
+        plain=ctx.args.plain,
+    )
+
+
+def run_drill(
+    learner: store.Learner,
+    catalog: Catalog,
+    day: date,
+    installed: Callable[[], dict[str, list[str]]],
+    *,
+    ahead: int = 0,
+    plain: bool = False,
+) -> dict[str, Any]:
+    """The terminal session; a linked folder sends its answers in the background and
+    synchronises once more at the end."""
     from vocabbot import drill
 
-    return drill.run(
-        ctx.learner(), ctx.catalog(), ctx.day(), ahead=ctx.args.ahead, plain=ctx.args.plain
+    if sync.link_state(learner.root) is None:
+        return drill.run(learner, catalog, day, ahead=ahead, plain=plain)
+
+    def push() -> Any:
+        return remote.auto(learner.root, session.now_utc(), installed, push_only=True)
+
+    with remote.Pusher(learner.root, push):
+        result = drill.run(learner, catalog, day, ahead=ahead, plain=plain)
+    closing = remote.auto(learner.root, session.now_utc(), installed)
+    if closing is not None:
+        info = remote.describe(learner.root)
+        if info is not None:
+            print(_style()(sync_line(info), "dim"))
+    return result
+
+
+# ---------------------------------------------------------------- the account
+
+
+def _installed(ctx: Context) -> Callable[[], dict[str, list[str]]]:
+    return lambda: ctx.courses().installed()
+
+
+def _announce(text: str) -> None:
+    print(text, file=sys.stderr, flush=True)
+
+
+def _ask_plan(learner: store.Learner, found: dict[str, Any]) -> str:
+    """In a terminal: which plan holds after the link, the folder's or the account's."""
+    print(assets.text("sync.plans_differ"))
+    print(assets.text("sync.plan_of_folder"))
+    for line in plans.describe(learner.plan()):
+        print("  " + line)
+    print(assets.text("sync.plan_of_account"))
+    for line in plans.describe(store.complete_plan(found["plan"])):
+        print("  " + line)
+    while True:
+        reply = input(assets.text("sync.plan_question")).strip().lower()
+        if reply in ("f", "folder"):
+            return "folder"
+        if reply in ("k", "konto", "a", "account"):
+            return "account"
+
+
+def new_folder(ctx: Context) -> Path:
+    """Where `login` puts an account without a folder: --learner, VOCABBOT_HOME, ~/VocabBot."""
+    if ctx.args.learner:
+        return Path(ctx.args.learner).expanduser()
+    if os.environ.get("VOCABBOT_HOME"):
+        return Path(os.environ["VOCABBOT_HOME"]).expanduser()
+    return Path.home() / "VocabBot"
+
+
+def cmd_login(ctx: Context) -> dict[str, Any]:
+    server = remote.server_url(ctx.args.server)
+    http = remote.Http()
+    signed_in = remote.credentials(server) is not None and not ctx.args.again
+    if signed_in:
+        try:
+            remote.access_token(http, server)
+        except VocabError as exc:
+            if exc.code != "signed_out":
+                raise
+            signed_in = False
+    if not signed_in:
+        way = remote.login_device if ctx.args.code else remote.login_browser
+        remote.save_credentials(server, way(server, http, _announce))
+    transport = remote.HttpTransport(server, http)
+    try:
+        learner: store.Learner | None = ctx.learner()
+    except VocabError:
+        learner = None
+        default = new_folder(ctx)
+        if (default / store.PLAN).is_file():
+            learner = store.Learner(default.resolve())
+    host = remote.host_of(server)
+    if learner is not None:
+        state = sync.link_state(learner.root)
+        if state is not None and state.get("server") == server:
+            result = sync.run(learner.root, transport, ctx.now, _installed(ctx))
+            return {
+                "linked": True,
+                "already": True,
+                "learner": str(learner.root),
+                "server": host,
+                "login": state.get("login", ""),
+                "sync": result,
+            }
+    found = sync.probe(transport)
+    login = str((found.get("account") or {}).get("login") or "")
+    signed = remote.credentials(server)
+    if signed is not None and login:
+        remote.save_credentials(server, {**signed, "login": login})
+    if learner is None:
+        if not found.get("plan"):
+            raise VocabError("account_empty", server=host)
+        folder = new_folder(ctx).resolve()
+        folder.mkdir(parents=True, exist_ok=True)
+        # a new folder takes the account as it is: its plan comes with the plan's history
+        sync.save_state(folder, {"server": server, "login": login})
+        result = sync.run(folder, transport, ctx.now, _installed(ctx))
+        if not (folder / store.PLAN).is_file():
+            problems = result.get("plan_problems") or ["?"]
+            raise VocabError("account_plan_invalid", detail="; ".join(problems)[:300])
+        store.write_text(
+            store.config_dir() / store.CONFIG, store.dump_json({"learner": str(folder)})
+        )
+        return {
+            "linked": True,
+            "downloaded": True,
+            "learner": str(folder),
+            "server": host,
+            "login": login,
+            "sync": result,
+        }
+    plan_from = ctx.args.plan
+    if plan_from is None:
+        if not sync.plans_differ(learner, found):
+            plan_from = "folder"
+        elif ctx.interactive():
+            plan_from = _ask_plan(learner, found)
+        else:
+            raise VocabError(
+                "choose_plan",
+                folder_plan=plans.describe(learner.plan()),
+                account_plan=plans.describe(store.complete_plan(found["plan"])),
+            )
+    preview = sync.link_preview(learner, server, found, plan_from, ctx.now)
+    result = finish_preview(ctx, preview)
+    if result.get("applied"):
+        result["sync"] = sync.run(learner.root, transport, ctx.now, _installed(ctx))
+    return result
+
+
+def render_login(data: dict[str, Any]) -> list[str]:
+    if "token" in data or "applied" in data or data.get("cancelled"):
+        lines = render_preview(data)
+    elif data.get("downloaded"):
+        lines = [assets.text("sync.downloaded", folder=data["learner"], login=data["login"])]
+    else:
+        lines = [assets.text("sync.already", login=data["login"], server=data["server"])]
+    if isinstance(data.get("sync"), dict):
+        lines.append(render_sync_result(data["sync"]))
+    return lines
+
+
+def render_sync_result(result: dict[str, Any]) -> str:
+    line = assets.text(
+        "cli.sync_done",
+        sent=result.get("sent", 0),
+        received=result.get("received", 0),
+        pending=result.get("pending", 0),
     )
+    if result.get("refused"):
+        line += " · " + assets.text("cli.sync_refused", count=result["refused"])
+    if result.get("plan_problems"):
+        line += " · " + assets.text("cli.sync_plan_problems")
+    return line
+
+
+def cmd_logout(ctx: Context) -> dict[str, Any]:
+    try:
+        learner: store.Learner | None = ctx.learner()
+    except VocabError:
+        learner = None
+    state = sync.link_state(learner.root) if learner is not None else None
+    if ctx.args.server:
+        server = remote.server_url(ctx.args.server)
+    elif state is not None:
+        server = str(state["server"])
+    else:
+        server = remote.server_url(None)
+    revoked = remote.revoke(remote.Http(), server)
+    remote.save_credentials(server, None)
+    unlinked = False
+    if learner is not None and state is not None and state.get("server") == server:
+        (learner.root / store.SYNC).unlink(missing_ok=True)
+        unlinked = True
+    return {"server": remote.host_of(server), "revoked": revoked, "unlinked": unlinked}
+
+
+def cmd_sync(ctx: Context) -> dict[str, Any]:
+    learner = ctx.learner()
+    state = sync.link_state(learner.root)
+    if state is None:
+        raise VocabError("not_linked")
+    result = sync.run(
+        learner.root, remote.HttpTransport(str(state["server"])), ctx.now, _installed(ctx)
+    )
+    result["sync"] = remote.describe(learner.root)
+    return result
+
+
+def render_sync(data: dict[str, Any]) -> list[str]:
+    lines = [render_sync_result(data)]
+    if data.get("sync"):
+        lines.append(sync_line(data["sync"]))
+    return lines
+
+
+def cmd_export(ctx: Context) -> dict[str, Any]:
+    learner = ctx.learner()
+    target = Path(ctx.args.file).expanduser()
+    if target.exists() and not ctx.args.force:
+        raise VocabError("file_exists", file=str(target))
+    data = sync.archive(learner.root, ctx.now)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+    return {"file": str(target.resolve()), "bytes": len(data)}
+
+
+def cmd_import(ctx: Context) -> dict[str, Any]:
+    source = Path(ctx.args.file).expanduser()
+    try:
+        data = source.read_bytes()
+    except OSError as exc:
+        raise VocabError("io_error", path=str(source), detail=exc.strerror or str(exc)) from None
+    if ctx.args.learner:
+        target = Path(ctx.args.learner)
+    else:
+        try:
+            target = store.locate(None)
+        except VocabError:
+            target = Path.home() / "VocabBot"
+    preview = sync.import_preview(target, data, ctx.courses().installed(), ctx.now)
+    return finish_preview(ctx, preview)
 
 
 def render_quiz(data: dict[str, Any]) -> list[str]:
@@ -1157,6 +1453,50 @@ def build_parser(
     p = add("doctor", cmd_doctor, render_doctor, "check the learner's folder")
     p.add_argument("--merge", action="store_true", help="join conflict copies (preview first)")
     p.add_argument("--repair", action="store_true", help="move damaged rows aside (preview first)")
+
+    p = add(
+        "login",
+        cmd_login,
+        render_login,
+        "sign in to an account on a VocabBot server and link the folder to it (preview first)",
+    )
+    p.add_argument(
+        "server", nargs="?", help=f"the server's address (default: {remote.DEFAULT_SERVER})"
+    )
+    p.add_argument(
+        "--code",
+        action="store_true",
+        help="sign in with a short code confirmed on another device, without a browser here",
+    )
+    p.add_argument(
+        "--plan",
+        choices=("folder", "account"),
+        help="whose plan holds when the folder and the account both have one",
+    )
+    p.add_argument("--again", action="store_true", help="sign in again even when signed in")
+
+    p = add(
+        "logout",
+        cmd_logout,
+        render_simple("cli.logged_out"),
+        "end the program's connection to the account and unlink the folder",
+    )
+    p.add_argument("server", nargs="?", help="the server (default: the folder's link)")
+
+    add("sync", cmd_sync, render_sync, "synchronise the folder with its account now")
+
+    p = add("export", cmd_export, render_simple("cli.exported"), "save the record as a zip file")
+    p.add_argument("file", help="the zip file to write")
+    p.add_argument("--force", action="store_true", help="replace an existing file")
+
+    p = add(
+        "import",
+        cmd_import,
+        render_preview,
+        "bring in a record from a zip file: a new folder, or the rows a folder lacks (preview"
+        " first)",
+    )
+    p.add_argument("file", help="the zip file of vocabbot export or of the account page")
     return parser
 
 
@@ -1178,9 +1518,16 @@ def start_screen() -> int:
         print(assets.text("cli.start_no_learner"))
         print(style(assets.text("cli.start_help"), "dim"))
         return 0
+    if remote.auto(learner.root, session.now_utc(), lambda: Catalog().installed()):
+        learner.forget()
     catalog = Catalog(learner=learner.root)
-    day = store.learning_day(session.now_utc(), int(learner.plan()["day_starts_at"]))
+    day = store.learning_day(
+        session.now_utc(), int(learner.plan()["day_starts_at"]), learner.zone()
+    )
     data = session.summary(learner, catalog, compute(learner, catalog, day))
+    linked = remote.describe(learner.root)
+    if linked is not None:
+        data["sync"] = linked
     for line in render_summary(data):
         print(line)
     if not any(data["left"].values()):
@@ -1195,8 +1542,30 @@ def start_screen() -> int:
     except (EOFError, KeyboardInterrupt):
         return 0
     if key == "":
-        drill.run(learner, catalog, day)
+        run_drill(learner, catalog, day, lambda: Catalog().installed())
     return 0
+
+
+# a linked folder fetches before these commands and sends after the others
+SYNC_BEFORE = frozenset({"today", "next", "status", "drill", "plan", "words"})
+# commands that write, including the changes a terminal approves at once (plan set, words
+# add, doctor, import), whose previews in --json mode need nothing and change nothing
+SYNC_AFTER = frozenset(
+    {"answer", "grade", "regrade", "flag", "note", "commit", "plan", "words", "doctor", "import"}
+)
+
+
+def auto_sync(ctx: Context) -> dict[str, Any] | None:
+    """The synchronisation around a command of a linked folder; nothing for other folders."""
+    try:
+        learner = ctx.learner()
+    except VocabError:
+        return None
+    result = remote.auto(learner.root, session.now_utc(), _installed(ctx))
+    if result is not None and result.get("received"):
+        learner.forget()
+        ctx._catalog = None
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1210,7 +1579,13 @@ def main(argv: list[str] | None = None) -> int:
             return 1
     ctx = Context(args=args, now=session.now_utc())
     try:
+        if args.command in SYNC_BEFORE:
+            auto_sync(ctx)
         data = args.handler(ctx)
+        if args.command in SYNC_AFTER or (args.command == "today" and (args.extra or args.reviews)):
+            done = auto_sync(ctx)
+            if args.command == "commit" and done is not None:
+                data["sync"] = done
     except VocabError as exc:
         if args.json:
             print(json.dumps({"ok": False, "error": exc.as_dict()}, ensure_ascii=False, indent=1))

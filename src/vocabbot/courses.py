@@ -80,6 +80,36 @@ def audio_url(name: str) -> str:
 GAP = "___"
 
 
+def _rank(row: dict[str, Any]) -> int:
+    rank = row.get("rank")
+    return rank if isinstance(rank, int) and not isinstance(rank, bool) else -1
+
+
+def own_order(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The rows of own.jsonl in an order that does not depend on the order of the file.
+
+    Two devices joined to one account append each other's rows in different
+    orders, so the order comes from the rows: their rank (a row without one
+    takes the rank of the row before it, as `words add` wrote them together),
+    own words before the course words moved forward, then the id.
+    """
+    keyed = []
+    last = 0
+    for row in rows:
+        rank = _rank(row)
+        if rank < 0:
+            rank = last
+        last = rank
+        name = str(row.get("ref") or row.get("id") or "")
+        keyed.append(((rank, 1 if "ref" in row else 0, name), row))
+    return [row for _, row in sorted(keyed, key=lambda item: item[0])]
+
+
+def own_rank(rows: list[dict[str, Any]]) -> int:
+    """The highest rank of the rows of own.jsonl, so the next words come after all of them."""
+    return max((_rank(row) for row in rows), default=0)
+
+
 def card_id(entry_id: str, direction: str) -> str:
     return f"{entry_id}#{direction}"
 
@@ -157,7 +187,7 @@ class Catalog:
                             self.problems.append(
                                 f"{folder.name}/own.jsonl line {number} is damaged"
                             )
-                        for row in rows:
+                        for row in own_order(rows):
                             if "ref" in row:
                                 self._add_ref(row, folder.name)
                             else:

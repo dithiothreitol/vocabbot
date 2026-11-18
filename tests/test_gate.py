@@ -205,7 +205,8 @@ def test_damaged_rows_and_conflict_copies(tmp_path: Path, catalog: Catalog) -> N
     repair = doctor.repair_preview(learner, moment(MONDAY))
     gate.commit(repair["token"], pending(learner), moment(MONDAY, 1), via="token")
     assert learner.rows()[1] == []
-    assert len(learner.rows()[0]) == 2
+    # the rows of a conflict copy count before any merge (Stage 12)
+    assert len(learner.rows()[0]) == 3
     aside = list(learner.path("log").glob("damaged-*.txt"))
     assert len(aside) == 1
     assert aside[0].read_text("utf-8").startswith('{"ts": "2026-11-16T12:00:01')

@@ -51,7 +51,10 @@ asks in the host's own permission prompt before the engine saves a change.
 ## The learner's data
 
 The plan, the log of answers and the own words stay in a folder the learner
-chooses; [PRIVACY.md](PRIVACY.md) describes what is kept where.
+chooses. The learner may link the folder to an account on a VocabBot server
+(`vocabbot login`), which keeps the same record for a phone and other
+computers; the skill `vocab-start` explains the steps.
+[PRIVACY.md](PRIVACY.md) describes what is kept where.
 
 ## Licence
 

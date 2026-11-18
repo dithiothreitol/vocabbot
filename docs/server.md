@@ -21,6 +21,11 @@ server itself uses no model.
 | `/login` | the page where the learner signs in or opens an account with an invitation code |
 | `/`, `/privacy`, `/health` | the start page, the privacy note and the health check |
 | `/static/vocabbot.png`, `/favicon.ico` | VocabBot's avatar: the favicon of the pages and the icon the server names in its MCP information (`icons`) |
+| `/sync` | the synchronisation of a learning folder linked to the account (`vocabbot login`), with the same access token as `/mcp` |
+| `/device`, `/device/authorize`, `/device/token` | the program's sign-in with a code confirmed on another device (the device flow, RFC 8628) |
+| `/app/`, `/app/login`, `/api/<name>` | the session page in a browser, its sign-in and its calls of the engine |
+| `/account`, `/account/export` | the account page: connections, the data as a zip, the e-mail address, removing the account |
+| `/recover`, `/recover/<token>` | password recovery with a link sent to the e-mail address typed |
 
 - The tools run the commands of the `vocabbot` program on the account's
   folder (`learners/<account>/`) and return the same JSON as the plugin's
@@ -37,8 +42,10 @@ server itself uses no model.
 - After a sign-in, the server sends the learner back only to the addresses
   of Claude (`claude.ai`, `claude.com`), ChatGPT (`chatgpt.com`) and to the
   learner's own computer (`localhost`, `127.0.0.1`).
-- The learning day of every account starts in the server's time zone
-  (`Europe/Warsaw` by default) at the hour of the plan's `day_starts_at`.
+- The learning day of an account starts in the plan's time zone (the
+  setting `timezone`; a new account gets the zone its browser reports), and
+  for a plan without one in the server's zone (`Europe/Warsaw` by default),
+  always at the hour of the plan's `day_starts_at`.
 
 ## Running the server
 
@@ -99,6 +106,35 @@ accounts with the same program (in Docker, after
 `--open-signup` (or `VOCABBOT_OPEN_SIGNUP=1` in `deploy/.env`) lets anyone
 open an account without an invitation.
 
+## The session page, the account page and folders
+
+- **The session page** (`/app/`) runs the session in a browser, also on a
+  phone and from its home screen, without a chat application and without a
+  model: the day's cards with the choice of stage, typing and "pokaż" with
+  the learner's own grade, recordings, notes, words put aside, more words and
+  reviews, progress with an activity map and the forecast, changes of the
+  plan as previews and the first plan with a placement test. Every step runs
+  a command of the engine through `/api/<name>`, so a question comes without
+  its answer and the engine grades. The browser signs in on `/app/login` and
+  gets a session cookie for 30 days (`HttpOnly`, `SameSite=Strict`, `Secure`
+  on https); every write needs the form token and the server's own origin.
+- **The account page** (`/account`) lists the connected applications and
+  computers with their last use and disconnects any of them, gives the data
+  as a zip in the form of a learning folder, keeps an optional e-mail address
+  for password recovery (only as a scrypt hash) and removes the account after
+  the password.
+- **Learning folders.** `vocabbot login` signs the program in (through the
+  browser, or with a code confirmed on `/device`) and links a folder to the
+  account. `/sync` takes the lines the account lacks and returns the ones
+  the folder lacks; a line sent again adds nothing, and the server refuses a
+  row of an unknown card or one from the future. The tools and the
+  synchronisation of one account run one after another.
+- **Password recovery** needs an SMTP account: `VOCABBOT_SERVER_SMTP_HOST`,
+  `_PORT`, `_USER`, `_PASSWORD`, `_FROM` and `_SECURITY` (`starttls`, `ssl`
+  or `none`). The page `/recover` answers the same for every login and
+  address, and the link works once for 30 minutes. A server without these
+  settings asks for no address, and the administrator sets a new password.
+
 ## Connecting a chat application
 
 The server's address for every application is `https://<domain>/mcp`.
@@ -143,15 +179,17 @@ session as text, with a link to the recording beside the IPA.
 ## Data and privacy
 
 The server keeps the login, the password hash, the plan, the log of answers,
-own words and reports of mistakes in the course. It needs no e-mail address
-and no name. The chat application processes the conversation under its own
+own words, notes, reports of mistakes in the course, the account's time zone
+and the list of connected applications and computers with their last use.
+The e-mail address is optional and reaches the server only as a hash. The
+server needs no name. The chat application processes the conversation under its own
 terms and sends the server only the calls of VocabBot's tools. The page
 `/privacy` tells the learner the same in Polish.
 
 ## Checks
 
 ```
-uv run pytest tests/test_server.py
+uv run pytest tests/test_server.py tests/test_web.py tests/test_e2e.py
 ```
 
 The tests run the server over HTTP and connect the MCP SDK's own OAuth

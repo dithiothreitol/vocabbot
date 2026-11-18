@@ -34,6 +34,15 @@ mix-ups, the weekly review) or words (own words and reports of mistakes). Talk t
 learner in Polish."""
 
 
+def instructions(url: str) -> str:
+    """The server's instructions with its address, so the model can name the session page."""
+    return (
+        INSTRUCTIONS
+        + f" Outside the chat the learner can also learn on this server's session page,"
+        f" {url}/app/, and manage the account at {url}/account."
+    )
+
+
 def _read(name: str) -> str:
     return (resources.files("vocabbot.server") / "guides" / name).read_text(encoding="utf-8")
 

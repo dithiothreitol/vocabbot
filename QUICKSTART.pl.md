@@ -122,15 +122,38 @@ ponieważ są już w nauce. Zapis następuje dopiero po potwierdzeniu.
   dopasowane parametry języka tylko tam, gdzie przewidują lepiej, i dopiero
   po potwierdzeniu.
 
-## 6. Dwa komputery
+## 6. Kilka urządzeń
 
-Folder nauki w folderze synchronizowanym działa na obu komputerach. Na
-drugim komputerze polecenie `vocabbot use <folder>` raz wskazuje go
-programowi, a opcja `--learner <folder>` albo zmienna `VOCABBOT_HOME` robią
-to samo dla jednego polecenia lub jednej powłoki. Kopie konfliktowe
-dziennika, które tworzy synchronizacja,
-wykrywa `vocabbot doctor`, a `vocabbot doctor --merge` łączy je po
-potwierdzeniu; połączony dziennik daje ten sam harmonogram.
+Zalecaną drogą jest konto na serwerze VocabBota, które przechowuje zapis
+nauki dla każdego urządzenia:
+
+- **Komputer.** `vocabbot login` loguje program przez przeglądarkę i łączy
+  folder nauki z kontem. Gdy folder i konto mają różne plany, wybierasz
+  opcją `--plan folder` albo `--plan account`; połączenie jest podglądem
+  z liczbą odpowiedzi po obu stronach i zapisuje się po potwierdzeniu. Na
+  komputerze bez folderu `vocabbot login` pobiera konto do `~/VocabBot`. Bez
+  przeglądarki na tym komputerze `vocabbot login --code` pokazuje kod do
+  potwierdzenia w telefonie.
+- **Na co dzień.** Folder synchronizuje się sam: pobiera przed `today`,
+  `next`, `drill` i `status`, a wysyła po każdej odpowiedzi. Bez sieci
+  odpowiedzi czekają w folderze; `vocabbot status` pokazuje ostatnią
+  synchronizację i to, co czeka, a `vocabbot sync` synchronizuje od razu.
+- **Telefon.** Aplikacja czatu połączona z serwerem albo strona sesji
+  serwera (`https://<serwer>/app/`) w przeglądarce, którą dodasz do ekranu
+  głównego. Sesja zaczęta na jednym urządzeniu toczy się dalej na innym od
+  tej samej karty.
+- **Strona konta** (`/account`) pokazuje połączone aplikacje i komputery
+  i je odłącza, pobiera dane jako archiwum zip (`vocabbot import <plik.zip>`
+  otwiera je jako folder), przechowuje opcjonalny adres e-mail do
+  odzyskania hasła i usuwa konto. `vocabbot logout` kończy połączenie
+  komputera.
+
+Bez konta folder nauki w folderze synchronizowanym działa na obu
+komputerach. Na drugim komputerze polecenie `vocabbot use <folder>` raz
+wskazuje go programowi, a opcja `--learner <folder>` albo zmienna
+`VOCABBOT_HOME` robią to samo dla jednego polecenia lub jednej powłoki.
+Wiersze kopii konfliktowych, które tworzy synchronizacja dysku, liczą się od
+razu, a `vocabbot doctor --merge` porządkuje pliki po potwierdzeniu.
 
 ## 7. Usunięcie
 

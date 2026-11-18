@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, replace
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from vocabbot.courses import CARD_ID
@@ -113,11 +113,21 @@ class Book:
 
 
 def valid_row(raw: dict[str, Any]) -> bool:
-    if not isinstance(raw.get("ts"), str) or not TS.match(raw["ts"]):
+    """A row the replay can use: a real day and time, a card id, a grade.
+
+    A row that fails (a hand-edited day such as 2026-02-30) is left out of the
+    replay instead of stopping it.
+    """
+    if not isinstance(raw.get("ts"), str) or not TS.fullmatch(raw["ts"]):
         return False
-    if not isinstance(raw.get("day"), str) or not DAY.match(raw["day"]):
+    if not isinstance(raw.get("day"), str) or not DAY.fullmatch(raw["day"]):
         return False
-    if not isinstance(raw.get("card"), str) or not CARD_ID.match(raw["card"]):
+    try:
+        date.fromisoformat(raw["day"])
+        datetime.strptime(raw["ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+        return False
+    if not isinstance(raw.get("card"), str) or not CARD_ID.fullmatch(raw["card"]):
         return False
     if raw.get("kind") == "regrade":
         return raw.get("grade") in GRADES[1:] and isinstance(raw.get("replaces"), str)

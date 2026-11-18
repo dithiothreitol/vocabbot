@@ -35,6 +35,9 @@ się na wersji 1.0.0-rc.4.
 | 11 | Dzień wolny i zaległości | dzień bez nauki, potem sesja | zaległe powtórki następnego dnia; prognoza się aktualizuje |
 | 12 | Dwa komputery | ten sam folder na drugim komputerze (`vocabbot use`) | wspólny stan; `vocabbot doctor` wykrywa kopie konfliktowe i łączy je po potwierdzeniu |
 | 13 | Harmonogram dopasowany do Ciebie | po dwóch tygodniach: `vocabbot status`, `vocabbot replay`, `vocabbot plan fit` | profil obecności zgadza się z Twoim tygodniem; dzień przed pomijanym dniem proponuje powtórki przed terminem; `plan fit` zapisuje parametry tylko przy wyniku lepszym niż FSRS-6 |
+| 14 | Konto na komputerze | `vocabbot login` z istniejącym folderem, potem `vocabbot login --code` na drugim komputerze | podgląd liczy odpowiedzi po obu stronach; przed potwierdzeniem nic się nie zmienia; drugi komputer pobiera konto; `status` pokazuje ostatnią synchronizację i 0 czekających wierszy |
+| 15 | Telefon w przeglądarce | strona `/app/` serwera w telefonie, dodana do ekranu głównego | karty dnia, „Pokaż” z kafelkami ocen, nagrania, notatki, postępy i plan; sesja toczy się dalej w terminalu od tej samej karty |
+| 16 | Bez sieci | odpowiedzi w terminalu przy wyłączonej sieci, potem przy włączonej | odpowiedzi czekają w folderze; następne polecenie je wysyła; strona konta pokazuje komputer z datą ostatniego użycia |
 
 ## Mierniki
 

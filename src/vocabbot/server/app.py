@@ -1,8 +1,10 @@
-"""The server: the MCP endpoint with VocabBot's tools, the OAuth endpoints and the sign-in page.
+"""The server: the MCP endpoint with VocabBot's tools, OAuth, the browser and /sync.
 
 `/mcp` answers only with a valid access token; the token names the account,
 and every tool works on that account's folder. The tools take the same
-arguments as the program's commands and return the same JSON.
+arguments as the program's commands and return the same JSON. `/sync` joins a
+learner's folder linked to the account (`vocabbot login`), and web.py serves
+the session page, the account page, password recovery and device codes.
 """
 
 from __future__ import annotations
@@ -33,8 +35,9 @@ from vocabbot import __version__
 from vocabbot.server import guides, pages
 from vocabbot.server.accounts import Registry
 from vocabbot.server.config import SCOPE, Settings
-from vocabbot.server.oauth import Provider, SignIn
+from vocabbot.server.oauth import Devices, Provider, SignIn, Throttle
 from vocabbot.server.service import ASSIGNMENT, Service
+from vocabbot.server.web import Web, sync_route
 
 READ = ToolAnnotations(
     read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
@@ -94,8 +97,9 @@ class Tools:
     async def setup(self, languages: list[str], new_per_day: int, settings: list[str]) -> str:
         account = _account()
         self.registry.touch(account, time.time())
+        zone = self.registry.timezone(account)
         data = await anyio.to_thread.run_sync(
-            self.service.setup, account, languages, new_per_day, settings
+            self.service.setup, account, languages, new_per_day, settings, zone
         )
         return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
 
@@ -483,7 +487,7 @@ def build(settings: Settings) -> Starlette:
     server: MCPServer = MCPServer(
         name="vocabbot",
         title="VocabBot",
-        instructions=guides.INSTRUCTIONS,
+        instructions=guides.instructions(settings.url),
         website_url=settings.url,
         # the avatar the chat application may show beside the server's name
         icons=[Icon(src=f"{settings.url}{pages.ICON}", mime_type="image/png", sizes=["512x512"])],
@@ -493,7 +497,8 @@ def build(settings: Settings) -> Starlette:
         extensions=[apps],
     )
     register(server, Tools(service, registry))
-    sign_in = SignIn(registry, settings)
+    throttle = Throttle()
+    sign_in = SignIn(registry, settings, throttle)
     resource_metadata = ProtectedResourceMetadata.model_validate(
         {
             "resource": settings.resource,
@@ -581,4 +586,9 @@ def build(settings: Settings) -> Starlette:
             methods=["GET", "OPTIONS"],
         )
     )
+    # the browser (the session page, the account, recovery, device codes) and the folders
+    web = Web(registry, settings, service, Devices(registry, settings, provider), throttle)
+    app.router.routes.extend(web.routes())
+    app.router.routes.append(sync_route(registry, settings, service, provider))
+    app.state.web = web
     return app

@@ -57,6 +57,12 @@ Claude and Codex that runs the same session in a chat.
   recall and the order of languages are settings of a plan. Every change of
   the plan or of the learner's own words is a preview first and is written
   only after the learner's yes.
+- **Devices.** An account on a VocabBot server is the learner's record on
+  every device. `vocabbot login` links a computer's learning folder to it,
+  and the folder then synchronises by itself and works without a network;
+  the server's session page (`/app/`) runs the same session in a phone's
+  browser without a chat application. A session begun on one device goes on
+  on another at the same card.
 
 ## Courses
 
@@ -111,8 +117,10 @@ The server for chat applications, with accounts for many learners, runs on
 your own machine with Docker; Claude on the web and on the phone, ChatGPT,
 Claude Code and Codex connect to it as to a remote MCP server. In Claude
 and ChatGPT the session also shows a card with the day's counter and a button
-that plays the word's recording. [docs/server.md](docs/server.md) describes
-the setup and the connection.
+that plays the word's recording. The same server has a session page for the
+browser (`/app/`, also on a phone), an account page and the synchronisation
+of learning folders (`vocabbot login`). [docs/server.md](docs/server.md)
+describes the setup and the connection.
 
 ## Documents
 

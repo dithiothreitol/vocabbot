@@ -8,7 +8,9 @@
 
 Every option has an environment variable as its default (VOCABBOT_SERVER_URL,
 VOCABBOT_SERVER_DATA, VOCABBOT_SERVER_TIMEZONE, VOCABBOT_SERVER_OPEN_SIGNUP),
-which suits a container.
+which suits a container. Password recovery by e-mail needs an SMTP account:
+VOCABBOT_SERVER_SMTP_HOST, _PORT, _USER, _PASSWORD, _FROM and _SECURITY
+(starttls, ssl or none); the password comes only from the environment.
 """
 
 from __future__ import annotations
@@ -92,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         from vocabbot.server.accounts import Registry, SignupError
-        from vocabbot.server.config import Settings
+        from vocabbot.server.config import Mail, Settings
     except ImportError:
         print(MISSING, file=sys.stderr)
         return 2
@@ -108,9 +110,24 @@ def main(argv: list[str] | None = None) -> int:
         if not args.url:
             print("serve needs --url (or VOCABBOT_SERVER_URL)", file=sys.stderr)
             return 2
+        env = os.environ.get
         try:
+            mail = Mail(
+                host=env("VOCABBOT_SERVER_SMTP_HOST", ""),
+                port=int(env("VOCABBOT_SERVER_SMTP_PORT", "587") or 587),
+                user=env("VOCABBOT_SERVER_SMTP_USER", ""),
+                password=env("VOCABBOT_SERVER_SMTP_PASSWORD", ""),
+                sender=env("VOCABBOT_SERVER_SMTP_FROM", ""),
+                security=env("VOCABBOT_SERVER_SMTP_SECURITY", "starttls") or "starttls",
+            )
+            if mail.security not in ("starttls", "ssl", "none"):
+                raise ValueError("VOCABBOT_SERVER_SMTP_SECURITY is starttls, ssl or none")
             settings = Settings(
-                url=args.url, data=data, timezone=args.timezone, open_signup=args.open_signup
+                url=args.url,
+                data=data,
+                timezone=args.timezone,
+                open_signup=args.open_signup,
+                mail=mail,
             )
         except (ValueError, KeyError) as exc:
             print(f"vocabbot-server: {exc}", file=sys.stderr)

@@ -3,22 +3,29 @@
     registers/plan.json        languages, levels, weights, limits, retention, days off
     registers/day.json         new words and reviews added to one day
     registers/.pending/        previews waiting for a confirm token
+    registers/sync.json        the link to an account on a server and how far it reached
     log/reviews.jsonl          one row per graded answer, never rewritten
     log/decisions.md           one line per approved change of the plan or a course
     log/flags.jsonl            reported mistakes in course entries and words put aside
     log/notes.jsonl            the learner's own notes for words
+    log/plan.jsonl             one row per approved change of the plan, for joining devices
     courses/<lang>/own.jsonl   the learner's own words
 
 Files are written with LF line endings and UTF-8; the plan is replaced
-atomically, the logs only grow.
+atomically, the logs only grow. Rows of a log are read in the order of the
+log (day, time, card) whatever their order in the file, since rows fetched
+from another device go to the end of the file; conflict copies a sync service
+leaves beside a log are read with it.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
+import threading
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, tzinfo
+from datetime import date, datetime, timedelta, timezone, tzinfo
 from pathlib import Path
 from typing import Any
 
@@ -28,13 +35,16 @@ PLAN = "registers/plan.json"
 DAY = "registers/day.json"
 DAY_SETTINGS = ("extra_new", "extra_reviews")
 PENDING = "registers/.pending"
+SYNC = "registers/sync.json"
 REVIEWS = "log/reviews.jsonl"
 DECISIONS = "log/decisions.md"
 FLAGS = "log/flags.jsonl"
 NOTES = "log/notes.jsonl"
+PLAN_LOG = "log/plan.jsonl"
 NOTE_MAX = 500
 OWN = "courses/{lang}/own.jsonl"
 CONFIG = "config.json"
+ZONE_NAME = re.compile(r"(?:UTC|[A-Za-z][A-Za-z0-9_+\-]*(?:/[A-Za-z0-9_+\-]+){0,2})")
 
 LEVELS = ("a1", "a2", "b1", "b2")
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -72,6 +82,9 @@ DEFAULT_PLAN: dict[str, Any] = {
     "sentence_translation": "hidden",
     # the day a card comes back, with the result of an answer
     "next_review": "shown",
+    # the time zone of the learning day (an IANA name); empty: the computer's own zone,
+    # and on a server the server's zone
+    "timezone": "",
     "parameters": {},
     "parameters_info": {},
 }
@@ -119,6 +132,58 @@ def parameter_problems(parameters: Any) -> list[str]:
         elif any(not lo <= v <= hi for v, lo, hi in zip(values, LOWER, UPPER, strict=True)):
             problems.append(f"parameters.{code} lie outside the bounds of FSRS-6")
     return problems
+
+
+def zone_problem(name: Any) -> str | None:
+    """What is wrong with a time zone of the plan; None for a zone or an empty value.
+
+    The name must be spelled exactly as in the IANA list (a system that does not
+    tell capitals apart would otherwise accept a name another system refuses). A
+    system without zone data at all (Windows without the tzdata package) accepts
+    a name of the right form, and the day then follows the computer's own zone.
+    """
+    if name == "":
+        return None
+    if not isinstance(name, str) or not ZONE_NAME.fullmatch(name):
+        return "timezone must be an IANA time zone such as Europe/Warsaw, or empty"
+    if name == "UTC":
+        return None
+    known = _zone_names()
+    if not known:
+        return None
+    if name in known:
+        return None
+    spelled = next((item for item in known if item.lower() == name.lower()), None)
+    if spelled:
+        return f"timezone {name} is spelled {spelled}"
+    return f"timezone {name} is not a known time zone"
+
+
+_ZONES: set[str] | None = None
+
+
+def _zone_names() -> set[str]:
+    """The IANA names this system knows (read once per process)."""
+    global _ZONES
+    if _ZONES is None:
+        from zoneinfo import available_timezones
+
+        _ZONES = set(available_timezones())
+    return _ZONES
+
+
+def zone(name: Any) -> tzinfo | None:
+    """The time zone of a name; None for an empty or unknown name."""
+    if not isinstance(name, str) or not name:
+        return None
+    if name.upper() == "UTC":
+        return timezone.utc
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError, OSError):
+        return None
 
 
 def config_dir() -> Path:
@@ -220,10 +285,31 @@ def append_jsonl(path: Path, row: dict[str, Any]) -> int:
     return len(data)
 
 
+def append_lines(path: Path, lines: list[str]) -> int:
+    """Append lines of text, each ended with LF; returns the bytes written."""
+    if not lines:
+        return 0
+    path.parent.mkdir(parents=True, exist_ok=True)
+    prefix = b""
+    if path.is_file() and path.stat().st_size:
+        with path.open("rb") as fh:
+            fh.seek(-1, os.SEEK_END)
+            if fh.read(1) != b"\n":
+                prefix = b"\n"
+    data = prefix + "".join(line.rstrip("\r\n") + "\n" for line in lines).encode("utf-8")
+    with path.open("ab") as fh:
+        fh.write(data)
+        fh.flush()
+        if os.environ.get("VOCABBOT_FSYNC", "1") != "0":
+            os.fsync(fh.fileno())
+    return len(data)
+
+
 def write_text(path: Path, text: str) -> None:
     """Replace a file atomically, UTF-8 with LF line endings."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f"{path.name}.tmp-{os.getpid()}")
+    # one name per process and thread: a background synchronisation writes beside a session
+    temporary = path.with_name(f"{path.name}.tmp-{os.getpid()}-{threading.get_ident()}")
     temporary.write_bytes(text.replace("\r\n", "\n").encode("utf-8"))
     os.replace(temporary, path)
 
@@ -232,12 +318,52 @@ def dump_json(data: Any) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
 
 
+def canonical(row: dict[str, Any]) -> str:
+    """One text per row, whatever the order of its keys: what tells two rows apart."""
+    return json.dumps(row, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def log_order(row: dict[str, Any]) -> tuple[str, str, str]:
+    """The order of the review log: day, time, card (book.order_key for any row)."""
+    day, ts, card = row.get("day"), row.get("ts"), row.get("card")
+    if isinstance(day, str) and isinstance(ts, str):
+        return (day, ts, card if isinstance(card, str) else "")
+    return ("", "", "")
+
+
+def read_joined(path: Path, copies: list[Path]) -> tuple[list[dict[str, Any]], list[int]]:
+    """Rows of a log and of its conflict copies, each row once; damaged lines of the main file."""
+    rows, damaged = read_jsonl(path)
+    if not copies:
+        return rows, damaged
+    seen = {canonical(row) for row in rows}
+    for copy in copies:
+        for row in read_jsonl(copy)[0]:
+            key = canonical(row)
+            if key not in seen:
+                seen.add(key)
+                rows.append(row)
+    return rows, damaged
+
+
+def copies_of(root: Path, relative: str) -> list[Path]:
+    """The conflict copies of one log of the folder."""
+    main = root / relative
+    stem, suffix = main.name.rsplit(".", 1)
+    return [
+        p
+        for p in conflict_copies(root)
+        if p.parent == main.parent and p.name.startswith(stem) and p.name.endswith("." + suffix)
+    ]
+
+
 def conflict_copies(root: Path) -> list[Path]:
     """Copies a sync service left next to a file it could not merge."""
     found: list[Path] = []
     checks = [(root / "registers", "plan", ".json"), (root / "log", "reviews", ".jsonl")]
     checks.append((root / "log", "flags", ".jsonl"))
     checks.append((root / "log", "notes", ".jsonl"))
+    checks.append((root / "log", "plan", ".jsonl"))
     courses = root / "courses"
     if courses.is_dir():
         checks += [
@@ -308,6 +434,9 @@ def plan_problems(plan: dict[str, Any], installed: dict[str, list[str]]) -> list
         if plan.get(key) not in options:
             problems.append(f"{key} must be one of {', '.join(options)}")
     problems += parameter_problems(plan.get("parameters"))
+    zone_issue = zone_problem(plan.get("timezone", ""))
+    if zone_issue:
+        problems.append(zone_issue)
     limit = plan.get("review_limit")
     if limit is not None and (
         isinstance(limit, bool) or not isinstance(limit, int) or not 10 <= limit <= 1000
@@ -402,20 +531,26 @@ def _stat_key(path: Path) -> tuple[int, int] | None:
     return (st.st_size, st.st_mtime_ns)
 
 
+def _by_time(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Rows of reports or notes in the order of time, where the last row of an entry holds."""
+    return sorted(rows, key=lambda row: str(row.get("ts", "")))
+
+
 @dataclass
 class Learner:
     """One learner's folder.
 
-    The review log is read once per process and kept in memory; rows this
-    process appends are added to that copy, and any other change of the file
-    (size or time) makes the next read start again from the file.
+    The review log is read once per process and kept in memory in the order of
+    the log; rows this process appends are added to that copy, and any other
+    change of the file or of its conflict copies makes the next read start
+    again from the files.
     """
 
     root: Path
     _plan: dict[str, Any] | None = field(default=None, repr=False)
     _rows: list[dict[str, Any]] | None = field(default=None, repr=False)
     _damaged: list[int] = field(default_factory=list, repr=False)
-    _rows_key: tuple[int, int] | None = field(default=None, repr=False)
+    _rows_key: tuple[Any, ...] | None = field(default=None, repr=False)
     cache: dict[str, Any] = field(default_factory=dict, repr=False)
 
     def path(self, relative: str) -> Path:
@@ -432,19 +567,39 @@ class Learner:
             self._plan = complete_plan(raw)
         return self._plan
 
+    def forget(self) -> None:
+        """Read the plan and the log again from the files (after a synchronisation)."""
+        self._plan = None
+        self._rows = None
+        self.cache.clear()
+
+    def zone(self) -> tzinfo | None:
+        """The time zone of the plan's learning day; None: the computer's own zone."""
+        return zone(self.plan().get("timezone", ""))
+
+    def _log_key(self) -> tuple[Any, ...]:
+        copies = copies_of(self.root, REVIEWS)
+        return (_stat_key(self.path(REVIEWS)), *((str(p), _stat_key(p)) for p in copies))
+
     def rows(self) -> tuple[list[dict[str, Any]], list[int]]:
-        """Rows of the review log (do not change the list) and its damaged line numbers."""
-        path = self.path(REVIEWS)
-        key = _stat_key(path)
+        """Rows of the review log in its order (do not change the list) and damaged line numbers.
+
+        Rows of conflict copies of the log count as rows of the log.
+        """
+        key = self._log_key()
         if self._rows is None or key != self._rows_key:
-            self._rows, self._damaged = read_jsonl(path)
+            rows, self._damaged = read_joined(
+                self.path(REVIEWS), list(copies_of(self.root, REVIEWS))
+            )
+            self._rows = sorted(rows, key=log_order)
             self._rows_key = key
         return self._rows, self._damaged
 
     def append_review(self, row: dict[str, Any]) -> None:
+        """Append a row; it is the latest of the log, so the copy in memory stays in order."""
         path = self.path(REVIEWS)
-        current = self._rows is not None and _stat_key(path) == self._rows_key
-        size = self._rows_key[0] if self._rows_key else 0
+        current = self._rows is not None and self._log_key() == self._rows_key
+        before = _stat_key(path)
         written = append_jsonl(path, row)
         after = _stat_key(path)
         if (
@@ -452,15 +607,16 @@ class Learner:
             and self._rows is not None
             and not self._damaged
             and after is not None
-            and after[0] == size + written
+            and after[0] == (before[0] if before else 0) + written
+            and (not self._rows or log_order(self._rows[-1]) <= log_order(row))
         ):
             self._rows.append(row)
-            self._rows_key = after
+            self._rows_key = self._log_key()
         else:
             self._rows = None
 
     def flags(self) -> list[dict[str, Any]]:
-        return read_jsonl(self.path(FLAGS))[0]
+        return _by_time(read_joined(self.path(FLAGS), copies_of(self.root, FLAGS))[0])
 
     def flag_states(self) -> dict[str, str]:
         """Entries out of the queue: "report" (a mistake reported) or "skip" (put aside).
@@ -489,7 +645,7 @@ class Learner:
     def notes(self) -> dict[str, str]:
         """The learner's notes by entry: the last row of an entry holds, `clear` removes it."""
         notes: dict[str, str] = {}
-        for row in read_jsonl(self.path(NOTES))[0]:
+        for row in _by_time(read_joined(self.path(NOTES), copies_of(self.root, NOTES))[0]):
             entry = row.get("entry")
             if not isinstance(entry, str):
                 continue
@@ -499,6 +655,14 @@ class Learner:
             else:
                 notes[entry] = text
         return notes
+
+    def day_register(self) -> dict[str, Any]:
+        """registers/day.json: the day and what the learner added to it, or an empty dict."""
+        try:
+            data = json.loads(self.path(DAY).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
 
     def _day_setting(self, day: date, key: str) -> int:
         try:

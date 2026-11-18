@@ -34,6 +34,9 @@ on version 1.0.0-rc.4.
 | 11 | A day off and a backlog | a day without learning, then a session | the reviews come on the next day; the forecast follows |
 | 12 | Two computers | the same folder on a second computer (`vocabbot use`) | one shared state; `vocabbot doctor` finds conflict copies and joins them after a yes |
 | 13 | A schedule fitted to you | after two weeks: `vocabbot status`, `vocabbot replay`, `vocabbot plan fit` | the presence profile matches your week; the day before a skipped day offers reviews ahead; `plan fit` saves parameters only with a better score than FSRS-6 |
+| 14 | The account on a computer | `vocabbot login` with an existing folder, then `vocabbot login --code` on a second computer | the preview counts the answers on both sides; nothing changes before the yes; the second computer downloads the account; `status` shows the last synchronisation and 0 rows waiting |
+| 15 | The phone in a browser | the server's `/app/` on your phone, added to the home screen | the day's cards, "Pokaż" with the grade tiles, recordings, notes, progress and the plan; the session goes on in the terminal at the same card |
+| 16 | Without a network | answers in the terminal with the network off, then on | the answers wait in the folder; the next command sends them; the account page lists the computer with its last use |
 
 ## Measures
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -19,7 +20,7 @@ from datetime import date, timezone, tzinfo
 from pathlib import Path
 from typing import Any, NoReturn
 
-from vocabbot import cli, plans, session, store
+from vocabbot import cli, plans, session, store, sync
 from vocabbot.courses import Catalog
 from vocabbot.errors import VocabError
 from vocabbot.server.config import Settings
@@ -54,7 +55,10 @@ class RemoteContext(cli.Context):
         return self.base if self.base is not None else Catalog()
 
     def day(self) -> date:
-        return store.learning_day(self.now, int(self.learner().plan()["day_starts_at"]), self.tz)
+        """The learning day in the plan's time zone, or in the server's for a plan without one."""
+        learner = self.learner()
+        zone = learner.zone() or self.tz
+        return store.learning_day(self.now, int(learner.plan()["day_starts_at"]), zone)
 
     def interactive(self) -> bool:
         return False
@@ -101,10 +105,55 @@ class Service:
             )
             return self._run(lambda: args.handler(ctx), root)
 
+    def sync(self, account: str, payload: dict[str, Any], login: str, zone: str) -> dict[str, Any]:
+        """One synchronisation of a linked folder with the account (see vocabbot.sync)."""
+        root = self.folder(account)
+        zone = zone if zone and store.zone_problem(zone) is None else self.settings.timezone
+        expected = payload.get("account")
+        if isinstance(expected, str) and expected and expected != login:
+            # a folder linked to another account never joins this one
+            error = VocabError("other_account", login=login, linked=expected)
+            return {"ok": False, "error": error.as_dict()}
+        with self._lock(account):
+            try:
+                out = sync.serve(
+                    root,
+                    payload,
+                    lambda: Catalog(learner=root, base=self.base),
+                    self.base.installed(),
+                    session.now_utc(),
+                    zone=zone,
+                )
+            except VocabError as exc:
+                return {"ok": False, "error": exc.as_dict()}
+            except OSError as exc:
+                error = VocabError("io_error", path="", detail=exc.strerror or str(exc))
+                return {"ok": False, "error": error.as_dict()}
+        out["ok"] = True
+        out["account"] = {"login": login, "timezone": zone}
+        return out
+
+    def export(self, account: str) -> bytes | None:
+        """The account's record as a zip in the form of a learner's folder; None without a plan."""
+        root = self.folder(account)
+        with self._lock(account):
+            if not (root / store.PLAN).is_file():
+                return None
+            return sync.archive(root, session.now_utc())
+
     def setup(
-        self, account: str, languages: list[str], new_per_day: int, assignments: list[str]
+        self,
+        account: str,
+        languages: list[str],
+        new_per_day: int,
+        assignments: list[str],
+        zone: str = "",
     ) -> dict[str, Any]:
-        """The preview of the account's first plan; `commit` with its token saves it."""
+        """The preview of the account's first plan; `commit` with its token saves it.
+
+        `zone` is the account's time zone (read from the browser at sign-up); the plan
+        gets it unless the settings name another.
+        """
         root = self.folder(account)
         with self._lock(account):
             if (root / store.PLAN).is_file():
@@ -115,6 +164,9 @@ class Service:
                 if not ASSIGNMENT.match(assignment):
                     error = VocabError("bad_assignment", value=assignment[:80])
                     return self._out({"ok": False, "error": error.as_dict()}, root)
+            named = any(a.startswith("timezone=") for a in assignments)
+            if zone and store.zone(zone) is not None and not named:
+                assignments = [*assignments, f"timezone={zone}"]
             if not languages:
                 error = VocabError("bad_language_spec", value="")
                 return self._out({"ok": False, "error": error.as_dict()}, root)
@@ -133,6 +185,11 @@ class Service:
                 root,
             )
 
+    def remove(self, account: str) -> None:
+        """Delete the account's folder, after any call of the account that runs now."""
+        with self._lock(account):
+            shutil.rmtree(self.folder(account), ignore_errors=True)
+
     def _run(self, work: Callable[[], dict[str, Any]], root: Path) -> dict[str, Any]:
         try:
             data = work()
@@ -142,6 +199,10 @@ class Service:
             error = VocabError(
                 "io_error", path=str(exc.filename or ""), detail=exc.strerror or str(exc)
             )
+            return self._out({"ok": False, "error": error.as_dict()}, root)
+        except Exception as exc:  # one account's damaged data never takes the server down
+            print(f"vocabbot-server: a call failed: {exc!r}", flush=True)
+            error = VocabError("server_error", detail=type(exc).__name__)
             return self._out({"ok": False, "error": error.as_dict()}, root)
         return self._out({"ok": bool(data.get("ok", True)), **data}, root)
 

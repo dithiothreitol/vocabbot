@@ -9,6 +9,9 @@ chmod 644 compose.yml vocabbot.caddy
 chmod 755 backup.sh
 mkdir -p data backups
 chown 10001:10001 data
+# the SMTP settings come from scripts/deploy_vps.sh when it is given them; otherwise they stay
+touch smtp.env
+chmod 600 smtp.env
 
 umask 077
 cat > .env <<EOF

@@ -53,11 +53,11 @@ def check(learner: store.Learner, catalog: Catalog, now: datetime) -> dict[str, 
 
 
 def merge_preview(learner: store.Learner, now: datetime) -> dict[str, Any]:
-    """Join conflict copies of the review log, the flags and the notes into the main files."""
+    """Join conflict copies of the review log, the flags, the notes and the plan's history."""
     changes: list[gate.Change] = []
     lines: list[str] = []
     damaged: list[bytes] = []
-    for name in (store.REVIEWS, store.FLAGS, store.NOTES):
+    for name in (store.REVIEWS, store.FLAGS, store.NOTES, store.PLAN_LOG):
         main = learner.path(name)
         stem = main.name.rsplit(".", 1)[0]
         copies = [

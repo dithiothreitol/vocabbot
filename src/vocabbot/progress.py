@@ -21,6 +21,7 @@ FORECAST_MAX = 365
 RECENT_DAYS = 7
 RECENT_MAX = 40
 CONFUSIONS_MAX = 20
+ACTIVITY_DAYS = 84  # twelve weeks of answers per day, for the activity of the session page
 
 
 def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any]:
@@ -112,6 +113,15 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
     while cursor in learned_days:
         streak += 1
         cursor -= timedelta(days=1)
+    per_day = Counter(row.day for row in book.rows)
+    first = day - timedelta(days=ACTIVITY_DAYS - 1)
+    activity = [
+        {
+            "day": (first + timedelta(days=n)).isoformat(),
+            "answers": per_day.get(first + timedelta(days=n), 0),
+        }
+        for n in range(ACTIVITY_DAYS)
+    ]
     states = learner.flag_states()
     out_of_queue: dict[str, list[dict[str, Any]]] = {"skip": [], "report": []}
     for entry_id, kind in sorted(states.items()):
@@ -132,6 +142,7 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
         "skipped": out_of_queue["skip"],
         "reported": out_of_queue["report"],
         "streak_days": streak,
+        "activity": activity,
         "target_retention": plan["retention"],
         "schedule": schedule(dp),
     }

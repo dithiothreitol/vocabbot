@@ -30,7 +30,11 @@ stages. The release `v1.0.0-rc.3` is published on GitHub and on PyPI
 schedule fitted to the learner) ended with the release `v1.0.0-rc.4` on GitHub
 and on PyPI (15.11.2026). Stage 6 (the server for chat applications) ended
 with the release `v1.0.0-rc.5` on GitHub and on PyPI (15.11.2026), and the
-server runs at `https://vocab.archxs.com`. Version 1.0 still needs the pilot
+server runs at `https://vocab.archxs.com`. You accepted Stages 12 and 13 (the
+account as the shared learning record on every device, and the session in a
+phone's browser) on 18.11.2026, and on the same day I carried them out
+together as version `1.0.0-rc.11` (the commit, the release and the
+deployment wait for your approval). Version 1.0 still needs the pilot
 described in `docs/pilot.md`.
 
 ---
@@ -65,6 +69,10 @@ Version 1.0 is done when all conditions hold:
    `claude plugin validate --profile directory --strict`.
 7. The pilot, your own learning for at least two weeks in two or three
    languages, ends without blocking defects.
+8. A learner goes on learning on another device without manual steps: a
+   folder linked to the account synchronises by itself, and the session
+   works in a phone's browser without a chat application (Stages 12 and 13,
+   a condition added on 18.11.2026).
 
 ---
 
@@ -1679,7 +1687,411 @@ answer of a card waiting in the session.
 | a second sentence, collocations, recordings of sentences | a count of the coverage in the sources (Wiktionary, Tatoeba) and of the recordings' licences; an estimate of a model run before it starts |
 | images with the entries | a trial of how well images match on a sample of entries |
 | a week's summary and a calendar of reviews as screens | I know these screens of the SuperMemo application only from descriptions |
-| an own session page at `vocab.archxs.com` | the result of the card trials; a separate, larger stage |
+| an own session page at `vocab.archxs.com` | Stage 13 since 18.11.2026, by your decision before version 1.0 |
+
+### Stage 12. The account as the shared learning record
+
+I proposed Stage 12 on 18.11.2026 after your question about a shared folder
+for a computer and a phone, and about the most convenient way to go on
+learning on several devices. Status: accepted and carried out on 18.11.2026
+together with Stage 13 as version `1.0.0-rc.11`, the result below Stage 13.
+Your decisions of that day: the account on
+the server is the recommended path, and the folder without an account stays
+for people who do not want a server; synchronisation runs by itself after
+linking; Stage 13 comes before version 1.0; password recovery uses an
+optional e-mail address. The stage ends with version `1.0.0-rc.11`.
+
+After the stage the account on the server is the shared place of the record,
+and the learner's folder on a computer is its copy, which works without a
+network and synchronises by itself. The terminal, the plugin and the chat on
+a phone then show the same state.
+
+#### Basis of the scope
+
+| Topic | State in rc.10 | Source |
+|---|---|---|
+| two records | the learner's folder (terminal, plugin) and the account on the server (chat on the web, in the application and on a phone) have no connection; the server has no import and no export | `store.py`, `server/service.py`, `docs/server.md` |
+| two computers | a synced drive, `vocabbot use` and a manual `doctor --merge`; both computers write to one `log/reviews.jsonl`, so the drive makes conflict copies | `QUICKSTART.md`, `doctor.py` |
+| merging | `book._apply` orders rows by day, time and card and works out the kind of a row itself, so the union of rows from any devices gives one schedule; reports and notes apply the last row of an entry | `book.py`, `store.py` |
+| order of rows in the file | `session._next_ts` takes the largest time in the log, not the file's last row; `presence.py` reads the last 500 rows and `queue.py` splits the rows for `extend`, so these two places need a check | code |
+| identifiers | a course entry has the id `<language>-<concept>` with the concept kept for good in `concepts.tsv`; an own word gets a random id `<language>-u<6 characters>`, so two devices do not give the same one | `tools/courses/build.py`, `words.py` |
+| the learning day | a computer counts the day in its own time zone, the server in one zone for every account; `_next_ts` refuses an answer when the log holds a row of a later day | `store.learning_day`, `session.py` |
+| the program's sign-in | after a sign-in the server also sends back to `localhost` and `127.0.0.1` | `server/config.py` |
+| the password | only the administrator sets a new password; the server knows no e-mail address | `docs/server.md` |
+
+#### Scope
+
+1. **Synchronisation on the server.** The address `/sync` takes the
+   account's access token, the same as `/mcp`. A device sends the rows it
+   added since the last synchronisation and says how many rows of the
+   account it already has. The server appends the rows it lacks and returns
+   the ones the device lacks.
+   - A row is told by its whole content, as in `doctor --merge`, so sending
+     again doubles nothing.
+   - The server takes a row of the log when it passes `valid_row`, its card
+     exists in the course or in the account's own words, and its time is not
+     in the future. A request has a limit of size and of frequency.
+   - The tools and the synchronisation of one account run one after another,
+     under the same account lock.
+2. **How the data joins.**
+
+   | Data | How it joins |
+   |---|---|
+   | `log/reviews.jsonl`, `log/flags.jsonl`, `log/notes.jsonl` | the union of rows; fetched rows go to the end of the file, so the log still only grows, and `Learner.rows()` returns the rows in the log's order whatever their order in the file |
+   | `courses/<lang>/own.jsonl`, `log/decisions.md` | the union of rows |
+   | the plan | every approved change gets a row in the new `log/plan.jsonl` (the time and the settings changed); the last row of a setting holds, and after a synchronisation `registers/plan.json` is worked out from these rows and checked by `plan_problems` |
+   | `registers/day.json` | the larger of the numbers of the same day |
+   | `registers/.pending/` | stays on the device |
+
+3. **The program's sign-in.** `vocabbot login [ADDRESS]` opens the server's
+   sign-in page in the browser and receives the result on `127.0.0.1` (OAuth
+   with PKCE). Where there is no browser, the program shows an address and a
+   short code to confirm on another device. The learner types the password
+   only on the server's page. The tokens go to `~/.vocabbot/` with rights for
+   the owner only, never to the learner's folder or into a command's result.
+   `vocabbot logout` unlinks the folder from the account and revokes the
+   tokens.
+4. **Synchronisation by itself.** The program fetches before `today`,
+   `next`, `drill` and `status`, and sends after every write (`answer`,
+   `grade`, `regrade`, `flag`, `note`, `commit`, `today --extra`). The
+   terminal session sends in the background; a single command waits a few
+   seconds at most. Without a network the program works as before, and the
+   next command sends the waiting rows. `status` and `doctor` give the time
+   of the last synchronisation and the number of waiting rows;
+   `vocabbot sync` synchronises on request.
+5. **The first link and a new computer.** Linking a folder that already has
+   a log to an account that already has a log is a preview: the number of
+   rows on both sides, the number after joining, and the choice of the plan
+   (the folder's or the account's). It is saved after a confirmation, so the
+   same command imports the learning done in a folder into the account.
+   `vocabbot login` on a computer without a learner's folder downloads the
+   account into `~/VocabBot`.
+6. **The account page and moving the data.** After a sign-in the page
+   `/account` shows the linked devices and applications with the date of
+   their last use and a way to unlink them, a download of the data as an
+   archive in the format of a learner's folder, the e-mail address for
+   password recovery and the removal of the account. The program gets
+   `vocabbot export FILE` and `vocabbot import FILE` (the import as a
+   preview), so the record also moves between servers.
+7. **Password recovery through an optional e-mail.** The learner may give an
+   address when opening the account or on the account page. The server keeps
+   only a hash of the address (scrypt with the account's salt). The page
+   "nie pamiętam hasła" asks for the login and the address; when the hash
+   matches, the server sends a single-use link, valid for 30 minutes, to the
+   address typed. The page answers the same for every login and address. A
+   new password ends the account's connections, as
+   `vocabbot-server password` does. Sending uses `smtplib` and the settings
+   `VOCABBOT_SERVER_SMTP_*`; a server without them does not ask for an
+   address, and the administrator changes the password as before.
+8. **The account's time zone.** The plan's setting `timezone` (an IANA zone
+   name, for example `Europe/Warsaw`) sets the learning day on the server
+   and on every linked device. The page that opens an account reads the zone
+   from the browser, and accounts from before the stage get the server's
+   zone. The program reads the zone through `zoneinfo`; when the system has
+   no zone data (Windows without the `tzdata` package), it counts the day in
+   the computer's zone as before.
+9. **Matching versions.** A `/sync` request gives the version of the program
+   and of the course. A device with an older course keeps the rows of cards
+   it does not know, leaves them out of the queue and advises an update in
+   `status`.
+10. **The path without an account.** The program reads conflict copies of
+    the log, the reports and the notes together with the main files, so a
+    folder on a synced drive needs no manual merge. `doctor --merge` stays
+    for tidying the files.
+11. **Skills, guides and documents.** `vocab-start` offers to link the
+    folder to an account and leads through `login`; the rules in `rules/`
+    cover the state of synchronisation as numbers from the engine; the
+    server's guides follow the skills. `README`, `QUICKSTART`, `docs/server`,
+    `plugin/PRIVACY` and the page `/privacy` describe the account as the
+    recommended path, the data sent to the server (rows of the log with the
+    typed answers, notes, own words) and the optional e-mail address.
+
+What joining leads to, as the documents say outright:
+
+- The same card graded on two devices without a network: the earlier answer
+  moves the due date, the later one counts as drill.
+- Two devices without a network may together introduce more new words than
+  the plan's number a day; after a synchronisation `today` gives the real
+  number.
+- Two changes of the same setting of the plan without a network: the later
+  one holds.
+
+#### To check at the start of the stage
+
+- `presence.py` and `queue.py` after rows with an earlier time go to the end
+  of the file.
+- The network access of `vocabbot.pyz` in the sandboxes of Cowork and Codex.
+  A host without a network leaves the folder local, and the skill offers the
+  server's connector.
+- A sign-in with a short code in the authorization server of the MCP SDK.
+  When the SDK does not offer it, the program signs in only through
+  `127.0.0.1`, and the code comes as the server's own addresses.
+
+#### Files
+
+| Layer | Files |
+|---|---|
+| engine | the new `sync.py` (the request through `urllib`, cursors, joining), `store.py` (the order of rows, conflict copies in reading, `log/plan.jsonl`, `timezone`), `gate.py` and `plans.py` (the row of a plan change), `session.py`, `doctor.py`, `progress.py`, `cli.py` (`login`, `logout`, `sync`, `export`, `import`), `data/i18n/pl.json` |
+| terminal | `drill.py` (sending in the background, the state of synchronisation in the summary) |
+| server | `server/app.py` (`/sync`, `/account`, password recovery), `server/service.py`, `server/accounts.py` (the hash of the address, the links, the devices), `server/oauth.py`, `server/pages.py`, `server/config.py` (SMTP), `deploy/example.env` |
+| plugin | `rules/`, `vocab-start` (`SKILL.md`, `reference/`), the guides in `server/guides/`, the files generated by `scripts/build.py skills` |
+| documents | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/README`, `plugin/PRIVACY`, `CHANGELOG`, this plan; every document in English and in Polish |
+| tests | the new `tests/test_sync.py`, `test_engine.py`, `test_cli.py`, `test_drill.py`, `test_server.py`, a session for `session_test.py --check` |
+
+#### Completion criteria
+
+| Criterion | Check |
+|---|---|
+| convergence | a random test: three devices and an account; answers, notes, reports, own words and plan changes in a random order with synchronisation at random moments; after the last synchronisation every side has the same rows, the same card states and the same queue as one log |
+| repeatability | a send that was cut and repeated doubles no rows; a synchronisation from zero gives the same state |
+| the log only grows | after every synchronisation the earlier content of every log is the beginning of the new one |
+| work without a network | with the server out of reach the commands and the session work, `status` gives the number of waiting rows, and the next synchronisation sends them |
+| continuity of a session | a session begun in the terminal ends through the server's tools on the same card, and the other way round |
+| the same card on two devices | the earlier answer moves the due date, the later one is drill; the due date is the same on both sides |
+| the first link | a preview with the numbers of rows and the choice of the plan; without a confirmation neither side changes |
+| a new computer | `vocabbot login` in an empty environment gives a folder whose `today` matches the account |
+| safeguards of `/sync` | a refusal for a row of an unknown card, a row from the future, a request over the limit and another account's token; the token appears neither in the learner's folder nor in a command's result |
+| the time zone | a device and the server in different zones count the same learning day; missing zone data gives the computer's day without an error |
+| export and import | an account's archive opened as a learner's folder and imported into a second account gives the same card states |
+| password recovery | the same answer for every login and address; the link works once and for 30 minutes; the database holds only the hash of the address; a new password ends the account's connections |
+| the path without an account | a conflict copy of the log enters the card states without `doctor --merge` |
+| checks of the repository | `ruff`, `mypy`, `pytest` on Python 3.15 and 3.10, `validate.py`, `session_test.py --check`, `claude plugin validate --strict`; the engine stays on the standard library |
+
+#### Costs and decisions
+
+| Item | Cost | Approval |
+|---|---|---|
+| implementation and tests | no model costs | acceptance of the stage on 18.11.2026 |
+| a simulation with a model: linking a folder to an account through the skill and finishing the session in the chat | an estimate of 1–2 USD (Sonnet in Claude Code, a limit of 2 USD) | separate |
+| the server's SMTP account for password recovery | as the mail provider charges; you give the settings at deployment | separate, at deployment |
+| push, tag, release on GitHub, PyPI, deployment | none | separate for every step |
+
+### Stage 13. The session in a phone's browser
+
+I proposed Stage 13 on 18.11.2026 together with Stage 12. Status: accepted
+on 18.11.2026 with your decision that it comes before version 1.0, and
+carried out on the same day together with Stage 12. As you asked for the
+whole plan in as few sessions as possible, both stages went into one version
+`1.0.0-rc.11` instead of `rc.11` and `rc.12`.
+
+In rc.10 a phone has the session only in a chat application: every card
+takes a turn of the model and uses the limit of the learner's subscription.
+The session page gives what `vocabbot drill` gives, in a browser and without
+a model. The engine grades a typed answer, and self-assessment is the
+default since rc.10, so the session needs no model.
+
+#### Scope
+
+1. **The session page `/app`.** The learner signs in with the account, in
+   the same browser session as the account page of Stage 12. The card has
+   the layout of `card.html`: the day's counter, the three stages with their
+   numbers of cards, the Polish meaning and a sentence with a gap, an answer
+   field, "pokaż" with three grades (two in the drill), the sentence's
+   translation under a button, the recording, the note, putting a word
+   aside, a change of the grade of the previous answer, more new words,
+   another round of reviews and the day's summary.
+2. **The addresses `/api/…`.** Every address runs a command of the engine
+   through `Service.call`, as an MCP tool does, so the guarantees stay: a
+   question without its answer, the engine's grade, a change of the plan
+   through a preview and a token. The browser session uses a cookie with
+   `HttpOnly`, `Secure` and `SameSite=Strict`, and every write needs a CSRF
+   token. The CSP allows, beside the server, only the recordings from
+   `upload.wikimedia.org`.
+3. **The plan and progress.** The first plan (languages, levels, the number
+   of new words, days off, an optional placement test from `quiz`) and its
+   changes are made in a form as a preview with a confirmation. The results
+   of `status` and `forecast` have a screen of their own.
+4. **The phone's home screen.** A web application manifest and icons from
+   the avatar let the learner add the page to the home screen. The browser
+   stores the page's files alone; answers need a network.
+5. **Layout.** The page is made for a phone's width first. On a computer the
+   keyboard works (Enter, 1, 2, 3). The light and the dark theme follow the
+   system, and every text comes from `pl.json`.
+6. **Without a model.** The coach's explanations and own words from a text
+   or from photos stay in the chat.
+
+#### Files
+
+| Layer | Files |
+|---|---|
+| server | `server/app.py` (`/app`, `/api/…`), the new `server/web.py` (the browser session, CSRF), `server/pages.py`, `server/static/` (the session page, the manifest, icons), `data/i18n/pl.json` |
+| documents | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/PRIVACY`, `CHANGELOG`, this plan; every document in English and in Polish |
+| tests | `tests/test_server.py` and the new `tests/test_web.py` |
+
+#### Completion criteria
+
+| Criterion | Check |
+|---|---|
+| the same log | a whole learning day through `/api` gives the same rows as the same answers through the commands |
+| a question without its answer | no `/api` response with a question holds the word or the note, for every card of the day |
+| the browser session | a write without a CSRF token and a request from a foreign origin are refused; a second account does not see the first one's data; signing out ends the session |
+| continuity | a session cut short on the page ends in the terminal after a synchronisation, and the other way round |
+| the plan | the form saves a plan only after its preview is confirmed |
+| layout | a walk through the session in a browser at a width of 360 px and on a computer, in the light and the dark theme, without horizontal scrolling |
+| the phone | your check: adding to the home screen, a session and the recordings on your phone |
+| checks of the repository | `ruff`, `mypy`, `pytest` on Python 3.15 and 3.10, `validate.py`, `session_test.py --check`, `claude plugin validate --strict` |
+
+#### Costs and decisions
+
+| Item | Cost | Approval |
+|---|---|---|
+| implementation, tests, the walk in a browser | no model costs | acceptance of the stage on 18.11.2026 |
+| push, tag, release on GitHub, PyPI, deployment | none | separate for every step |
+
+#### Out of scope until trials
+
+| Topic | Confirmation missing |
+|---|---|
+| the session on the page without a network | it needs the day's list with the answers on the phone and grading in the browser; `/sync` of Stage 12 would take the rows; a decision after your learning on the page |
+| reminders of reviews on the phone | a trial of browser notifications on your phone |
+| an app from a store | the result of the pilot of the session page |
+
+#### Result of Stages 12 and 13 (18.11.2026, version 1.0.0-rc.11)
+
+Both stages came in one working session. The engine got the modules
+`sync.py` (streams of lines, the account's side and the folder's side,
+export and import) and `remote.py` (the program's sign-in, tokens, the way to
+`/sync`, the synchronisation around the commands), and the server got
+`web.py` (the browser's pages and `/api`) and `mail.py` (the link of password
+recovery).
+
+| Criterion | Result |
+|---|---|
+| convergence | a random test in the suite (3 runs) and a one-off check of 60 more runs: three devices and an account, answers, notes, words put aside and brought back, own words and changes of the plan in a random order with synchronisations at random moments; after the last synchronisation every side has the same rows, the same card states, the same queue of the day, the same plan, notes and reports |
+| repeatability | the same request sent again leaves the account's log as it was; a synchronisation from zero (without cursors and epoch) changes no log |
+| the log only grows | after every synchronisation the earlier content of the log on the devices and on the account is the beginning of the new one |
+| work without a network | with the server out of reach `remote.auto` keeps the failure in the link, `status` gives the number of waiting rows, for a minute the commands do not wait for the network, and the next synchronisation sends the rows |
+| continuity of a session | tests of the engine, over HTTP and end to end: the card the phone would show is the next card in the terminal; an answer in the browser reaches the folder before its next command |
+| the same card on two devices | the earlier answer moves the due date, the later one is drill; the state is the same on both sides |
+| the first link | a preview with the numbers of answers, notes and reports on both sides and after joining, and with the plan that stays; before the yes not even the link is written; with different plans `login` ends with the error `choose_plan` and both plans, and in a terminal the program asks itself |
+| a new computer | `vocabbot login` in an empty environment downloads the account and saves the pointer to the folder, and the counter of `today` matches the account |
+| safeguards of `/sync` | refusals for a row of an unknown card, from the future, damaged, not a row, over 5000 lines of one file in one request, without a token and with a forged token; a second account sees nothing of the first; the tokens are only in `~/.vocabbot/credentials.json`, never in a command's result |
+| the time zone | the plan's setting `timezone` sets the learning day in the program and on the server; a new account gets the browser's zone, and linking a folder without a zone gives it the account's zone |
+| export and import | the archive of the account page opened with `vocabbot import` gives the same rows and card states; an import into a folder with a plan adds only the missing rows and keeps the plan |
+| password recovery | the same page for every login and address; the link works once and for 30 minutes; the database holds only the hash of the address; a new password ends the connections and the browser's sessions |
+| the path without an account | rows of conflict copies of the log, the notes and the reports count without `doctor --merge` |
+| the same log through `/api` | a day of learning on the session page and the same answers through the commands give the same cards, grades, kinds of rows, error classes and days |
+| a question without its answer | no response of `/api/next` holds the word or the note of its card |
+| the browser session | a write without the form token or from a foreign origin is refused; a second account sees nothing of the first; signing out ends the session |
+| layout | a walk in Chromium at a width of 375 px in the light and the dark theme, from opening an account and the first plan through a question, "Pokaż" with the grade tiles, a result, a note, a change of stage, progress and a change of the plan to the screen of the day's end: no horizontal scrolling and no script errors |
+| end to end | separate processes of the server and of the program on two "computers" with their own config folders, and a "phone" over HTTP: an account with an invitation, a plan and answers on the session page, the account downloaded with a code confirmed on the phone, the same card in the terminal, a second folder linked with the account's plan, three equal logs, export and import, signing out seen on the account page |
+| checks of the repository | ruff, mypy, `validate.py`, `build.py skills --check`, `session_test.py --check` (8 of 8) and `claude plugin validate --strict` without remarks; tests: 304 on Python 3.15 and 276 on 3.10 (1 skipped without wordfreq) |
+
+Faults found by the tests and fixed:
+
+1. The order of own words followed the order of the rows of `own.jsonl`,
+   which differs between devices. It now follows the rank of a row, its kind
+   and its id, and a course word moved forward gets a rank of its own.
+2. A device whose change of the plan lost to a later change of another
+   device could keep its own plan. Every synchronisation now works the plan
+   out from its history.
+3. Chrome sends `Origin: null` under the policy `no-referrer`, so the check
+   of the origin refused forms of the server's own pages. The pages now send
+   `Referrer-Policy: same-origin`, and with `Origin: null` the server checks
+   `Sec-Fetch-Site`.
+4. The token revocation form of the MCP SDK needs the field `client_secret`
+   also from a public client; the program sends it empty.
+
+A code review (`/code-review`, 12 search angles, every fault verified on its
+own) reported 15 main faults and more than 30 smaller ones. I fixed all the
+main ones, each with a test:
+
+1. A row appended during an exchange in flight (an answer in the terminal
+   while the background sending runs) was recorded as sent and never reached
+   the account. The folder now counts as sent only what went, and the lines
+   fetched only when the file has exactly the expected layout.
+2. Signing the program in to another account of the same server silently
+   merged two learners' records. The folder now names its account, and the
+   server and the program refuse an exchange with another one
+   (`other_account`).
+3. An account or a folder with logs but without a plan (an account's plan
+   refused by the check) could be emptied by a new plan or an import. A new
+   plan now keeps the logs there, an import into such a folder refuses
+   (`folder_not_empty`), and downloading an account whose plan fails ends
+   with `account_plan_invalid`, asking for an update of the program.
+4. Rows refused for a passing reason (a clock ahead of the server, a course
+   or a version the account does not have yet) were lost. They now go again
+   with every synchronisation until the account takes them, and count as
+   waiting.
+5. A row with a day that does not exist (`2026-02-30`) or a plan row with a
+   value of the wrong type broke every later replay of the log. The engine
+   leaves such a row out of the replay, the server refuses it, and a fault
+   of one account no longer ends a call with a server error.
+6. The bodies of `/api` and `/sync` requests were read in full before their
+   size was checked. The server now reads them as a stream up to the limit.
+7. Conflict copies of the plan's history held back changes of the plan, a
+   copy of the log longer than one request never reached the account in full,
+   and an export left out the rows of copies. Copies of the plan's history now
+   count like the other logs and `doctor --merge` joins them, copies go in
+   further requests, and an export holds their rows.
+8. The session cookie alone changed the e-mail address for password recovery.
+   Changing or removing the address now needs the password.
+9. A time zone one system accepted could be refused by another and freeze the
+   plan. A zone name must now be spelled exactly as in the IANA list, the
+   server checks its own zone at the start, and an unknown zone drops out of
+   the plan instead of holding it back.
+10. Changes of two different languages of the plan on two devices overwrote
+    each other. The plan's history now keeps the change of each language on
+    its own.
+11. A plan row with a setting of a newer version was refused as a whole.
+    Unknown settings stay in the history and are left out when the plan is
+    worked out.
+12. On the session page a second Enter after "Pokaż" chose the grade "know",
+    and on the screen of the day's end it added new words. Enter now goes on
+    only where going on is safe.
+13. The progress tab showed hard words waiting in today's session together
+    with their answers. Such words are no longer shown.
+14. A session started from the start screen (`vocabbot`, Enter) and changes
+    approved at once in a terminal were not synchronised. Both ways now use
+    the same synchronisation.
+15. The first synchronisation of a link could take the account's plan against
+    the choice "the folder's plan", and every failed attempt appended another
+    link row. The link row is now written once, and the background sending
+    waits for the first full synchronisation.
+
+I also fixed most of the smaller remarks, among them: one synchronisation of
+a folder at a time in a process, the token file created readable by the owner
+only from the start, the server's address compared regardless of case, the
+return page after a failed sign-in, a connection's date kept across a token
+refresh, device codes ended by a password change, password recovery counted
+per address and login together, one count of failed sign-ins, connections
+from before the upgrade listed on the account page, messages for `/api`
+errors, an archive read with a limit and without repeated names, import lines
+split at LF only, the import's decision without a local path, the session
+page reloaded after its session ended, the account's page kept out of the
+service worker's cache, and the courses read only when the plan changes.
+Unchanged: the order of reports and notes after a clock set back, the order
+of old `own.jsonl` rows without a rank, the `/device` page without the name of
+the program that asks for the code, and the time of the first link of a very
+large log.
+
+Changes against the scope:
+
+- The MCP SDK has no device flow, so the code confirmed on another device
+  works on the server's own addresses (`/device`, `/device/authorize`,
+  `/device/token`), as the point "To check at the start of the stage"
+  foresaw.
+- Reading the log in the log's order (`Learner.rows()`) removed the
+  dependence of `presence.py` and `queue.py` on the order of rows in the
+  file.
+- `status` gives `activity`, the number of answers of each of the last 84
+  days, which the activity map of the session page uses.
+- At your request of 18.11.2026 I redesigned the session page after Vercel's
+  patterns (Geist): a ring of the day's progress, a switch of the stages with
+  their counts, grade tiles with icons and keys instead of full coloured
+  buttons, a bar of the result with its return date, stat tiles, an activity
+  map of 12 weeks, a ring of recall with the target's mark, a chart of the
+  forecast, languages chosen with tiles, and icons in the navigation tabs.
+
+To check outside the working session:
+
+| Topic | Needed |
+|---|---|
+| the phone | your check of `/app/` on your phone: adding it to the home screen, a session and the recordings |
+| the hosts' sandboxes | whether Cowork and Codex let `vocabbot.pyz` reach the server; without a network the folder works locally and the synchronisation waits |
+| mail | the server's SMTP account and one real recovery message; the tests use a stand-in sender |
+| release and deployment | your approval for the push, the tag `v1.0.0-rc.11`, PyPI and the server's deployment |
+| a session with a model | a simulation of linking a folder through the skill `vocab-start` (model costs, a separate approval) |
 
 ---
 
@@ -1700,9 +2112,10 @@ answer of a card waiting in the session.
 | Reviews mixed from several courses | yes | the default setting with the rules for card families |
 | Learning statistics | yes | `status` |
 | A conversation with an assistant on the learned vocabulary | yes | `vocab-coach` |
-| Synchronisation between computers | yes | the learner's folder on a synced drive, merging logs in `doctor` |
+| Synchronisation between devices | yes | the account on the server as the shared record, with a folder that synchronises by itself (Stage 12); without an account the learner's folder on a synced drive |
 | Images, recordings, speech recognition | after 1.0 | section 14 |
-| A phone app | after 1.0 | section 14 |
+| A session on a phone | yes | the chat through the server (Stage 6) and the session page in a browser (Stage 13) |
+| A phone app from a store | after 1.0 | section 14 |
 
 Features beyond the SuperMemo courses: language weights, the gap between
 languages for one concept, detection of an answer in another language, lists
@@ -1739,6 +2152,10 @@ of words confused between languages, own words from any text.
 | Stage 8, simulated sessions with the model through a local server | 2.86 USD (9 and 6 turns, the Sonnet model in Claude Code) | within the request of 16.11.2026 |
 | Stage 10, a simulation of the session with a model through a local server | 1.79 USD (10 turns, the Sonnet model in Claude Code; estimate 1–2 USD) | approved 16.11.2026 |
 | Stage 11, a simulation of the session with a model through a local server | 1.32 USD (8 turns, the Sonnet model in Claude Code; a limit of 2 USD) | approved 16.11.2026 |
+| Stage 12, the account as the shared learning record | none | acceptance of the stage on 18.11.2026 |
+| Stage 12, a simulation with a model: linking a folder to an account and finishing the session in the chat | an estimate of 1–2 USD (Sonnet in Claude Code, a limit of 2 USD) | separate |
+| Stage 12, the server's SMTP account for password recovery | no model costs; a fee as the mail provider charges | separate, at deployment |
+| Stage 13, the session in a phone's browser | none | acceptance of the stage on 18.11.2026 |
 | GitHub repository, tag, release, PyPI | none | separate for every step |
 
 The name `vocabbot` was free on PyPI and on the `dithiothreitol` GitHub
@@ -1761,6 +2178,11 @@ account on 14.11.2026.
 | ChatGPT on the Plus and Pro plans gives custom connectors read access only | Claude as the first application of the pilot; on 16.11.2026 the pilot learner's account in ChatGPT saved the plan and 18 answers through the server added under Plugins |
 | A sentence written by the model has a mistake or another meaning of the word | the example review as for Tatoeba sentences, a sample of 40 entries before the full run, the source `generated` in the entry, `flag` reports |
 | A recording on Commons is renamed or removed | the names are refreshed at every course build; an entry without a recording shows the IPA alone |
+| A device's clock or time zone differs from the account's | the learning day in the account's zone, the server's refusal of rows from the future, the refusal `day_before_last` as before |
+| Devices have different versions of the program or of the course | entry ids that stay; `/sync` gives the versions; an older device keeps the rows of cards it does not know and advises an update |
+| The program's token leaks from a computer | the token in `~/.vocabbot/` with rights for the owner only, outside the learner's folder; unlinking a device on the account page; a refresh token that changes at every use |
+| An e-mail address widens the personal data | the address is optional and the server keeps only its hash; `PRIVACY` and `/privacy` describe the change |
+| The session page opens the server to attacks through a browser | a cookie with `HttpOnly`, `Secure` and `SameSite=Strict`, a CSRF token for writes, the CSP, the limit of sign-in attempts as before |
 
 ---
 
@@ -1769,8 +2191,8 @@ account on 14.11.2026.
 - Pronunciation in the terminal session (playing recordings and the speech
   synthesis of the operating system); Stage 8 covers recordings in the chat,
   Stage 9 a card that plays them.
-- A session on a phone outside chat applications: a page in the home network
-  or on the server of Stage 6, using the same learner's folder.
+- The session on the page of Stage 13 without a network, reminders of
+  reviews on a phone and an app from a store.
 - More languages to learn and English as a second base language.
 - Recognition cards and sentence cards as the default for B1–B2.
 - Images for entries from open collections.

@@ -18,7 +18,7 @@ from typing import Any
 
 from vocabbot import assets, gate, store
 from vocabbot.answers import normalize, rules, split_article
-from vocabbot.courses import POS, Catalog, entry_problems
+from vocabbot.courses import POS, Catalog, entry_problems, own_rank
 from vocabbot.errors import VocabError
 
 LINE = re.compile(
@@ -105,7 +105,12 @@ def add_preview(
     if lang not in assets.known_languages():
         raise VocabError("unknown_language", lang=lang)
     own = catalog.own(lang)
-    rank = max((int(e.get("rank", 0)) for e in own), default=0)
+    # after every row of own.jsonl, also the course words moved forward and those of other devices
+    rank = max(
+        own_rank(store.read_jsonl(learner.own_path(lang))[0]),
+        *(int(e.get("rank", 0)) for e in own),
+        0,
+    )
     existing = {_key(str(e["display"])): str(e["id"]) for e in own}
     course = catalog.course(lang, list(store.LEVELS))
     by_display = {_key(str(e["display"])): e for e in course}
@@ -202,7 +207,10 @@ def add_preview(
     if lang not in {item["code"] for item in learner.plan()["languages"]}:
         lines.append(assets.text("words.not_in_plan", lang=lang))
     summary = assets.text("words.summary", count=len(new_entries) + len(moved), lang=lang)
-    rows = [*new_entries, *({"ref": e["id"], "lang": lang} for e in moved)]
+    rows: list[dict[str, Any]] = list(new_entries)
+    for entry in moved:
+        rank += 1
+        rows.append({"ref": entry["id"], "lang": lang, "rank": rank})
     content = "".join(store.dump_line(row) + "\n" for row in rows)
     result = gate.preview(
         learner.path(store.PENDING),

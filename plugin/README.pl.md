@@ -52,8 +52,10 @@ wtyczki dodatkowo pyta w oknie zgody gospodarza, zanim silnik zapisze zmianę.
 ## Dane uczącego się
 
 Plan, dziennik odpowiedzi i własne słowa zostają w folderze wybranym przez
-uczącego się; [PRIVACY.pl.md](PRIVACY.pl.md) opisuje, co i gdzie jest
-przechowywane.
+uczącego się. Uczący się może połączyć folder z kontem na serwerze VocabBota
+(`vocabbot login`), które przechowuje ten sam zapis dla telefonu i innych
+komputerów; umiejętność `vocab-start` opisuje kroki.
+[PRIVACY.pl.md](PRIVACY.pl.md) opisuje, co i gdzie jest przechowywane.
 
 ## Licencja
 

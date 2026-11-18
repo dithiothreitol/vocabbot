@@ -21,6 +21,11 @@ korzysta z żadnego modelu.
 | `/login` | strona logowania i zakładania konta z kodem zaproszenia |
 | `/`, `/privacy`, `/health` | strona startowa, informacja o prywatności i kontrola działania |
 | `/static/vocabbot.png`, `/favicon.ico` | awatar VocabBota: ikona stron w przeglądarce i ikona, którą serwer podaje w informacjach MCP (`icons`) |
+| `/sync` | synchronizacja folderu nauki połączonego z kontem (`vocabbot login`), z tym samym tokenem dostępu co `/mcp` |
+| `/device`, `/device/authorize`, `/device/token` | logowanie programu kodem potwierdzonym na innym urządzeniu (przepływ urządzenia, RFC 8628) |
+| `/app/`, `/app/login`, `/api/<nazwa>` | strona sesji w przeglądarce, jej logowanie i wywołania silnika |
+| `/account`, `/account/export` | strona konta: połączenia, dane jako archiwum zip, adres e-mail, usunięcie konta |
+| `/recover`, `/recover/<token>` | odzyskiwanie hasła odnośnikiem wysłanym na podany adres e-mail |
 
 - Narzędzia uruchamiają polecenia programu `vocabbot` na folderze konta
   (`learners/<konto>/`) i zwracają ten sam JSON, który czytają umiejętności
@@ -37,8 +42,10 @@ korzysta z żadnego modelu.
 - Po zalogowaniu serwer odsyła uczącego się wyłącznie na adresy Claude
   (`claude.ai`, `claude.com`), ChatGPT (`chatgpt.com`) oraz na jego własny
   komputer (`localhost`, `127.0.0.1`).
-- Dzień nauki każdego konta zaczyna się w strefie czasowej serwera
-  (domyślnie `Europe/Warsaw`) o godzinie z ustawienia planu `day_starts_at`.
+- Dzień nauki konta zaczyna się w strefie czasowej planu (ustawienie
+  `timezone`; nowe konto dostaje strefę odczytaną z przeglądarki), a dla
+  planu bez strefy w strefie serwera (domyślnie `Europe/Warsaw`), zawsze
+  o godzinie z ustawienia `day_starts_at`.
 
 ## Uruchomienie serwera
 
@@ -100,6 +107,35 @@ programem (w Dockerze po `docker compose -f deploy/compose.yaml exec vocabbot`):
 Opcja `--open-signup` (albo `VOCABBOT_OPEN_SIGNUP=1` w `deploy/.env`)
 pozwala zakładać konta bez zaproszenia.
 
+## Strona sesji, strona konta i foldery
+
+- **Strona sesji** (`/app/`) prowadzi sesję w przeglądarce, także
+  w telefonie i z ekranu głównego, bez aplikacji czatu i bez modelu: karty
+  dnia z wyborem etapu, wpisywanie i „pokaż” z własną oceną, nagrania,
+  notatki, odkładanie słów, kolejne słowa i powtórki, postępy z mapą
+  aktywności i prognozą, zmiany planu jako podgląd oraz pierwszy plan
+  z testem poziomującym. Każdy krok wykonuje polecenie silnika przez
+  `/api/<nazwa>`, więc pytanie przychodzi bez odpowiedzi i ocenia silnik.
+  Przeglądarka loguje się na `/app/login` i dostaje ciasteczko sesji na
+  30 dni (`HttpOnly`, `SameSite=Strict`, `Secure` przy https); każdy zapis
+  wymaga żetonu formularza i pochodzenia z adresu serwera.
+- **Strona konta** (`/account`) pokazuje połączone aplikacje i komputery
+  z datą ostatniego użycia i odłącza każde z nich, pobiera dane jako
+  archiwum zip w postaci folderu nauki, przechowuje opcjonalny adres e-mail
+  do odzyskania hasła (wyłącznie jako skrót scrypt) i usuwa konto po
+  podaniu hasła.
+- **Foldery nauki.** `vocabbot login` loguje program na serwerze (przez
+  przeglądarkę albo kodem potwierdzonym na `/device`) i łączy folder
+  z kontem. `/sync` przyjmuje wiersze, których konto nie ma, i oddaje te,
+  których nie ma folder; wiersz wysłany drugi raz niczego nie dodaje,
+  a wiersz nieznanej karty albo z przyszłości serwer odrzuca. Narzędzia
+  i synchronizacja jednego konta wykonują się po kolei.
+- **Odzyskiwanie hasła** wymaga konta SMTP: `VOCABBOT_SERVER_SMTP_HOST`,
+  `_PORT`, `_USER`, `_PASSWORD`, `_FROM` i `_SECURITY` (`starttls`, `ssl`
+  albo `none`). Strona `/recover` odpowiada tak samo dla każdego loginu
+  i adresu, a odnośnik działa raz przez 30 minut. Serwer bez tych ustawień
+  nie pyta o adres, a nowe hasło nadaje administrator.
+
 ## Podłączenie aplikacji czatu
 
 Adres serwera jest dla każdej aplikacji taki sam: `https://<domena>/mcp`.
@@ -144,7 +180,10 @@ z odnośnikiem do nagrania obok zapisu IPA.
 ## Dane i prywatność
 
 Serwer przechowuje login, skrót hasła, plan, dziennik odpowiedzi, własne
-słowa i zgłoszenia błędów w kursie. Nie potrzebuje adresu e-mail ani imienia.
+słowa, notatki, zgłoszenia błędów w kursie, strefę czasową konta oraz listę
+połączonych aplikacji i komputerów z datą ostatniego użycia. Adres e-mail
+jest opcjonalny i trafia na serwer wyłącznie jako skrót. Serwer nie
+potrzebuje imienia.
 Aplikacja czatu przetwarza rozmowę według własnych zasad i przekazuje
 serwerowi wyłącznie wywołania narzędzi VocabBota. Strona `/privacy` podaje
 uczącemu się te same informacje po polsku.
@@ -152,7 +191,7 @@ uczącemu się te same informacje po polsku.
 ## Kontrole
 
 ```
-uv run pytest tests/test_server.py
+uv run pytest tests/test_server.py tests/test_web.py tests/test_e2e.py
 ```
 
 Testy uruchamiają serwer przez HTTP i łączą z nim klienta OAuth z SDK MCP w

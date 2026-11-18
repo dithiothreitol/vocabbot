@@ -46,7 +46,8 @@ Run `plan show --json`.
 3. **Placement test.** Offer it for every language with an unsure level, and
    run it as `reference/placement-test.md` says. The learner may skip it.
 4. **Folder.** In Claude Code or a terminal the default is `~/VocabBot`; a
-   folder the learner names works too, and a synced folder (OneDrive,
+   folder the learner names works too (an account on a server, E, adds the
+   phone and other computers), and a synced folder (OneDrive,
    Dropbox) shares the learning between computers. In Cowork, use the folder
    the learner opened for this work. The learner's folder is theirs: never
    put it inside the plugin or a project repository.
@@ -95,8 +96,37 @@ their yes.
 ## D. Checking the folder
 
 `doctor --json` lists problems: damaged rows, conflict copies from a synced
-folder, expired previews. `doctor --merge --json` joins conflict copies of
-the log; `doctor --repair --json` moves damaged rows aside. Both are
-previews and need the learner's yes before `commit`.
+folder, expired previews. Rows of conflict copies already count in every
+result; `doctor --merge --json` joins the copies into the main files and
+`doctor --repair --json` moves damaged rows aside. Both are previews and
+need the learner's yes before `commit`.
+
+## E. Other devices and the account
+
+The recommended way to learn on several devices is an account on a VocabBot
+server: the folder becomes a copy of the account that works without a
+network and synchronises by itself, and the phone learns in the chat
+application connected to the server or on the server's session page
+(`https://<server>/app/`). `reference/devices.md` gives the details.
+
+1. **Signing in is the learner's step.** `vocabbot login [server]` opens the
+   server's sign-in page in the browser and waits for it; `vocabbot login
+   --code` shows a code to confirm on a phone instead. Show the command and
+   ask the learner to run it in their own terminal; never ask for or type a
+   password.
+2. **The link is a preview.** When the folder and the account both have a
+   plan and the plans differ, `login` stops with `choose_plan` and lists both
+   plans (`error.details`): ask which one stays, then
+   `login --plan folder` or `login --plan account`. Show the preview lines
+   (answers in the folder, on the account, after joining) and, after the
+   learner's yes, `commit --confirm <token> --json`; its `sync` holds the
+   first synchronisation.
+3. **After the link.** `today` and `status` carry `sync` (the account, the
+   last synchronisation, the rows waiting); quote it as it is. `sync --json`
+   synchronises at once, `logout --json` ends the connection and unlinks the
+   folder, which stays as it is.
+4. **Moving a record.** `export <file.zip> --json` writes the record as a
+   zip; `import <file.zip> --json` is a preview of a new folder, or of the
+   rows a folder lacks, saved after the learner's yes.
 
 More: `reference/gotchas.md`.

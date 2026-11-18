@@ -3,10 +3,68 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
-## Unreleased
+## 1.0.0-rc.11 - 2026-11-18
+
+Stages 12 and 13 of the plan: the account as the shared record on every
+device, and the session in a phone's browser.
 
 ### Added
 
+- `vocabbot login` links a learner's folder to an account on a VocabBot
+  server, or downloads the account into a new folder. The program signs in
+  through the browser (OAuth with PKCE, the result on 127.0.0.1) or, with
+  `--code`, with a short code confirmed on another device. Linking a folder
+  is a preview with the numbers of answers on both sides and after joining;
+  when the folder and the account have different plans, the learner chooses
+  with `--plan folder` or `--plan account`. The tokens live in
+  `~/.vocabbot/credentials.json`, readable by the owner only.
+- A linked folder synchronises by itself: it fetches before `today`, `next`,
+  `drill` and `status`, and sends after every command that writes; the
+  terminal session sends in the background. Without a network the rows wait
+  in the folder; `today`, `status` and `doctor` show the account, the last
+  synchronisation and the rows waiting. `vocabbot sync` synchronises at once
+  and `vocabbot logout` ends the connection and unlinks the folder.
+- The server's `/sync` joins the logs line by line: sending a line again adds
+  nothing, a row of an unknown card or from the future is refused, and the
+  account's lock keeps the tools and the synchronisation of one account one
+  after another.
+- Every approved change of the plan adds a row to `log/plan.jsonl`, and the
+  plan is the latest value of every setting, so changes made on two devices
+  both hold.
+- The plan's `timezone` (an IANA name) sets the learning day on every device
+  and on the server. A new account takes the zone of the browser, and linking
+  a folder whose plan has none gives it the account's zone.
+- `vocabbot export` writes the record as a zip in the form of a learner's
+  folder, and `vocabbot import` brings one in as a preview: a new folder, or
+  the rows a folder lacks.
+- The server's session page (`/app/`) runs the day's cards, progress and the
+  plan in a browser, also on a phone and from its home screen, without a chat
+  application and without a model. Every step runs a command of the engine,
+  so a question comes without its answer and the engine grades. The page
+  follows Vercel's Geist: a ring of the day's progress, a switch of the
+  stages, grade tiles with their keys, a bar of the result with its return
+  date, an activity map of twelve weeks, a chart of the coming days and a
+  ring of recall against its target.
+- The account page (`/account`) lists the connected applications and
+  computers with their last use and disconnects any of them, gives the data
+  as a zip, keeps an optional e-mail address for password recovery as a hash
+  only, and removes the account after the password.
+- Password recovery by e-mail (`/recover`) with SMTP settings
+  (`VOCABBOT_SERVER_SMTP_*`): the page answers the same for every login and
+  address, and the link works once within 30 minutes.
+- `status` holds `activity`, the answers of each of the last 84 days.
+- A folder names its account in every synchronisation, and the server and the
+  program refuse an exchange with another account (`other_account`), so
+  signing in to another account never joins two learners' records.
+- Rows the account refuses for a passing reason (a clock ahead of the server,
+  a course or a version it does not have yet) go again with every
+  synchronisation and count as waiting.
+- A change of one language of the plan is kept per language, so changes of two
+  languages made on two devices both hold; settings of a newer version stay in
+  the history and are left out when the plan is worked out.
+- Changing or removing the recovery address on the account page needs the
+  password.
+- `doctor --merge` also joins conflict copies of the plan's history.
 - VocabBot has an avatar in the common form of assistants' avatars, a flat
   tile with a face of two upright eyes. The face is the front card of the
   course with the orange dot of the day's card, and a light blue card stands
@@ -20,6 +78,19 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
 ### Changed
 
+- The engine reads a log in its own order (day, time, card) whatever the
+  order of its rows in the file, and reads the rows of conflict copies of the
+  log, the reports and the notes together with the main files; `doctor
+  --merge` still tidies the files.
+- Own words and the course words moved forward come in an order that does not
+  depend on the order of `own.jsonl`; a moved word keeps a rank of its own.
+- The server's pages send their referrer only to the server itself, so a form
+  names its origin.
+- A row whose day or time does not exist is left out of the replay instead of
+  stopping it.
+- A plan's `timezone` must be spelled exactly as in the IANA list, and the
+  server checks its own zone when it starts.
+- A new plan in a folder that already holds logs keeps them.
 - The social preview names the five languages and the 28 671 entries of the
   courses.
 
