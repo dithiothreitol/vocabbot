@@ -26,6 +26,12 @@
     `scripts/build.py` leaves out of `vocabbot.pyz`, and a test keeps the two
     complete. Their copy stays formal and plain: no colloquialisms, no long
     dashes, no gradients or glows; the accents come from the avatar's colours.
+    The start page moves with CSS only (`prefers-reduced-motion` stops it) and
+    one small script allowed by its hash; it carries the canonical address,
+    the links between its languages, Open Graph and schema.org data, and the
+    server writes `/robots.txt`, `/sitemap.xml` and `/llms.txt` from the same
+    texts. `scripts/make_social.py` renders the pictures of a shared link
+    (`static/social-<lang>.png`) after a change of the headline.
   - `data/courses/<lang>/<level>.jsonl` and `meta.json` are the courses. In
     Stage 1 they hold the starter course that `tools/courses/starter.py`
     generates; Stage 2 replaces them with the A1 to B2 courses.

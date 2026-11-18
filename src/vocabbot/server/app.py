@@ -28,7 +28,7 @@ from mcp.types import Icon, ToolAnnotations
 from pydantic import BaseModel, Field
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Route
 
 from vocabbot import __version__
@@ -546,6 +546,40 @@ def build(settings: Settings) -> Starlette:
     # browsers and favicon services ask for /favicon.ico without reading the page
     server.custom_route(pages.ICON, methods=["GET"])(icon)
     server.custom_route("/favicon.ico", methods=["GET"])(icon)
+
+    async def social(request: Request) -> Response:
+        # /static/social-<lang>.png, the picture of a shared link
+        return Response(
+            pages.social(request.url.path.rsplit("-", 1)[-1][:2]),
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+
+    # what crawlers read before the pages: the rules, the list of pages and a summary for models
+    async def robots(request: Request) -> Response:
+        return PlainTextResponse(
+            pages.robots(settings.url), headers={"Cache-Control": "public, max-age=3600"}
+        )
+
+    async def sitemap(request: Request) -> Response:
+        return Response(
+            pages.sitemap(settings.url),
+            media_type="application/xml",
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    async def llms(request: Request) -> Response:
+        return Response(
+            pages.llms(settings.url, settings.resource),
+            media_type="text/markdown; charset=utf-8",
+            headers={"Cache-Control": "public, max-age=3600", "X-Content-Type-Options": "nosniff"},
+        )
+
+    for lang in pages.LANGS:
+        server.custom_route(pages.SOCIAL.format(lang=lang), methods=["GET"])(social)
+    server.custom_route("/robots.txt", methods=["GET"])(robots)
+    server.custom_route("/sitemap.xml", methods=["GET"])(sitemap)
+    server.custom_route("/llms.txt", methods=["GET"])(llms)
     app = server.streamable_http_app(
         stateless_http=True,
         json_response=True,

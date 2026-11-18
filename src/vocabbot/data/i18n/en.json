@@ -98,13 +98,13 @@
         "icon": "chat",
         "name": "Claude",
         "where": "Web, desktop and mobile apps",
-        "steps": "Open Settings, go to “Connectors”, click “Add custom connector” and paste the server address."
+        "steps": "Open “Customize”, go to “Connectors”, choose “Add”, then “Add custom connector” and paste the server address."
       },
       {
         "icon": "chat",
         "name": "ChatGPT",
         "where": "Paid plans",
-        "steps": "Open Settings and go to “Integrations”, then “Plugins”. Click “+” and add a custom MCP server with the server address and OAuth authentication."
+        "steps": "Open `chatgpt.com/plugins`, click “+” and choose “Add custom MCP server”. Enter the server address and select OAuth authentication."
       },
       {
         "icon": "phone",
@@ -184,6 +184,121 @@
     },
     "lang_label": "Page language",
     "works_with": "Works with",
-    "hero_accent": "with an AI assistant"
+    "hero_accent": "with an AI assistant",
+    "seo_title": "VocabBot · Learn vocabulary with an AI assistant",
+    "seo_description": "For Polish speakers: English, German, Spanish, French and Italian vocabulary from A1 to B2, with FSRS spaced repetition in Claude, ChatGPT, a terminal or a browser.",
+    "social_alt": "VocabBot: vocabulary learning with an AI assistant and spaced repetition",
+    "nav_day": "Session",
+    "nav_languages": "Languages",
+    "nav_faq": "FAQ",
+    "lang_names": {
+      "en": "English",
+      "de": "German",
+      "es": "Spanish",
+      "fr": "French",
+      "it": "Italian"
+    },
+    "stats_label": "VocabBot in numbers",
+    "stats": [
+      {
+        "name": "languages",
+        "label": "Languages",
+        "note": "English, German, Spanish, French and Italian"
+      },
+      {
+        "name": "levels",
+        "label": "Levels",
+        "note": "A1 to B2 on the CEFR scale"
+      },
+      {
+        "name": "words",
+        "label": "Course entries",
+        "note": "with a meaning, forms and an example sentence"
+      },
+      {
+        "name": "parallel",
+        "label": "Languages in one plan",
+        "note": "interleaved in a single session"
+      }
+    ],
+    "day_eyebrow": "Daily session",
+    "day_title": "Three stages of every study day",
+    "day_lead": "A session takes a few minutes a day and always follows the same order. You can move between the stages at any time.",
+    "day_steps": [
+      {
+        "name": "reviews",
+        "title": "Reviews",
+        "text": "A session starts with the words scheduled for the day. The most overdue cards come first."
+      },
+      {
+        "name": "new",
+        "title": "New words",
+        "text": "New words arrive in order of frequency. A card shows the Polish meaning, the part of speech and an example sentence with a gap."
+      },
+      {
+        "name": "drill",
+        "title": "Drill",
+        "text": "Every word answered incorrectly returns on the same day until you answer it correctly."
+      }
+    ],
+    "langs_eyebrow": "Courses",
+    "langs_title": "Five languages from A1 to B2",
+    "langs_lead": "The courses are designed for learners whose base language is Polish. Entries include the Polish meaning, forms, pronunciation and an example sentence.",
+    "langs_total": "Total",
+    "langs_caption": "{lang}: number of entries by level",
+    "langs_note": "The courses are built from open data: the CEFR-J wordlist, Wiktionary, wordfreq and Tatoeba. They are available under the CC BY-SA 4.0 licence.",
+    "faq_eyebrow": "Questions and answers",
+    "faq_title": "Frequently asked questions",
+    "faq_lead": "Answers about the method, the courses, accounts and AI assistants.",
+    "faq": [
+      {
+        "q": "What is VocabBot?",
+        "a": "VocabBot is a vocabulary trainer based on spaced repetition. It runs a daily session in a chat app such as Claude or ChatGPT, in a terminal or in a browser. Its engine grades every answer and schedules the next review."
+      },
+      {
+        "q": "Which languages can I learn?",
+        "a": "The courses cover English, German, Spanish, French and Italian from A1 to B2. A learning plan can include one, two or three languages at once. The courses are designed for Polish speakers."
+      },
+      {
+        "q": "How does spaced repetition work?",
+        "a": "Each word returns after a progressively longer interval. The FSRS-6 algorithm schedules a review so that the probability of a correct answer is 90% by default. A word answered incorrectly returns on the same day."
+      },
+      {
+        "q": "Which apps does VocabBot work with?",
+        "a": "VocabBot works as a remote MCP server in Claude, ChatGPT, Claude Code and Codex. You can also study in a browser at /app/ and in a terminal with the vocabbot program."
+      },
+      {
+        "q": "Do I need a chat app to study?",
+        "a": "No. The session page works in desktop and mobile browsers, and the vocabbot program runs the same session in a terminal. Every way of studying uses one account and one learning plan."
+      },
+      {
+        "q": "Can the AI assistant change a grade?",
+        "a": "No. VocabBot's engine grades answers according to the rules of each language. The assistant leads the conversation and explains meanings, but grades, review dates and statistics come only from the engine."
+      },
+      {
+        "q": "How do I create an account?",
+        "a": "Accounts are created with an invitation code from the server administrator. After signing in, you can set up a learning plan with or without a placement test."
+      },
+      {
+        "q": "Where do the courses come from?",
+        "a": "The courses are built from open data. Levels come from the CEFR-J wordlist, translations, forms and pronunciation from Wiktionary, word order from wordfreq, and example sentences from Tatoeba. The courses are available under the CC BY-SA 4.0 licence."
+      },
+      {
+        "q": "Is VocabBot open source?",
+        "a": "Yes. The code is available on GitHub under the Apache-2.0 licence. You can run the server yourself, and the vocabbot program also works offline."
+      },
+      {
+        "q": "What data does the server store?",
+        "a": "The server stores your username, a password hash, your learning plan, the answer log, your own words and notes. On the account page you can download all your data and delete the account. The Privacy page has the details."
+      }
+    ],
+    "foot_product": "Product",
+    "foot_account": "Account",
+    "foot_resources": "Resources",
+    "foot_source": "Source code",
+    "foot_package": "PyPI package",
+    "foot_llms": "Summary for AI models",
+    "foot_license": "Code under Apache-2.0, courses under CC BY-SA 4.0.",
+    "skip": "Skip to content"
   }
 }

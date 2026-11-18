@@ -21,6 +21,8 @@ korzysta z żadnego modelu.
 | `/login` | strona logowania i zakładania konta z kodem zaproszenia |
 | `/`, `/privacy`, `/health` | strona startowa, informacja o prywatności i kontrola działania |
 | `/static/vocabbot.png`, `/favicon.ico` | awatar VocabBota: ikona stron w przeglądarce i ikona, którą serwer podaje w informacjach MCP (`icons`) |
+| `/robots.txt`, `/sitemap.xml`, `/llms.txt` | zasady dla robotów wyszukiwarek (strony publiczne otwarte, formularze i API zamknięte), strony do indeksowania w obu językach oraz opis VocabBota w Markdown dla modeli AI |
+| `/static/social-pl.png`, `/static/social-en.png` | obrazy udostępnionego linku do strony startowej (tworzy je `scripts/make_social.py`) |
 | `/static/site.css` | arkusz stylów stron; strony odwołują się do niego ze skrótem treści, więc przeglądarki przechowują go przez rok |
 | `/sync` | synchronizacja folderu nauki połączonego z kontem (`vocabbot login`), z tym samym tokenem dostępu co `/mcp` |
 | `/device`, `/device/authorize`, `/device/token` | logowanie programu kodem potwierdzonym na innym urządzeniu (przepływ urządzenia, RFC 8628) |

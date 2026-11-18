@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import io
 import json
 import re
@@ -659,6 +660,95 @@ def test_the_pages_speak_polish_or_english(serve: Callable[..., Served]) -> None
         assert "immutable" in sheet.headers["cache-control"] and ".btn.primary" in sheet.text
         policy = page.headers["content-security-policy"]
         assert "style-src 'self'" in policy and "unsafe-inline" not in policy
+
+
+def test_the_start_page_tells_search_engines_and_models_what_vocabbot_is(
+    serve: Callable[..., Served],
+) -> None:
+    import base64
+    import hashlib
+
+    served = serve()
+    site = served.url
+    with httpx2.Client(base_url=site, follow_redirects=False, timeout=30) as web:
+        polish, english = web.get("/"), web.get("/", params={"lang": "en"})
+        for page, here, lang in ((polish, f"{site}/", "pl"), (english, f"{site}/?lang=en", "en")):
+            text = page.text
+            assert f'<link rel="canonical" href="{here}">' in text
+            assert f'<link rel="alternate" hreflang="x-default" href="{site}/">' in text
+            assert f'hreflang="en" href="{site}/?lang=en"' in text
+            assert '<meta name="robots" content="index, follow' in text
+            assert f'<meta property="og:image" content="{site}/static/social-{lang}.png">' in text
+            assert '<meta name="twitter:card" content="summary_large_image">' in text
+            # every inline script runs under its hash in the Content-Security-Policy
+            policy = page.headers["content-security-policy"]
+            scripts = re.findall(r"<script>(.*?)</script>", text, re.S)
+            assert len(scripts) == 2
+            for script in scripts:
+                digest = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
+                assert f"'sha256-{digest}'" in policy
+            # schema.org data: the program and the questions shown on the page
+            found = re.search(r'<script type="application/ld\+json">(.*?)</script>', text, re.S)
+            assert found and "<" not in found[1]
+            graph = {node["@type"]: node for node in json.loads(found[1])["@graph"]}
+            assert {"Organization", "WebSite", "WebPage", "SoftwareApplication", "FAQPage"} <= set(
+                graph
+            )
+            assert graph["SoftwareApplication"]["applicationCategory"] == "EducationalApplication"
+            assert graph["WebPage"]["inLanguage"] == lang
+            questions = graph["FAQPage"]["mainEntity"]
+            assert len(questions) >= 8
+            for question in questions:
+                assert html.escape(question["name"], quote=False) in text
+            # the courses' numbers come from the installed courses
+            from vocabbot.server import pages
+
+            assert f'data-count="{len(pages.course_sizes())}"' in text
+            assert 'id="faq"' in text and 'id="languages"' in text
+        assert "Najczęstsze pytania" in polish.text and "Frequently asked questions" in english.text
+        # a page behind a sign-in stays out of the index
+        assert '<meta name="robots" content="noindex' in web.get("/app/login").text
+        privacy = web.get("/privacy", params={"lang": "en"}).text
+        assert f'<link rel="canonical" href="{site}/privacy?lang=en">' in privacy
+        assert '"BreadcrumbList"' in privacy
+
+        robots = web.get("/robots.txt")
+        assert robots.headers["content-type"].startswith("text/plain")
+        for line in ("User-agent: *", "User-agent: GPTBot", "User-agent: ClaudeBot", "Allow: /"):
+            assert line in robots.text
+        for path in ("/app/", "/account", "/api/", "/mcp", "/login"):
+            assert f"Disallow: {path}\n" in robots.text
+        assert f"Sitemap: {site}/sitemap.xml" in robots.text
+
+        sitemap = web.get("/sitemap.xml")
+        assert sitemap.headers["content-type"].startswith("application/xml")
+        from xml.etree import ElementTree
+
+        tree = ElementTree.fromstring(sitemap.content)
+        spaces = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        listed = [node.text for node in tree.findall("s:url/s:loc", spaces)]
+        assert listed == [
+            f"{site}/",
+            f"{site}/?lang=en",
+            f"{site}/privacy",
+            f"{site}/privacy?lang=en",
+        ]
+
+        summary = web.get("/llms.txt")
+        assert summary.headers["content-type"].startswith("text/markdown")
+        assert summary.text.startswith("# VocabBot\n\n> ")
+        assert (
+            served.settings.resource in summary.text
+            and "## Frequently asked questions" in summary.text
+        )
+        assert "| Language |" in summary.text
+
+        for lang in ("pl", "en"):
+            picture = web.get(f"/static/social-{lang}.png")
+            assert picture.headers["content-type"] == "image/png"
+            assert picture.content[:8] == b"\x89PNG\r\n\x1a\n"
+            # the width and the height in the PNG header: 1200 by 630
+            assert picture.content[16:24] == (1200).to_bytes(4, "big") + (630).to_bytes(4, "big")
 
 
 def test_the_recovery_message_speaks_the_language_of_the_page(

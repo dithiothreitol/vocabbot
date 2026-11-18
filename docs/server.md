@@ -21,6 +21,8 @@ server itself uses no model.
 | `/login` | the page where the learner signs in or opens an account with an invitation code |
 | `/`, `/privacy`, `/health` | the start page, the privacy note and the health check |
 | `/static/vocabbot.png`, `/favicon.ico` | VocabBot's avatar: the favicon of the pages and the icon the server names in its MCP information (`icons`) |
+| `/robots.txt`, `/sitemap.xml`, `/llms.txt` | the rules for crawlers (the public pages open, forms and the API closed), the indexed pages in both languages and a summary of VocabBot in Markdown for AI models |
+| `/static/social-pl.png`, `/static/social-en.png` | the pictures of a shared link to the start page (`scripts/make_social.py` renders them) |
 | `/static/site.css` | the style of the pages, which ask for it under its digest, so browsers keep it for a year |
 | `/sync` | the synchronisation of a learning folder linked to the account (`vocabbot login`), with the same access token as `/mcp` |
 | `/device`, `/device/authorize`, `/device/token` | the program's sign-in with a code confirmed on another device (the device flow, RFC 8628) |

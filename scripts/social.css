@@ -1,0 +1,48 @@
+/* The picture of a shared link (scripts/make_social.py renders it). */
+@font-face { font-family: Geist; src: url("geist.woff2") format("woff2"); font-weight: 100 900; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1200px; height: 630px; overflow: hidden; }
+body { position: relative; background: #ffffff; color: #171717; font-family: Geist, sans-serif;
+  -webkit-font-smoothing: antialiased; }
+.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px); background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 90% at 30% 20%, #000 30%, transparent 100%); }
+.edge { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #2f5d9e; }
+.edge i { position: absolute; right: 0; top: 0; bottom: 0; width: 160px; background: #f2a541; }
+.copy { position: absolute; left: 72px; top: 60px; width: 620px; }
+.brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+.brand svg { width: 52px; height: 52px; border-radius: 13px; display: block; }
+h1 { margin-top: 40px; font-size: 68px; line-height: 1.02; font-weight: 600; letter-spacing: -0.05em; }
+h1 span { display: block; color: #2f5d9e; }
+p { margin-top: 22px; font-size: 23px; line-height: 1.45; color: #4d4d4d; }
+.langs { display: flex; align-items: center; gap: 10px; margin-top: 26px; }
+.lc { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border: 1px solid #d6d6d6;
+  border-radius: 99px; background: #ffffff; font: 500 17px ui-monospace, Consolas, monospace; color: #171717; }
+.lc i { width: 10px; height: 10px; border-radius: 99px; }
+.lv { margin-left: 8px; font: 500 17px ui-monospace, Consolas, monospace; color: #666666; }
+.host { position: absolute; left: 72px; bottom: 50px; font: 500 21px ui-monospace, Consolas, monospace;
+  color: #666666; letter-spacing: .02em; }
+.stage { position: absolute; right: 64px; top: 92px; width: 400px; height: 452px; border-radius: 26px;
+  border: 1px solid #dbe4f2; background-color: #f3f6fb;
+  background-image: radial-gradient(#dbe4f2 1.5px, transparent 1.5px); background-size: 22px 22px; }
+.card { position: absolute; left: 34px; right: 34px; top: 56px; padding: 22px 24px 24px; border-radius: 18px;
+  border: 1px solid #ebebeb; background: #ffffff;
+  box-shadow: 0 2px 2px rgba(0,0,0,.04), 0 24px 48px -16px rgba(16,38,74,.22); }
+.head { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; }
+.head svg { width: 26px; height: 26px; border-radius: 7px; }
+.head b { margin-left: auto; font: 500 16px ui-monospace, Consolas, monospace; color: #666666; }
+.bar { height: 5px; margin-top: 14px; border-radius: 9px; background: #ebebeb; }
+.bar i { display: block; width: 30%; height: 100%; border-radius: 9px; background: #8e4ec6; }
+.chip { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 5px 13px;
+  border: 1px solid #ebebeb; border-radius: 99px; font-size: 16px; color: #4d4d4d; }
+.chip i { width: 10px; height: 10px; border-radius: 99px; background: #f5a524; }
+.word { margin-top: 14px; font-size: 44px; font-weight: 600; letter-spacing: -0.04em; }
+.meta { margin-top: 2px; font-size: 18px; color: #666666; }
+.answer { position: absolute; right: 34px; top: 330px; padding: 13px 20px; border-radius: 22px;
+  background: #f2f2f2; font-size: 22px; }
+.grade { position: absolute; left: 34px; top: 392px; display: flex; align-items: center; gap: 12px; }
+.ok { display: inline-flex; align-items: center; gap: 8px; padding: 7px 15px; border-radius: 99px;
+  background: #ebfaeb; color: #297a3a; font-size: 18px; font-weight: 500; }
+.ok svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4;
+  stroke-linecap: round; stroke-linejoin: round; }
+.back { font-size: 18px; color: #666666; }

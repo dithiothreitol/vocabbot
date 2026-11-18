@@ -716,13 +716,13 @@
         "icon": "chat",
         "name": "Claude",
         "where": "Przeglądarka, aplikacja na komputer i telefon",
-        "steps": "Otwórz Ustawienia, przejdź do sekcji „Łączniki”, kliknij „Dodaj własny łącznik” i wklej adres serwera."
+        "steps": "Otwórz „Customize”, przejdź do sekcji „Connectors”, wybierz „Add”, a następnie „Add custom connector” i wklej adres serwera."
       },
       {
         "icon": "chat",
         "name": "ChatGPT",
         "where": "Plany płatne",
-        "steps": "Otwórz Ustawienia i przejdź do sekcji „Integracje”, a potem „Wtyczki”. Kliknij „+” i dodaj własny serwer MCP z adresem serwera oraz uwierzytelnianiem OAuth."
+        "steps": "Otwórz stronę `chatgpt.com/plugins`, kliknij „+” i wybierz „Add custom MCP server”. Podaj adres serwera i wybierz uwierzytelnianie OAuth."
       },
       {
         "icon": "phone",
@@ -759,11 +759,138 @@
       "prompt": "pies",
       "meta": "rzeczownik",
       "answer": "der Hund",
-      "composer": "Napisz odpowiedź"
+      "composer": "Napisz odpowiedź",
+      "progress_after": "2/7",
+      "gap_before": "Der",
+      "gap_word": "Hund",
+      "gap_after": "bellt.",
+      "gap_meaning": "Pies szczeka.",
+      "due_today": "dziś",
+      "due_overdue": "zaległe",
+      "deck": [
+        "pies",
+        "dom",
+        "książka"
+      ]
     },
     "lang_label": "Język strony",
     "works_with": "Współpracuje z",
-    "hero_accent": "z asystentem AI"
+    "hero_accent": "z asystentem AI",
+    "seo_title": "VocabBot · Nauka słownictwa z asystentem AI",
+    "seo_description": "Nauka słownictwa angielskiego, niemieckiego, hiszpańskiego, francuskiego i włoskiego od A1 do B2. Powtórki FSRS w Claude, ChatGPT, terminalu i przeglądarce.",
+    "social_alt": "VocabBot: nauka słownictwa z asystentem AI i powtórkami rozłożonymi w czasie",
+    "nav_day": "Sesja",
+    "nav_languages": "Języki",
+    "nav_faq": "Pytania",
+    "lang_names": {
+      "en": "angielski",
+      "de": "niemiecki",
+      "es": "hiszpański",
+      "fr": "francuski",
+      "it": "włoski"
+    },
+    "stats_label": "VocabBot w liczbach",
+    "stats": [
+      {
+        "name": "languages",
+        "label": "Języki",
+        "note": "angielski, niemiecki, hiszpański, francuski i włoski"
+      },
+      {
+        "name": "levels",
+        "label": "Poziomy",
+        "note": "od A1 do B2 według skali CEFR"
+      },
+      {
+        "name": "words",
+        "label": "Hasła w kursach",
+        "note": "ze znaczeniem, formami i zdaniem przykładowym"
+      },
+      {
+        "name": "parallel",
+        "label": "Języki w jednym planie",
+        "note": "przeplatane w jednej sesji"
+      }
+    ],
+    "day_eyebrow": "Codzienna sesja",
+    "day_title": "Trzy etapy każdego dnia nauki",
+    "day_lead": "Sesja zajmuje kilka minut dziennie i zawsze przebiega w tej samej kolejności. Między etapami można przechodzić w dowolnej chwili.",
+    "day_steps": [
+      {
+        "name": "reviews",
+        "title": "Powtórki",
+        "text": "Sesja zaczyna się od słów zaplanowanych na dany dzień. Karty najbardziej zaległe pojawiają się jako pierwsze."
+      },
+      {
+        "name": "new",
+        "title": "Nowe słowa",
+        "text": "Nowe słowa pojawiają się w kolejności częstości użycia. Karta zawiera polskie znaczenie, część mowy i zdanie przykładowe z luką."
+      },
+      {
+        "name": "drill",
+        "title": "Utrwalanie",
+        "text": "Każde słowo z błędną odpowiedzią wraca tego samego dnia, aż do udzielenia poprawnej odpowiedzi."
+      }
+    ],
+    "langs_eyebrow": "Kursy",
+    "langs_title": "Pięć języków na poziomach od A1 do B2",
+    "langs_lead": "Kursy są przeznaczone dla osób, których językiem bazowym jest polski. Hasła zawierają polskie znaczenie, formy, wymowę i zdanie przykładowe.",
+    "langs_total": "Razem",
+    "langs_caption": "{lang}: liczba haseł według poziomu",
+    "langs_note": "Kursy powstały z otwartych danych: listy CEFR-J, Wikisłownika, danych wordfreq i serwisu Tatoeba. Są dostępne na licencji CC BY-SA 4.0.",
+    "faq_eyebrow": "Pytania i odpowiedzi",
+    "faq_title": "Najczęstsze pytania",
+    "faq_lead": "Odpowiedzi na pytania o metodę, kursy, konto i współpracę z asystentami AI.",
+    "faq": [
+      {
+        "q": "Czym jest VocabBot?",
+        "a": "VocabBot to program do nauki słownictwa z powtórkami rozłożonymi w czasie. Prowadzi codzienną sesję w aplikacji czatu, takiej jak Claude lub ChatGPT, w terminalu albo w przeglądarce. Silnik programu ocenia każdą odpowiedź i wyznacza termin kolejnej powtórki."
+      },
+      {
+        "q": "Jakich języków można się uczyć?",
+        "a": "Kursy obejmują język angielski, niemiecki, hiszpański, francuski i włoski na poziomach od A1 do B2. Plan nauki może zawierać jeden, dwa lub trzy języki jednocześnie. Kursy są przeznaczone dla osób polskojęzycznych."
+      },
+      {
+        "q": "Jak działają powtórki rozłożone w czasie?",
+        "a": "Każde słowo wraca po coraz dłuższym odstępie. Algorytm FSRS-6 wyznacza termin powtórki tak, aby prawdopodobieństwo poprawnej odpowiedzi wynosiło domyślnie 90%. Słowo z błędną odpowiedzią wraca jeszcze tego samego dnia."
+      },
+      {
+        "q": "Z jakimi aplikacjami współpracuje VocabBot?",
+        "a": "VocabBot działa jako zdalny serwer MCP w aplikacjach Claude, ChatGPT, Claude Code i Codex. Sesję można również prowadzić w przeglądarce pod adresem /app/ oraz w terminalu za pomocą programu vocabbot."
+      },
+      {
+        "q": "Czy do nauki potrzebna jest aplikacja czatu?",
+        "a": "Nie. Strona sesji działa w przeglądarce komputera i telefonu, a program vocabbot prowadzi tę samą sesję w terminalu. Wszystkie sposoby nauki korzystają z jednego konta i jednego planu."
+      },
+      {
+        "q": "Czy asystent AI może zmienić ocenę odpowiedzi?",
+        "a": "Nie. Odpowiedzi ocenia silnik VocabBota według reguł danego języka. Asystent prowadzi rozmowę i wyjaśnia znaczenia, ale oceny, terminy powtórek i statystyki pochodzą wyłącznie z silnika."
+      },
+      {
+        "q": "Jak założyć konto?",
+        "a": "Konto zakłada się z kodem zaproszenia od administratora serwera. Po zalogowaniu można przygotować plan nauki z testem poziomującym lub bez niego."
+      },
+      {
+        "q": "Skąd pochodzą kursy?",
+        "a": "Kursy powstały z otwartych danych. Poziomy pochodzą z listy CEFR-J, tłumaczenia, formy i wymowa z Wikisłownika, kolejność słów z danych wordfreq, a zdania przykładowe z serwisu Tatoeba. Kursy są dostępne na licencji CC BY-SA 4.0."
+      },
+      {
+        "q": "Czy VocabBot jest otwartym oprogramowaniem?",
+        "a": "Tak. Kod jest dostępny w serwisie GitHub na licencji Apache-2.0. Serwer można uruchomić samodzielnie, a program vocabbot działa również bez połączenia z siecią."
+      },
+      {
+        "q": "Jakie dane przechowuje serwer?",
+        "a": "Serwer przechowuje login, skrót hasła, plan nauki, dziennik odpowiedzi, własne słowa i notatki. Na stronie konta można pobrać wszystkie dane oraz usunąć konto. Szczegóły opisuje strona Prywatność."
+      }
+    ],
+    "foot_product": "Produkt",
+    "foot_account": "Konto",
+    "foot_resources": "Zasoby",
+    "foot_source": "Kod źródłowy",
+    "foot_package": "Pakiet PyPI",
+    "foot_llms": "Opis dla modeli AI",
+    "foot_license": "Kod na licencji Apache-2.0, kursy na licencji CC BY-SA 4.0.",
+    "skip": "Przejdź do treści"
   },
   "progress": {
     "counter": "Postęp: {done}/{total}",

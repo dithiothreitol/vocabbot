@@ -3,6 +3,37 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Changed
+
+- The start page has a new design with motion: the headline rises line by
+  line, words of the courses drift beside it, and the sample conversation
+  plays as a loop in which the learner types the answer and the engine grades
+  it. Sections appear as they scroll into view, the pictures of the method
+  draw themselves, numbers count up and a line under the header shows how far
+  the page has been read. Everything moves with CSS and one small script
+  allowed by its hash; `prefers-reduced-motion` stops the motion, and a page
+  without the script shows every section at once.
+- New sections of the start page: the courses in numbers, the three stages of
+  a day, the five courses with their entries per level, and ten questions and
+  answers. The footer lists the product, the account and the resources.
+- The setup steps for Claude and ChatGPT follow the applications' current
+  menus (Customize, Connectors; chatgpt.com/plugins).
+
+### Added
+
+- Search and AI visibility: every indexed page has a canonical address, the
+  links between its Polish and English versions with `x-default`, Open Graph
+  and X cards with a 1200 by 630 picture per language, and schema.org data
+  (Organization, WebSite, WebPage, SoftwareApplication, FAQPage and, on the
+  privacy page, BreadcrumbList).
+- `/robots.txt` opens the public pages to search engines and AI crawlers and
+  closes the forms, the API and `/mcp`; `/sitemap.xml` lists the indexed pages
+  in both languages; `/llms.txt` describes VocabBot in Markdown for AI models.
+- `scripts/make_social.py` renders the pictures of a shared link from the
+  page texts with a headless Chrome or Edge.
+
 ## 1.0.0-rc.12 - 2026-11-18
 
 The service moves to `https://vocabbot.run`, and its pages have a new design
