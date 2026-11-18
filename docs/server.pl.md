@@ -78,6 +78,19 @@ VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
 CADDY=proxy-caddy-1 CADDY_SITES=/opt/caddy/conf.d scripts/deploy_vps.sh
 ```
 
+Odzyskiwanie hasła przez e-mail wymaga konta SMTP: polecenie dostaje
+`SMTP_HOST`, `SMTP_USER`, `SMTP_FROM`, `SMTP_PORT` i `SMTP_SECURITY`, a hasło
+pochodzi z `SMTP_PASSWORD` (w środowisku albo w pliku `.env` repozytorium,
+który git pomija). Skrypt zapisuje ustawienia w pliku
+`/opt/vocabbot/smtp.env`, dostępnym tylko dla roota. Niektóre serwery
+blokują wychodzący port 465 (Hetzner domyślnie); działa tam port 587
+z `SMTP_SECURITY=starttls`:
+
+```
+... SMTP_HOST=smtp.example.org SMTP_PORT=587 SMTP_SECURITY=starttls \
+SMTP_USER=vocab@example.org SMTP_FROM="VocabBot <vocab@example.org>" scripts/deploy_vps.sh
+```
+
 Na maszynie z działającym już serwerem pośredniczącym (nginx, Caddy, Traefik)
 program działa również bez Dockera, a serwer pośredniczący kieruje ruch na
 `127.0.0.1:8000`:

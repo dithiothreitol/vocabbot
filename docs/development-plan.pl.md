@@ -28,8 +28,9 @@ Etap 6 (serwer dla aplikacji czatu) zakończył się wydaniem `v1.0.0-rc.5` na
 GitHubie i w PyPI (15.11.2026), a serwer działa pod `https://vocab.archxs.com`.
 Etapy 12 i 13 (konto jako wspólny rekord nauki na wszystkich urządzeniach
 oraz sesja w przeglądarce telefonu) zaakceptowałeś 18.11.2026 i tego samego
-dnia zrealizowałem je razem jako wersję `1.0.0-rc.11` (commit, wydanie
-i wdrożenie czekają na Twoją zgodę). Do wersji 1.0 pozostaje pilotaż według
+dnia zrealizowałem je razem jako wersję `1.0.0-rc.11`, za Twoją zgodą
+wdrożoną na serwer; wydanie na GitHubie i w PyPI czeka na wypchnięcie z konta
+właściciela repozytorium. Do wersji 1.0 pozostaje pilotaż według
 `docs/pilot.pl.md`. Wersję angielską planu zawiera `development-plan.md`.
 
 ---
@@ -2038,14 +2039,29 @@ Zmiany względem zakresu:
   aktywności z 12 tygodni, pierścień trwałości z kreską celu, wykres
   prognozy, wybór języków kafelkami i ikony w kartach nawigacji.
 
+Wdrożenie za Twoją zgodą z 18.11.2026: serwer 1.0.0rc11 (obraz
+`vocabbot-server:1.0.0rc11-1a982db`) działa pod `https://vocab.archxs.com`.
+`/health` podaje wersję, strony `/app/login`, `/recover`, `/device`
+i manifest odpowiadają, `/app/` bez sesji odsyła do logowania, a `/sync` bez
+tokenu odpowiada 401. Odzyskiwanie hasła wysyła pocztę z konta
+pocztowego w domenie serwera przez `smtp.mail.ovh.net` na porcie 587 ze STARTTLS, bo
+Hetzner blokuje wychodzący port 465; logowanie SMTP z kontenera działa, a hasło
+leży na serwerze w pliku `/opt/vocabbot/smtp.env` dostępnym tylko dla roota.
+Pierwsze wdrożenie pokazało, że docker compose podstawia `$` w pliku
+zmiennych, więc skrypt zapisuje teraz wartości w pojedynczych cudzysłowach
+(commit `1a982db`). Commit i tag `v1.0.0-rc.11` są gotowe lokalnie; push
+odrzucił GitHub, bo aktywne konto `gh` (`dithiothreitol-gpf`) nie ma
+uprawnień do repozytorium, a przełączenia konta nie wykonałem bez Twojej
+decyzji.
+
 Do sprawdzenia poza sesją pracy:
 
 | Temat | Potrzebne |
 |---|---|
 | telefon | Twoje sprawdzenie strony `/app/` na telefonie: dodanie do ekranu głównego, sesja i nagrania |
 | piaskownice gospodarzy | czy Cowork i Codex pozwalają `vocabbot.pyz` łączyć się z serwerem; bez sieci folder działa lokalnie, a synchronizacja czeka |
-| poczta | konto SMTP serwera i jedna prawdziwa wiadomość odzyskiwania; testy używają podstawionego nadawcy |
-| wydanie i wdrożenie | Twoja zgoda na push, tag `v1.0.0-rc.11`, PyPI i wdrożenie serwera |
+| poczta | jedna prawdziwa wiadomość odzyskiwania z Twojego konta: adres na stronie konta, potem „Nie pamiętam hasła” |
+| wydanie | push gałęzi `main` i tagu `v1.0.0-rc.11` z konta `dithiothreitol`; workflow wydania zbuduje paczki, utworzy wydanie na GitHubie i opublikuje paczkę w PyPI |
 | sesja z modelem | symulacja połączenia folderu przez umiejętność `vocab-start` (koszt modeli, osobna zgoda) |
 
 ---

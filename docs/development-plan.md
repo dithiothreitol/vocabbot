@@ -33,8 +33,9 @@ with the release `v1.0.0-rc.5` on GitHub and on PyPI (15.11.2026), and the
 server runs at `https://vocab.archxs.com`. You accepted Stages 12 and 13 (the
 account as the shared learning record on every device, and the session in a
 phone's browser) on 18.11.2026, and on the same day I carried them out
-together as version `1.0.0-rc.11` (the commit, the release and the
-deployment wait for your approval). Version 1.0 still needs the pilot
+together as version `1.0.0-rc.11`, deployed on the server with your
+approval; the release on GitHub and PyPI waits for a push from the
+repository owner's account. Version 1.0 still needs the pilot
 described in `docs/pilot.md`.
 
 ---
@@ -2083,14 +2084,29 @@ Changes against the scope:
   map of 12 weeks, a ring of recall with the target's mark, a chart of the
   forecast, languages chosen with tiles, and icons in the navigation tabs.
 
+The deployment with your approval of 18.11.2026: server 1.0.0rc11 (the image
+`vocabbot-server:1.0.0rc11-1a982db`) runs at `https://vocab.archxs.com`.
+`/health` gives the version, the pages `/app/login`, `/recover`, `/device` and
+the manifest answer, `/app/` without a session leads to the sign-in, and
+`/sync` without a token answers 401. Password recovery sends mail from a mail
+account in the server's domain through `smtp.mail.ovh.net` on port 587 with
+STARTTLS, since Hetzner blocks outgoing port 465; the SMTP sign-in from the
+container works, and the password lies on the server in
+`/opt/vocabbot/smtp.env`, readable by root only. The first deployment showed
+that docker compose fills in `$` in an env file, so the script now writes the
+values in single quotes (commit `1a982db`). The commit and the tag
+`v1.0.0-rc.11` are ready locally; GitHub refused the push, since the active
+`gh` account (`dithiothreitol-gpf`) has no rights to the repository, and I did
+not switch the account without your decision.
+
 To check outside the working session:
 
 | Topic | Needed |
 |---|---|
 | the phone | your check of `/app/` on your phone: adding it to the home screen, a session and the recordings |
 | the hosts' sandboxes | whether Cowork and Codex let `vocabbot.pyz` reach the server; without a network the folder works locally and the synchronisation waits |
-| mail | the server's SMTP account and one real recovery message; the tests use a stand-in sender |
-| release and deployment | your approval for the push, the tag `v1.0.0-rc.11`, PyPI and the server's deployment |
+| mail | one real recovery message from your account: the address on the account page, then "Nie pamiętam hasła" |
+| release | a push of `main` and of the tag `v1.0.0-rc.11` from the account `dithiothreitol`; the release workflow builds the packages, creates the GitHub release and publishes the package on PyPI |
 | a session with a model | a simulation of linking a folder through the skill `vocab-start` (model costs, a separate approval) |
 
 ---

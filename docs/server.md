@@ -77,6 +77,19 @@ VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
 CADDY=proxy-caddy-1 CADDY_SITES=/opt/caddy/conf.d scripts/deploy_vps.sh
 ```
 
+Password recovery by e-mail needs an SMTP account: add `SMTP_HOST`,
+`SMTP_USER`, `SMTP_FROM`, `SMTP_PORT` and `SMTP_SECURITY` to the command, and
+keep the password in `SMTP_PASSWORD` (in the environment or in the
+repository's `.env`, which git ignores). The script writes the settings to
+`/opt/vocabbot/smtp.env`, readable by root only. Some hosts block outgoing
+port 465 (Hetzner does by default); port 587 with `SMTP_SECURITY=starttls`
+works there:
+
+```
+... SMTP_HOST=smtp.example.org SMTP_PORT=587 SMTP_SECURITY=starttls \
+SMTP_USER=vocab@example.org SMTP_FROM="VocabBot <vocab@example.org>" scripts/deploy_vps.sh
+```
+
 A machine that already runs a reverse proxy (nginx, Caddy, Traefik) can also
 run the program without Docker and point the proxy at `127.0.0.1:8000`:
 
