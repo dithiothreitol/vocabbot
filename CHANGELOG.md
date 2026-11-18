@@ -3,7 +3,10 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
-## Unreleased
+## 1.0.0-rc.13 - 2026-11-18
+
+The start page has a new design with motion, and the server tells search
+engines and AI models what VocabBot is.
 
 ### Changed
 

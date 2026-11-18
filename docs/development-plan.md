@@ -2149,12 +2149,28 @@ and the resource `https://vocabbot.run/mcp`, `/mcp` without a token answers
 one hour, so for that long some DNS caches may still point at the hostido
 page.
 
+The start page with motion and search visibility at your request of
+18.11.2026: the headline rises line by line, words of the courses drift
+beside it, and the sample conversation plays as a loop with a typed answer
+and the engine's grade. Sections appear as they scroll into view, the
+pictures of the method draw themselves and numbers count up. New sections:
+the courses in numbers, the three stages of a day, the five courses with
+their entries per level and ten questions and answers. The motion is CSS and
+one small script allowed by its hash; `prefers-reduced-motion` stops it.
+Indexed pages carry a canonical address, `hreflang` links with `x-default`,
+Open Graph and X cards with a 1200 by 630 picture per language
+(`scripts/make_social.py`) and schema.org data (SoftwareApplication, FAQPage
+and more). The server writes `/robots.txt`, `/sitemap.xml` and `/llms.txt`.
+Commit `70d7a50` runs at `https://vocabbot.run` since 18.11.2026, and with
+your approval of that day the change goes into version `1.0.0-rc.13`.
+
 To check outside the working session:
 
 | Topic | Needed |
 |---|---|
 | the new domain | connecting Claude and ChatGPT again with `https://vocabbot.run/mcp`, signing in again at `https://vocabbot.run/app/`, and `vocabbot login` in linked folders (the new address is the default from rc.12) |
 | the phone | your check of `https://vocabbot.run/app/` on your phone: adding it to the home screen, a session and the recordings |
+| search engines | adding `vocabbot.run` to Google Search Console and Bing Webmaster Tools and submitting `https://vocabbot.run/sitemap.xml` (needs your accounts) |
 | the hosts' sandboxes | whether Cowork and Codex let `vocabbot.pyz` reach the server; without a network the folder works locally and the synchronisation waits |
 | mail | one real recovery message from your account: the address on the account page, then "Nie pamiętam hasła" |
 | a session with a model | a simulation of linking a folder through the skill `vocab-start` (model costs, a separate approval) |

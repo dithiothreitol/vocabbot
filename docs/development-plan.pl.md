@@ -2105,12 +2105,27 @@ odpowiada 401, a logowanie SMTP z kontenera działa. Rekord A ma TTL jednej
 godziny, więc przez ten czas pamięć podręczna DNS u części użytkowników może
 jeszcze wskazywać stronę hostido.
 
+Strona startowa z ruchem i widocznością w wyszukiwarkach na Twoją prośbę
+z 18.11.2026: nagłówek wsuwa się linia po linii, obok unoszą się słowa
+z kursów, a przykładowa rozmowa odtwarza się w pętli z wpisywaną odpowiedzią
+i oceną silnika. Sekcje pojawiają się przy przewijaniu, rysunki metody rysują
+się same, liczby się odliczają. Nowe sekcje: kursy w liczbach, trzy etapy
+dnia, pięć kursów z liczbą haseł na poziom i dziesięć pytań z odpowiedziami.
+Ruch to CSS i jeden mały skrypt dopuszczony skrótem; `prefers-reduced-motion`
+go wyłącza. Strony indeksowane mają adres kanoniczny, linki `hreflang`
+z `x-default`, Open Graph i karty X z obrazem 1200 na 630 dla każdego języka
+(`scripts/make_social.py`) oraz dane schema.org (SoftwareApplication,
+FAQPage i inne). Serwer podaje `/robots.txt`, `/sitemap.xml` i `/llms.txt`.
+Commit `70d7a50` działa pod `https://vocabbot.run` od 18.11.2026, a za Twoją
+zgodą z tego dnia zmiana wchodzi do wersji `1.0.0-rc.13`.
+
 Do sprawdzenia poza sesją pracy:
 
 | Temat | Potrzebne |
 |---|---|
 | nowa domena | ponowne połączenie Claude i ChatGPT z adresem `https://vocabbot.run/mcp`, ponowne logowanie na `https://vocabbot.run/app/` oraz `vocabbot login` w połączonych folderach (od wersji rc.12 domyślnie nowy adres) |
 | telefon | Twoje sprawdzenie strony `https://vocabbot.run/app/` na telefonie: dodanie do ekranu głównego, sesja i nagrania |
+| wyszukiwarki | dodanie `vocabbot.run` w Google Search Console i Bing Webmaster Tools oraz zgłoszenie `https://vocabbot.run/sitemap.xml` (wymaga Twoich kont) |
 | piaskownice gospodarzy | czy Cowork i Codex pozwalają `vocabbot.pyz` łączyć się z serwerem; bez sieci folder działa lokalnie, a synchronizacja czeka |
 | poczta | jedna prawdziwa wiadomość odzyskiwania z Twojego konta: adres na stronie konta, potem „Nie pamiętam hasła” |
 | sesja z modelem | symulacja połączenia folderu przez umiejętność `vocab-start` (koszt modeli, osobna zgoda) |
