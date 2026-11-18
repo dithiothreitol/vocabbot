@@ -2091,11 +2091,26 @@ logowanie z kontenera na serwerze działa, certyfikat obejmuje
 `*.vocabbot.run`, a hasło jest takie samo jak dotychczasowe. Rekord
 `mail.vocabbot.run` pozostaje przy serwerach hostido.
 
+Wydanie i wdrożenie za Twoją zgodą z 18.11.2026: commit `0ff2397`, tag
+`v1.0.0-rc.12`, wydanie przedpremierowe na GitHubie z kompletem 9 paczek
+i `vocabbot 1.0.0rc12` w PyPI przez zaufane publikowanie, z sumami zgodnymi
+z GitHubem. CI jest zielone: testy na Pythonie 3.10 i 3.15 oraz kontrole
+wtyczki. Po zmianie rekordów A w hostido serwer
+`vocabbot-server:1.0.0rc12-0ff2397` działa pod `https://vocabbot.run`
+z certyfikatami Let's Encrypt dla `vocabbot.run` i `www.vocabbot.run`.
+Adresy `vocab.archxs.com` i `www.vocabbot.run` przekierowują kodem 308
+z zachowaniem ścieżki i parametrów, metadane OAuth podają wystawcę
+`https://vocabbot.run` i zasób `https://vocabbot.run/mcp`, `/mcp` bez tokenu
+odpowiada 401, a logowanie SMTP z kontenera działa. Rekord A ma TTL jednej
+godziny, więc przez ten czas pamięć podręczna DNS u części użytkowników może
+jeszcze wskazywać stronę hostido.
+
 Do sprawdzenia poza sesją pracy:
 
 | Temat | Potrzebne |
 |---|---|
-| telefon | Twoje sprawdzenie strony `/app/` na telefonie: dodanie do ekranu głównego, sesja i nagrania |
+| nowa domena | ponowne połączenie Claude i ChatGPT z adresem `https://vocabbot.run/mcp`, ponowne logowanie na `https://vocabbot.run/app/` oraz `vocabbot login` w połączonych folderach (od wersji rc.12 domyślnie nowy adres) |
+| telefon | Twoje sprawdzenie strony `https://vocabbot.run/app/` na telefonie: dodanie do ekranu głównego, sesja i nagrania |
 | piaskownice gospodarzy | czy Cowork i Codex pozwalają `vocabbot.pyz` łączyć się z serwerem; bez sieci folder działa lokalnie, a synchronizacja czeka |
 | poczta | jedna prawdziwa wiadomość odzyskiwania z Twojego konta: adres na stronie konta, potem „Nie pamiętam hasła” |
 | sesja z modelem | symulacja połączenia folderu przez umiejętność `vocab-start` (koszt modeli, osobna zgoda) |

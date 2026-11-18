@@ -2135,11 +2135,26 @@ the recovery messages through `mail.vocabbot.run` on port 587 with STARTTLS
 works, the certificate covers `*.vocabbot.run`, and the password is the same
 as before. The record `mail.vocabbot.run` stays with hostido.
 
+The release and the deployment with your approval of 18.11.2026: the commit
+`0ff2397`, the tag `v1.0.0-rc.12`, a pre-release on GitHub with all 9
+packages and `vocabbot 1.0.0rc12` on PyPI through trusted publishing, with
+sums matching GitHub. CI is green: the tests on Python 3.10 and 3.15 and the
+plugin checks. After the change of the A records at hostido the server
+`vocabbot-server:1.0.0rc12-0ff2397` runs at `https://vocabbot.run` with Let's
+Encrypt certificates for `vocabbot.run` and `www.vocabbot.run`. The addresses
+`vocab.archxs.com` and `www.vocabbot.run` redirect with a 308 that keeps the
+path and the query, the OAuth metadata name the issuer `https://vocabbot.run`
+and the resource `https://vocabbot.run/mcp`, `/mcp` without a token answers
+401, and the SMTP sign-in from the container works. The A record has a TTL of
+one hour, so for that long some DNS caches may still point at the hostido
+page.
+
 To check outside the working session:
 
 | Topic | Needed |
 |---|---|
-| the phone | your check of `/app/` on your phone: adding it to the home screen, a session and the recordings |
+| the new domain | connecting Claude and ChatGPT again with `https://vocabbot.run/mcp`, signing in again at `https://vocabbot.run/app/`, and `vocabbot login` in linked folders (the new address is the default from rc.12) |
+| the phone | your check of `https://vocabbot.run/app/` on your phone: adding it to the home screen, a session and the recordings |
 | the hosts' sandboxes | whether Cowork and Codex let `vocabbot.pyz` reach the server; without a network the folder works locally and the synchronisation waits |
 | mail | one real recovery message from your account: the address on the account page, then "Nie pamiętam hasła" |
 | a session with a model | a simulation of linking a folder through the skill `vocab-start` (model costs, a separate approval) |
