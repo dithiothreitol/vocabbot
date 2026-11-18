@@ -33,9 +33,8 @@ with the release `v1.0.0-rc.5` on GitHub and on PyPI (15.11.2026), and the
 server runs at `https://vocab.archxs.com`. You accepted Stages 12 and 13 (the
 account as the shared learning record on every device, and the session in a
 phone's browser) on 18.11.2026, and on the same day I carried them out
-together as version `1.0.0-rc.11`, deployed on the server with your
-approval; the release on GitHub and PyPI waits for a push from the
-repository owner's account. Version 1.0 still needs the pilot
+together as version `1.0.0-rc.11`, released on GitHub and PyPI and
+deployed on the server with your approval. Version 1.0 still needs the pilot
 described in `docs/pilot.md`.
 
 ---
@@ -2094,10 +2093,17 @@ STARTTLS, since Hetzner blocks outgoing port 465; the SMTP sign-in from the
 container works, and the password lies on the server in
 `/opt/vocabbot/smtp.env`, readable by root only. The first deployment showed
 that docker compose fills in `$` in an env file, so the script now writes the
-values in single quotes (commit `1a982db`). The commit and the tag
-`v1.0.0-rc.11` are ready locally; GitHub refused the push, since the active
-`gh` account (`dithiothreitol-gpf`) has no rights to the repository, and I did
-not switch the account without your decision.
+values in single quotes (commit `1a982db`).
+
+The release with your approval of 18.11.2026: the tag `v1.0.0-rc.11` on the
+commit `1a982db`, a pre-release on GitHub with all 9 packages (the wheel, the
+sdist, `vocabbot.pyz`, `vocabbot.plugin`, four skill archives, `SHA256SUMS`)
+and `vocabbot 1.0.0rc11` on PyPI through trusted publishing, started by hand
+for the tag, with sums matching GitHub. CI is green: the tests on Python 3.10
+and 3.15 with the end-to-end test, and the plugin checks. GitHub refused the
+first push, since the active `gh` account (`dithiothreitol-gpf`) has no rights
+to the repository; I pushed from the account `dithiothreitol` after your
+decision and then brought the previous account back.
 
 To check outside the working session:
 
@@ -2106,7 +2112,6 @@ To check outside the working session:
 | the phone | your check of `/app/` on your phone: adding it to the home screen, a session and the recordings |
 | the hosts' sandboxes | whether Cowork and Codex let `vocabbot.pyz` reach the server; without a network the folder works locally and the synchronisation waits |
 | mail | one real recovery message from your account: the address on the account page, then "Nie pamiętam hasła" |
-| release | a push of `main` and of the tag `v1.0.0-rc.11` from the account `dithiothreitol`; the release workflow builds the packages, creates the GitHub release and publishes the package on PyPI |
 | a session with a model | a simulation of linking a folder through the skill `vocab-start` (model costs, a separate approval) |
 
 ---

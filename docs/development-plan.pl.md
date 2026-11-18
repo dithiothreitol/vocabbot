@@ -29,8 +29,8 @@ GitHubie i w PyPI (15.11.2026), a serwer działa pod `https://vocab.archxs.com`.
 Etapy 12 i 13 (konto jako wspólny rekord nauki na wszystkich urządzeniach
 oraz sesja w przeglądarce telefonu) zaakceptowałeś 18.11.2026 i tego samego
 dnia zrealizowałem je razem jako wersję `1.0.0-rc.11`, za Twoją zgodą
-wdrożoną na serwer; wydanie na GitHubie i w PyPI czeka na wypchnięcie z konta
-właściciela repozytorium. Do wersji 1.0 pozostaje pilotaż według
+wydaną na GitHubie i w PyPI oraz wdrożoną na serwer. Do wersji 1.0 pozostaje
+pilotaż według
 `docs/pilot.pl.md`. Wersję angielską planu zawiera `development-plan.md`.
 
 ---
@@ -2049,10 +2049,17 @@ Hetzner blokuje wychodzący port 465; logowanie SMTP z kontenera działa, a has�
 leży na serwerze w pliku `/opt/vocabbot/smtp.env` dostępnym tylko dla roota.
 Pierwsze wdrożenie pokazało, że docker compose podstawia `$` w pliku
 zmiennych, więc skrypt zapisuje teraz wartości w pojedynczych cudzysłowach
-(commit `1a982db`). Commit i tag `v1.0.0-rc.11` są gotowe lokalnie; push
-odrzucił GitHub, bo aktywne konto `gh` (`dithiothreitol-gpf`) nie ma
-uprawnień do repozytorium, a przełączenia konta nie wykonałem bez Twojej
-decyzji.
+(commit `1a982db`).
+
+Wydanie za Twoją zgodą z 18.11.2026: tag `v1.0.0-rc.11` na commicie
+`1a982db`, wydanie przedpremierowe na GitHubie z kompletem 9 paczek (koło,
+źródła, `vocabbot.pyz`, `vocabbot.plugin`, cztery archiwa umiejętności,
+`SHA256SUMS`) i `vocabbot 1.0.0rc11` w PyPI przez zaufane publikowanie,
+uruchomione ręcznie dla tagu, z sumami zgodnymi z GitHubem. CI jest zielone:
+testy na Pythonie 3.10 i 3.15 z testem e2e oraz kontrole wtyczki. Pierwszy
+push odrzucił GitHub, bo aktywne konto `gh` (`dithiothreitol-gpf`) nie ma
+uprawnień do repozytorium; wypchnąłem z konta `dithiothreitol` po Twojej
+decyzji, a potem przywróciłem poprzednie konto.
 
 Do sprawdzenia poza sesją pracy:
 
@@ -2061,7 +2068,6 @@ Do sprawdzenia poza sesją pracy:
 | telefon | Twoje sprawdzenie strony `/app/` na telefonie: dodanie do ekranu głównego, sesja i nagrania |
 | piaskownice gospodarzy | czy Cowork i Codex pozwalają `vocabbot.pyz` łączyć się z serwerem; bez sieci folder działa lokalnie, a synchronizacja czeka |
 | poczta | jedna prawdziwa wiadomość odzyskiwania z Twojego konta: adres na stronie konta, potem „Nie pamiętam hasła” |
-| wydanie | push gałęzi `main` i tagu `v1.0.0-rc.11` z konta `dithiothreitol`; workflow wydania zbuduje paczki, utworzy wydanie na GitHubie i opublikuje paczkę w PyPI |
 | sesja z modelem | symulacja połączenia folderu przez umiejętność `vocab-start` (koszt modeli, osobna zgoda) |
 
 ---
