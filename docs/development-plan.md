@@ -2105,6 +2105,36 @@ first push, since the active `gh` account (`dithiothreitol-gpf`) has no rights
 to the repository; I pushed from the account `dithiothreitol` after your
 decision and then brought the previous account back.
 
+I redesigned the server's pages on 18.11.2026 at your request. The start
+page, privacy, the sign-ins, the account, password recovery and `/device`
+follow Geist and speak Polish and English: the language comes from the
+switch (the cookie `vocabbot_lang`) and, without it, from `Accept-Language`,
+and the recovery message goes out in the language of the page. I edited the
+copy in a formal, natural register, without colloquialisms or long dashes.
+The colour accents come from the avatar (its blue, navy and amber) instead of
+gradients and glows. The start page shows a sample session in a chat app,
+the method, the setup with copy buttons for the address and the commands, and
+a navy call to action. The style lives in `static/site.css` (an address with
+the digest of its content, cached for a year) and the English texts in
+`data/i18n/en.json`. With your approval of 18.11.2026 the change goes into
+version `1.0.0-rc.12` together with the move to the new domain.
+
+A new domain at your request of 18.11.2026: the service moves to
+`https://vocabbot.run`. The program connects to the new address by default,
+and the deploy script redirects `vocab.archxs.com` and `www.vocabbot.run` to
+the new domain permanently (308, the variable `REDIRECT_FROM`). The domain
+uses the name servers of hostido.net.pl and until 18.11.2026 pointed at a
+parking page (185.110.51.x), so before the deployment the A records of
+`vocabbot.run` and `www.vocabbot.run` must point at the server
+167.233.57.77. A new domain changes the OAuth issuer and the MCP address: the
+chat applications connect again, the browser signs in again, and a linked
+learning folder links again with `vocabbot login --server
+https://vocabbot.run`. From now on the support mailbox of the domain `vocabbot.run` sends
+the recovery messages through `mail.vocabbot.run` on port 587 with STARTTLS
+(Hetzner blocks port 465); the sign-in from the container on the server
+works, the certificate covers `*.vocabbot.run`, and the password is the same
+as before. The record `mail.vocabbot.run` stays with hostido.
+
 To check outside the working session:
 
 | Topic | Needed |

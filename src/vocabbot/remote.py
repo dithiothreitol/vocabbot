@@ -42,7 +42,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 from vocabbot import __version__, assets, store, sync
 from vocabbot.errors import VocabError
 
-DEFAULT_SERVER = "https://vocab.archxs.com"
+DEFAULT_SERVER = "https://vocabbot.run"
 CREDENTIALS = "credentials.json"
 SCOPE = "vocab"
 USER_AGENT = f"vocabbot/{__version__}"

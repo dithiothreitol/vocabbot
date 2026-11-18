@@ -12,7 +12,7 @@ from __future__ import annotations
 import secrets
 import time
 import uuid
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import quote, urlencode, urlsplit
 
 import anyio.to_thread
 from mcp.server.auth.provider import (
@@ -309,6 +309,7 @@ class SignIn:
 
     def _form(
         self,
+        loc: pages.Locale,
         request_id: str,
         client_id: str,
         error: str | None = None,
@@ -316,34 +317,38 @@ class SignIn:
         tab: str = "login",
     ) -> HTMLResponse:
         app, host = self._client(client_id)
-        page = pages.sign_in(request_id, app, host, self.settings.open_signup, error, login, tab)
+        loc = loc.at(f"/login?request={quote(request_id)}")
+        page = pages.sign_in(
+            loc, request_id, app, host, self.settings.open_signup, error, login, tab
+        )
         status = 429 if error == "throttled" else 400 if error else 200
-        return HTMLResponse(page, status_code=status, headers=pages.HEADERS)
+        return pages.respond(loc, page, status)
 
     async def handle(self, request: Request) -> Response:
+        loc = pages.locale(request, secure=self.settings.secure, site=self.settings.url)
         if request.method == "GET":
             request_id = request.query_params.get("request", "")
             found = self.registry.request(request_id) if request_id else None
             if found is None:
-                return HTMLResponse(pages.expired(), status_code=400, headers=pages.HEADERS)
-            return self._form(request_id, found[0])
+                return pages.respond(loc, pages.expired(loc), 400)
+            return self._form(loc, request_id, found[0])
         form = await request.form()
         request_id = str(form.get("request") or "")
         found = self.registry.request(request_id) if request_id else None
         if found is None:
-            return HTMLResponse(pages.expired(), status_code=400, headers=pages.HEADERS)
+            return pages.respond(loc, pages.expired(loc), 400)
         client_id, params_json = found
         login = str(form.get("login") or "")[:100]
         password = str(form.get("password") or "")
         address = request.client.host if request.client else "unknown"
         tab = "signup" if form.get("action") == "signup" else "login"
         if self.throttle.blocked(address, login):
-            return self._form(request_id, client_id, "throttled", login, tab)
+            return self._form(loc, request_id, client_id, "throttled", login, tab)
         account: Account | None
         zone = browser_zone(form.get("tz"))
         if tab == "signup":
             if password != str(form.get("password2") or ""):
-                return self._form(request_id, client_id, "password_mismatch", login, tab)
+                return self._form(loc, request_id, client_id, "password_mismatch", login, tab)
             invite = str(form.get("invite") or "")
             try:
                 account = await anyio.to_thread.run_sync(
@@ -352,16 +357,16 @@ class SignIn:
             except SignupError as exc:
                 if exc.code == "bad_invite":
                     self.throttle.fail(address, login)
-                return self._form(request_id, client_id, exc.code, login, tab)
+                return self._form(loc, request_id, client_id, exc.code, login, tab)
             self.registry.set_timezone(account.id, zone)
         else:
             account = await anyio.to_thread.run_sync(self.registry.verify, login, password)
             if account is None:
                 self.throttle.fail(address, login)
-                return self._form(request_id, client_id, "wrong_credentials", login)
+                return self._form(loc, request_id, client_id, "wrong_credentials", login)
             self.registry.set_timezone(account.id, zone, only_empty=True)
         if not self.registry.drop_request(request_id):
-            return HTMLResponse(pages.expired(), status_code=400, headers=pages.HEADERS)
+            return pages.respond(loc, pages.expired(loc), 400)
         params = AuthorizationParams.model_validate_json(params_json)
         code = AuthorizationCode(
             code=secrets.token_urlsafe(32),

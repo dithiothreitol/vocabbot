@@ -4,6 +4,10 @@
 #   VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
 #   CADDY=proxy-caddy-1 [CADDY_SITES=/opt/caddy/conf.d] scripts/deploy_vps.sh
 #
+# REDIRECT_FROM="old.example.org www.vocab.example.org" sends those hosts to DOMAIN with a
+# permanent redirect that keeps the method (308), for example after a move to a new domain.
+# Each of them needs an A record pointing at the server, so that Caddy obtains its certificate.
+#
 # Password recovery by e-mail: SMTP_HOST, SMTP_USER and SMTP_FROM (with SMTP_PORT, default
 # 465, and SMTP_SECURITY, default ssl) name the account, and the password comes from
 # SMTP_PASSWORD in the environment or in the repository's .env, never from a command line.
@@ -34,6 +38,13 @@ echo "== files"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 sed "s/@DOMAIN@/$DOMAIN/" deploy/vps/vocabbot.caddy.in > "$work/vocabbot.caddy"
+for host in ${REDIRECT_FROM:-}; do
+  case "$host" in
+    *[!A-Za-z0-9.-]* | "$DOMAIN") echo "REDIRECT_FROM: '$host' is not another host name" >&2; exit 1 ;;
+  esac
+  printf '\n%s {\n\tredir https://%s{uri} 308\n}\n' "$host" "$DOMAIN" >> "$work/vocabbot.caddy"
+  echo "redirect: https://$host -> https://$DOMAIN"
+done
 ssh "$VPS" 'mkdir -p /opt/vocabbot'
 scp -q deploy/vps/compose.yml deploy/vps/backup.sh "$work/vocabbot.caddy" "$VPS:/opt/vocabbot/"
 if [ -n "${SMTP_HOST:-}" ]; then

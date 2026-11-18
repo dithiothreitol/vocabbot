@@ -21,6 +21,7 @@ server itself uses no model.
 | `/login` | the page where the learner signs in or opens an account with an invitation code |
 | `/`, `/privacy`, `/health` | the start page, the privacy note and the health check |
 | `/static/vocabbot.png`, `/favicon.ico` | VocabBot's avatar: the favicon of the pages and the icon the server names in its MCP information (`icons`) |
+| `/static/site.css` | the style of the pages, which ask for it under its digest, so browsers keep it for a year |
 | `/sync` | the synchronisation of a learning folder linked to the account (`vocabbot login`), with the same access token as `/mcp` |
 | `/device`, `/device/authorize`, `/device/token` | the program's sign-in with a code confirmed on another device (the device flow, RFC 8628) |
 | `/app/`, `/app/login`, `/api/<name>` | the session page in a browser, its sign-in and its calls of the engine |
@@ -46,6 +47,13 @@ server itself uses no model.
   setting `timezone`; a new account gets the zone its browser reports), and
   for a plan without one in the server's zone (`Europe/Warsaw` by default),
   always at the hour of the plan's `day_starts_at`.
+- The pages (the start page, privacy, the sign-ins, the account, password
+  recovery and `/device`) speak Polish and English. The language comes from
+  `?lang=`, then from the cookie `vocabbot_lang` that the language switch
+  sets, then from the browser's `Accept-Language`; Polish is the default. The
+  English texts live in `data/i18n/en.json`, and a text it lacks falls back to
+  Polish; the recovery message goes out in the language of the page. The
+  session page, the card and the engine's texts stay Polish, like the course.
 
 ## Running the server
 
@@ -75,6 +83,18 @@ brings back the previous state) and adds a daily backup to
 ```
 VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
 CADDY=proxy-caddy-1 CADDY_SITES=/opt/caddy/conf.d scripts/deploy_vps.sh
+```
+
+After a move to a new domain, `REDIRECT_FROM` names the former hosts (and a
+`www.` host, if any): Caddy sends them to `DOMAIN` with a permanent redirect
+that keeps the method (308). Every one of them needs an A record pointing at
+the server. A new domain changes the OAuth issuer and the MCP address, so the
+chat applications connect again with the new address, the browser signs in
+again, and a linked folder links again with `vocabbot login --server
+https://<new domain>`.
+
+```
+... DOMAIN=vocab.example.org REDIRECT_FROM="old.example.org www.vocab.example.org" scripts/deploy_vps.sh
 ```
 
 Password recovery by e-mail needs an SMTP account: add `SMTP_HOST`,
@@ -131,6 +151,8 @@ open an account without an invitation.
   its answer and the engine grades. The browser signs in on `/app/login` and
   gets a session cookie for 30 days (`HttpOnly`, `SameSite=Strict`, `Secure`
   on https); every write needs the form token and the server's own origin.
+  The language switch of the pages keeps its choice in a second cookie,
+  `vocabbot_lang` (`SameSite=Lax`, a year), set only when the learner uses it.
 - **The account page** (`/account`) lists the connected applications and
   computers with their last use and disconnects any of them, gives the data
   as a zip in the form of a learning folder, keeps an optional e-mail address
@@ -197,7 +219,7 @@ and the list of connected applications and computers with their last use.
 The e-mail address is optional and reaches the server only as a hash. The
 server needs no name. The chat application processes the conversation under its own
 terms and sends the server only the calls of VocabBot's tools. The page
-`/privacy` tells the learner the same in Polish.
+`/privacy` tells the learner the same in Polish and English.
 
 ## Checks
 

@@ -133,7 +133,9 @@ def login_with_code(config: Path, phone: httpx2.Client, *args: str) -> dict[str,
     token = re.search(r'name="csrf" value="([0-9a-f]+)"', page.text)
     assert page.status_code == 200 and token, page.text
     confirmed = phone.post("/device", data={"code": found[0], "csrf": token[1]})
-    assert confirmed.status_code == 200 and "Program połączony" in confirmed.text, confirmed.text
+    assert confirmed.status_code == 200 and "Program został połączony" in confirmed.text, (
+        confirmed.text
+    )
     out, _ = process.communicate(timeout=120)
     assert process.returncode == 0, out + "".join(shown)
     result: dict[str, Any] = json.loads(out)

@@ -163,9 +163,9 @@ class Web:
         )
         return response
 
-    @staticmethod
-    def _html(page: str, status: int = 200) -> HTMLResponse:
-        return HTMLResponse(page, status_code=status, headers=pages.HEADERS)
+    def _loc(self, request: Request) -> pages.Locale:
+        """The language of the page: ?lang=, the switch's cookie, the browser, Polish."""
+        return pages.locale(request, secure=self.settings.secure, site=self.settings.url)
 
     @staticmethod
     def _address(request: Request) -> str:
@@ -184,23 +184,26 @@ class Web:
     async def sign_in(self, request: Request) -> Response:
         mail_ready = self.settings.mail.ready
         open_signup = self.settings.open_signup
+        loc = self._loc(request)
         if request.method == "GET":
             target = self._next(request.query_params.get("next"))
             if self.account_of(request) is not None:
                 return RedirectResponse(target, status_code=303)
-            return self._html(pages.web_sign_in(target, open_signup, mail_ready))
+            return pages.respond(loc, pages.web_sign_in(loc, target, open_signup, mail_ready))
         if not self.origin_ok(request):
-            return self._html(pages.web_sign_in("/app/", open_signup, mail_ready, "origin"), 403)
+            page = pages.web_sign_in(loc, "/app/", open_signup, mail_ready, "origin")
+            return pages.respond(loc, page, 403)
         form = await request.form()
         target = self._next(form.get("next"))
         login = str(form.get("login") or "")[:100]
         password = str(form.get("password") or "")
         tab = "signup" if form.get("action") == "signup" else "login"
         address = self._address(request)
+        loc = loc.at(f"/app/login?next={quote(target)}")
 
         def refuse(error: str, status: int = 400) -> Response:
-            page = pages.web_sign_in(target, open_signup, mail_ready, error, login, tab)
-            return self._html(page, 429 if error == "throttled" else status)
+            page = pages.web_sign_in(loc, target, open_signup, mail_ready, error, login, tab)
+            return pages.respond(loc, page, 429 if error == "throttled" else status)
 
         if self.throttle.blocked(address, login):
             return refuse("throttled")
@@ -253,7 +256,10 @@ class Web:
         message: str | None = None,
         error: str | None = None,
     ) -> Response:
+        """The account page, with a message (the name of its text) or an error."""
+        loc = self._loc(request).at("/account")
         page = pages.account(
+            loc,
             account.login,
             account.created,
             self.csrf_of(self.session_token(request)),
@@ -261,10 +267,10 @@ class Web:
             mail_ready=self.settings.mail.ready,
             grants=self.registry.grants(account.id),
             can_export=(self.service.folder(account.id) / store.PLAN).is_file(),
-            message=message,
+            message=loc.say(message) if message else None,
             error=error,
         )
-        return self._html(page, 400 if error else 200)
+        return pages.respond(loc, page, 400 if error else 200)
 
     async def account(self, request: Request) -> Response:
         account = self.account_of(request)
@@ -288,23 +294,23 @@ class Web:
                 await anyio.to_thread.run_sync(self.registry.set_email, account.id, email)
             except SignupError:
                 return self._account_page(request, account, error="bad_email")
-            return self._account_page(request, account, assets.text("server.web.saved_email"))
+            return self._account_page(request, account, "web.saved_email")
         if action == "email_remove":
             self.registry.set_email(account.id, None)
-            return self._account_page(request, account, assets.text("server.web.removed_email"))
+            return self._account_page(request, account, "web.removed_email")
         if action == "unlink":
             self.registry.drop_account_grant(account.id, str(form.get("grant") or ""))
-            return self._account_page(request, account, assets.text("server.web.unlinked"))
+            return self._account_page(request, account, "web.unlinked")
         if action == "delete":
             if not await self._password_ok(request, account, str(form.get("password") or "")):
                 return self._account_page(request, account, error="wrong_password")
             self.registry.delete_account(account.id)
             await anyio.to_thread.run_sync(self.service.remove, account.id)
-            response = self._html(
-                pages.message_page(
-                    assets.text("server.web.delete_title"), assets.text("server.web.deleted")
-                )
+            loc = self._loc(request).at("/")
+            page = pages.message_page(
+                loc, loc.say("web.delete_title"), loc.say("web.deleted"), tone="ok"
             )
+            response = pages.respond(loc, page)
             response.delete_cookie(COOKIE, path="/")
             return response
         return self._account_page(request, account)
@@ -340,45 +346,44 @@ class Web:
     # ------------------------------------------------------------ password recovery
 
     async def recover(self, request: Request) -> Response:
+        loc = self._loc(request).at("/recover")
         if not self.settings.mail.ready:
             page = pages.message_page(
-                assets.text("server.web.recover_title"),
-                assets.text("server.web.email_unavailable"),
+                loc, loc.say("web.recover_title"), loc.say("web.email_unavailable"), tone="info"
             )
-            return self._html(page)
+            return pages.respond(loc, page)
         if request.method == "GET":
-            return self._html(pages.recover())
+            return pages.respond(loc, pages.recover(loc))
         if not self.origin_ok(request):
-            return self._html(pages.recover("origin"), 403)
+            return pages.respond(loc, pages.recover(loc, "origin"), 403)
         form = await request.form()
         login = str(form.get("login") or "")[:100]
         email = str(form.get("email") or "")[:254]
         address = self._address(request)
         sent = pages.message_page(
-            assets.text("server.web.recover_title"), assets.text("server.web.recover_sent")
+            loc, loc.say("web.recover_title"), loc.say("web.recover_sent"), tone="mail"
         )
         # counted per address and login, so nobody can block another learner's recovery
         source = f"{address}|{login.strip().lower()}"
         if self.recovery.blocked(address, source):
-            return self._html(pages.recover("throttled"), 429)
+            return pages.respond(loc, pages.recover(loc, "throttled"), 429)
         self.recovery.fail(address, source)  # every request counts, so the page cannot be tried out
         account = await anyio.to_thread.run_sync(self.registry.match_email, login, email)
         if account is None:
-            return self._html(sent)
+            return pages.respond(loc, sent)
         token = self.registry.start_reset(account.id)
-        link = f"{self.settings.url}/recover/{token}"
-        subject = assets.text("server.web.recover_mail_subject")
-        body = assets.text(
-            "server.web.recover_mail_body",
+        # the message and the page of the new password speak the language of this page
+        link = f"{self.settings.url}/recover/{token}?lang={loc.lang}"
+        subject = loc.say("web.recover_mail_subject")
+        body = loc.say(
+            "web.recover_mail_body",
             login=account.login,
             server=self.settings.host,
             link=link,
         )
         # the message leaves after the answer, so a known address does not answer later
-        return HTMLResponse(
-            sent,
-            headers=pages.HEADERS,
-            background=BackgroundTask(self._deliver, email.strip(), subject, body),
+        return pages.respond(
+            loc, sent, background=BackgroundTask(self._deliver, email.strip(), subject, body)
         )
 
     def _deliver(self, to: str, subject: str, body: str) -> None:
@@ -389,34 +394,40 @@ class Web:
 
     async def reset(self, request: Request) -> Response:
         token = str(request.path_params.get("token") or "")
+        loc = self._loc(request).at(request.url.path)
         account = self.registry.reset_account(token)
         expired = pages.message_page(
-            assets.text("server.web.reset_title"),
-            assets.text("server.web.reset_expired"),
-            ("/recover", assets.text("server.web.recover_title")),
+            loc,
+            loc.say("web.reset_title"),
+            loc.say("web.reset_expired"),
+            ("/recover", loc.say("web.recover_title")),
+            tone="error",
         )
         if account is None:
-            return self._html(expired, 400)
+            return pages.respond(loc, expired, 400)
         if request.method == "GET":
-            return self._html(pages.reset(token, account.login))
+            return pages.respond(loc, pages.reset(loc, token, account.login))
         if not self.origin_ok(request):
-            return self._html(pages.reset(token, account.login, "origin"), 403)
+            return pages.respond(loc, pages.reset(loc, token, account.login, "origin"), 403)
         form = await request.form()
         password = str(form.get("password") or "")
         if password != str(form.get("password2") or ""):
-            return self._html(pages.reset(token, account.login, "password_mismatch"), 400)
+            page = pages.reset(loc, token, account.login, "password_mismatch")
+            return pages.respond(loc, page, 400)
         if not 12 <= len(password) <= 200:
-            return self._html(pages.reset(token, account.login, "bad_password"), 400)
+            return pages.respond(loc, pages.reset(loc, token, account.login, "bad_password"), 400)
         used = self.registry.take_reset(token)
         if used is None:
-            return self._html(expired, 400)
+            return pages.respond(loc, expired, 400)
         await anyio.to_thread.run_sync(self.registry.set_password, used.id, password)
         page = pages.message_page(
-            assets.text("server.web.reset_title"),
-            assets.text("server.web.reset_done"),
-            ("/app/login", assets.text("server.web.login_button")),
+            loc,
+            loc.say("web.reset_title"),
+            loc.say("web.reset_done"),
+            ("/app/login", loc.say("web.login_button")),
+            tone="ok",
         )
-        return self._html(page)
+        return pages.respond(loc, page)
 
     # ------------------------------------------------------------ the device code
 
@@ -424,36 +435,44 @@ class Web:
         account = self.account_of(request)
         csrf = self.csrf_of(self.session_token(request)) if account else ""
         login = account.login if account else None
+        loc = self._loc(request)
         if request.method == "GET":
             code = str(request.query_params.get("code") or "")[:12]
-            return self._html(pages.device(code, login, csrf))
+            return pages.respond(loc, pages.device(loc, code, login, csrf))
         if not self.origin_ok(request):
-            return self._html(pages.device("", login, csrf, "origin"), 403)
+            return pages.respond(loc, pages.device(loc, "", login, csrf, "origin"), 403)
         form = await request.form()
         code = str(form.get("code") or "")[:20]
         address = self._address(request)
+        loc = loc.at(f"/device?code={quote(code)}" if code else "/device")
+
+        def refuse(error: str, status: int, who: str | None, token: str) -> Response:
+            return pages.respond(loc, pages.device(loc, code, who, token, error), status)
+
         if account is None:
             name = str(form.get("login") or "")[:100]
             if self.throttle.blocked(address, name):
-                return self._html(pages.device(code, None, "", "throttled"), 429)
+                return refuse("throttled", 429, None, "")
             account = await anyio.to_thread.run_sync(
                 self.registry.verify, name, str(form.get("password") or "")
             )
             if account is None:
                 self.throttle.fail(address, name)
-                return self._html(pages.device(code, None, "", "wrong_credentials"), 400)
+                return refuse("wrong_credentials", 400, None, "")
         elif not self.csrf_ok(request, str(form.get("csrf") or "")):
-            return self._html(pages.device(code, login, csrf, "origin"), 403)
+            return refuse("origin", 403, login, csrf)
         if self.throttle.blocked(address, f"device:{address}"):
-            return self._html(pages.device(code, login, csrf, "throttled"), 429)
+            return refuse("throttled", 429, login, csrf)
         if not self.registry.approve_device(code, account.id):
             self.throttle.fail(address, f"device:{address}")
-            return self._html(pages.device(code, login, csrf, "bad_code"), 400)
+            return refuse("bad_code", 400, login, csrf)
         page = pages.message_page(
-            assets.text("server.web.device_title"),
-            assets.text("server.web.device_done", login=account.login),
+            loc,
+            loc.say("web.device_title"),
+            loc.say("web.device_done", login=account.login),
+            tone="ok",
         )
-        return self._html(page)
+        return pages.respond(loc, page)
 
     # ------------------------------------------------------------ the session page
 
@@ -486,6 +505,17 @@ class Web:
             pages.static_text("app.js"),
             media_type="text/javascript",
             headers={"Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff"},
+        )
+
+    async def style(self, request: Request) -> Response:
+        # the pages ask for it under its digest, so a browser may keep it
+        return Response(
+            pages.stylesheet(),
+            media_type="text/css",
+            headers={
+                "Cache-Control": "public, max-age=31536000, immutable",
+                "X-Content-Type-Options": "nosniff",
+            },
         )
 
     async def svg(self, request: Request) -> Response:
@@ -660,6 +690,7 @@ class Web:
             Route("/app/manifest.webmanifest", self.manifest, methods=["GET"]),
             Route("/app/sw.js", self.worker, methods=["GET"]),
             Route("/static/app.js", self.script, methods=["GET"]),
+            Route(pages.STYLE, self.style, methods=["GET"]),
             Route(pages.SVG_ICON, self.svg, methods=["GET"]),
             Route("/account", self.account, methods=["GET", "POST"]),
             Route("/account/export", self.export, methods=["GET"]),

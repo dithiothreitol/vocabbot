@@ -632,7 +632,7 @@ def test_a_wrong_password_keeps_the_sign_in_open(live: Settings) -> None:
         assert wrong.status_code == 400 and "Nieprawidłowy login lub hasło" in wrong.text
         assert 'id="tab-login" checked' in wrong.text
         page = web.get("/login", params={"request": request_id})
-        assert "Kod otrzymujesz od osoby, która prowadzi serwer" in page.text
+        assert "otrzymasz od administratora serwera" in page.text
         assert "font-src 'self'" in page.headers["content-security-policy"]
         no_invite = web.post(
             "/login",

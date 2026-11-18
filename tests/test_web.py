@@ -140,7 +140,7 @@ def program_login(served: Served, login: str) -> None:
             page = phone.post(
                 "/device", data={"code": code[0], "login": login, "password": PASSWORD}
             )
-            assert page.status_code == 200 and "Program połączony" in page.text, page.text
+            assert page.status_code == 200 and "Program został połączony" in page.text, page.text
         confirmed.append(True)
 
     found = remote.login_device(served.url, remote.Http(), shown.append, sleep=sleep)
@@ -395,7 +395,7 @@ def test_password_recovery_by_an_optional_email(serve: Callable[..., Served]) ->
     assert mismatch.status_code == 400
     new = "a much better password"
     done = anonymous.post(path, data={"password": new, "password2": new})
-    assert done.status_code == 200 and "Hasło zmienione" in done.text
+    assert done.status_code == 200 and "Hasło zostało zmienione" in done.text
     assert anonymous.post(path, data={"password": new, "password2": new}).status_code == 400
     assert served.registry.verify("ola", new) is not None
     # the new password ended every connection and the browser's session
@@ -570,3 +570,149 @@ def test_the_server_refuses_a_time_zone_spelled_otherwise(tmp_path: Path) -> Non
     with pytest.raises(ValueError, match="timezone"):
         Settings(url="http://127.0.0.1:9", data=tmp_path, timezone="europe/warsaw")
     assert Settings(url="http://127.0.0.1:9", data=tmp_path, timezone="UTC").timezone == "UTC"
+
+
+# ---------------------------------------------------------------- the pages in two languages
+
+
+def test_the_pages_language_follows_the_switch_the_cookie_and_the_browser() -> None:
+    from vocabbot.server import pages
+
+    assert pages.accepted("") == "pl"
+    assert pages.accepted("en-US,en;q=0.9,pl;q=0.8") == "en"
+    assert pages.accepted("pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7") == "pl"
+    assert pages.accepted("de-DE,de;q=0.9,en;q=0.5") == "en"
+    assert pages.accepted("de, fr;q=0.8") == "pl"
+    assert pages.accepted("en;q=0, pl;q=0.1") == "pl"
+    assert pages.accepted("en;q=nonsense") == "pl"
+    # the switch keeps the page's own query
+    loc = pages.Locale("pl", "/app/login?next=%2Faccount")
+    assert loc.link("en") == "/app/login?next=%2Faccount&lang=en"
+    assert pages.Locale("en", "/").link("pl") == "/?lang=pl"
+
+
+def test_every_text_of_the_pages_has_its_english_version() -> None:
+    from vocabbot import assets
+
+    polish = assets.read_json(assets.data_root() / "i18n" / "pl.json")["server"]
+    english = assets.read_json(assets.data_root() / "i18n" / "en.json")["server"]
+    # the card, the session page and the errors of /api speak Polish like the course;
+    # the conversation in the start page's picture is the Polish one in both languages
+    skipped = {"card", "app", "api_errors", "mock"}
+    missing: list[str] = []
+
+    def walk(one: Any, other: Any, path: str) -> None:
+        if isinstance(one, dict):
+            for key, value in one.items():
+                if not path and key in skipped:
+                    continue
+                if not isinstance(other, dict) or key not in other:
+                    missing.append(path + key)
+                else:
+                    walk(value, other[key], f"{path}{key}.")
+        elif isinstance(one, list):
+            if not isinstance(other, list) or len(other) != len(one):
+                missing.append(path.rstrip("."))
+            else:
+                for index, (a, b) in enumerate(zip(one, other, strict=True)):
+                    walk(a, b, f"{path}{index}.")
+        elif isinstance(one, str):
+            fields = set(re.findall(r"\{(\w+)\}", one))
+            if not isinstance(other, str) or set(re.findall(r"\{(\w+)\}", other)) != fields:
+                missing.append(path.rstrip("."))
+
+    walk(polish, english, "")
+    assert missing == []
+    assert set(english) - set(polish) == set()
+    for texts in (polish, english):
+        assert len(texts["privacy"]) == len(texts["privacy_headings"])
+
+
+def test_the_pages_speak_polish_or_english(serve: Callable[..., Served]) -> None:
+    served = serve()
+    with httpx2.Client(base_url=served.url, follow_redirects=False, timeout=30) as web:
+        home = web.get("/")
+        assert home.headers["content-language"] == "pl" and '<html lang="pl">' in home.text
+        assert "Poszerzaj słownictwo" in home.text
+        assert "vocabbot_lang" not in home.headers.get("set-cookie", "")
+        english = web.get("/", params={"lang": "en"})
+        assert english.headers["content-language"] == "en" and '<html lang="en">' in english.text
+        assert "Grow your vocabulary" in english.text and served.settings.resource in english.text
+        assert "vocabbot_lang=en" in english.headers["set-cookie"]
+        assert 'hreflang="pl"' in english.text and 'aria-current="true">EN<' in english.text
+        # the cookie keeps the choice on the next pages
+        assert "Sign in to VocabBot" in web.get("/app/login").text
+        assert "Data the server stores" in web.get("/privacy").text
+        back = web.get("/app/login", params={"next": "/account", "lang": "pl"})
+        assert "Zaloguj się do VocabBota" in back.text
+        assert 'href="/app/login?next=%2Faccount&amp;lang=en"' in back.text
+    with httpx2.Client(
+        base_url=served.url, timeout=30, headers={"Accept-Language": "en-GB,en;q=0.9"}
+    ) as browser_en:
+        page = browser_en.get("/recover")
+        assert "Reset your password" in page.text and page.headers["content-language"] == "en"
+        # the sheet of styles is cached under its digest; the pages run no inline style
+        style = re.search(r'href="(/static/site\.css\?v=[0-9a-f]{12})"', page.text)
+        assert style
+        sheet = browser_en.get(style[1])
+        assert sheet.headers["content-type"].startswith("text/css")
+        assert "immutable" in sheet.headers["cache-control"] and ".btn.primary" in sheet.text
+        policy = page.headers["content-security-policy"]
+        assert "style-src 'self'" in policy and "unsafe-inline" not in policy
+
+
+def test_the_recovery_message_speaks_the_language_of_the_page(
+    serve: Callable[..., Served],
+) -> None:
+    served = serve()
+    browser(served, "ola", email="ola@example.org")
+    with httpx2.Client(base_url=served.url, follow_redirects=False, timeout=30) as web:
+        sent = web.post(
+            "/recover",
+            params={"lang": "en"},
+            data={"login": "ola", "email": "ola@example.org"},
+        )
+        assert sent.status_code == 200 and "the link has been sent" in sent.text
+        deadline = time.time() + 5
+        while not served.sent and time.time() < deadline:
+            time.sleep(0.05)
+        to, subject, body = served.sent[0]
+        assert to == "ola@example.org" and subject == "VocabBot: set a new password"
+        assert "received a request to set a new password" in body
+        link = re.search(r"http://127\.0\.0\.1:\d+/recover/[\w-]+\?lang=en", body)
+        assert link
+        page = web.get(urlsplit(link[0]).path + "?lang=en")
+        assert "Set a new password for the account ola" in page.text
+
+
+def test_the_sign_in_of_a_chat_application_speaks_english(serve: Callable[..., Served]) -> None:
+    served = serve()
+    redirect = "http://localhost:3030/callback"
+    with httpx2.Client(base_url=served.url, follow_redirects=False, timeout=30) as web:
+        client = web.post(
+            "/register", json={"client_name": "Test client", "redirect_uris": [redirect]}
+        ).json()
+        authorize = web.get(
+            "/authorize",
+            params={
+                "client_id": client["client_id"],
+                "redirect_uri": redirect,
+                "response_type": "code",
+                "code_challenge": "x" * 43,
+                "code_challenge_method": "S256",
+                "state": "s1",
+                "resource": served.settings.resource,
+            },
+        )
+        request_id = parse_qs(urlsplit(authorize.headers["location"]).query)["request"][0]
+        page = web.get("/login", params={"request": request_id, "lang": "en"})
+        assert page.status_code == 200 and "Connect VocabBot to Test client" in page.text
+        # a refused password keeps the language and the switch keeps the request
+        wrong = web.post(
+            "/login",
+            data={"request": request_id, "action": "login", "login": "ola", "password": "x" * 12},
+        )
+        assert wrong.status_code == 400 and "Incorrect username or password" in wrong.text
+        assert f'href="/login?request={request_id}&amp;lang=pl"' in wrong.text
+        assert "Link has expired" not in web.get("/login", params={"request": "nothing"}).text
+        assert "The link has expired" in web.get("/login", params={"request": "nothing"}).text

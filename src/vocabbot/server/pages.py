@@ -1,11 +1,19 @@
-"""The web pages of the server: the sign-ins, the account, recovery, the start page and privacy.
+"""The web pages of the server in Polish and English.
 
-The look follows shadcn/ui (its neutral colour tokens, cards, tabs, inputs and
-buttons) with the Geist typeface, written as plain CSS. The pages run one
-script only, which reads the browser's time zone into the sign-up forms; the
-Content-Security-Policy allows exactly that script by its hash, and the tabs
-switch through radio buttons. The session page (/app/) is static/app.html with
-static/app.js.
+The start page, privacy, the sign-ins, the account, recovery and the device
+code follow Vercel's Geist: the neutral colour tokens of the session page,
+hairline borders, one dark primary and colour only where it means something.
+The start page borrows from the AI assistants' own pages: a large headline, a
+soft glow and a conversation with the assistant that runs a session. Everything
+is plain CSS. The pages run one script, allowed by its hash in the
+Content-Security-Policy: it reads the browser's time zone into the sign-up
+forms and gives the copy buttons their action.
+
+The language of a page comes from `?lang=`, then from the cookie the language
+switch sets, then from the browser's Accept-Language; Polish is the default.
+The English texts live in data/i18n/en.json, and a text it lacks falls back to
+Polish. The session page (/app/) is static/app.html with static/app.js and
+stays Polish like the course.
 """
 
 from __future__ import annotations
@@ -13,160 +21,62 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from functools import cache
 from html import escape
 from importlib import resources
 from typing import Any
+from urllib.parse import urlencode, urlsplit
+
+from starlette.background import BackgroundTask
+from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
 from vocabbot import __version__, assets
 
 FONT = "/static/geist.woff2"
 ICON = "/static/vocabbot.png"
 SVG_ICON = "/static/vocabbot.svg"
+STYLE = "/static/site.css"
+LANGS = ("pl", "en")
+LANG_COOKIE = "vocabbot_lang"
+MONTHS_EN = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-STYLE = """
-@font-face { font-family: "Geist"; src: url("/static/geist.woff2") format("woff2");
-  font-weight: 100 900; font-style: normal; font-display: swap; }
-:root {
-  color-scheme: light dark;
-  --background: oklch(1 0 0); --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0); --muted: oklch(0.97 0 0); --muted-foreground: oklch(0.556 0 0);
-  --border: oklch(0.922 0 0); --input: oklch(0.922 0 0); --ring: oklch(0.708 0 0);
-  --primary: oklch(0.205 0 0); --primary-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325); --grid: oklch(0.145 0 0 / 5%);
-  --shadow: 0 1px 2px oklch(0 0 0 / 5%), 0 8px 24px -12px oklch(0 0 0 / 12%);
-  --radius: 10px;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.145 0 0); --foreground: oklch(0.985 0 0);
-    --card: oklch(0.18 0 0); --muted: oklch(0.269 0 0); --muted-foreground: oklch(0.708 0 0);
-    --border: oklch(1 0 0 / 10%); --input: oklch(1 0 0 / 15%); --ring: oklch(0.556 0 0);
-    --primary: oklch(0.922 0 0); --primary-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.704 0.191 22.216); --grid: oklch(1 0 0 / 6%);
-    --shadow: 0 1px 2px oklch(0 0 0 / 40%), 0 12px 32px -16px oklch(0 0 0 / 60%);
-  }
-}
-* { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; }
-body {
-  background: var(--background); color: var(--foreground);
-  font: 400 14px/1.5 "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
-}
-.grid { position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image: linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 44px 44px; background-position: center top;
-  -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 30%, transparent 100%);
-  mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 30%, transparent 100%); }
-.shell { width: 100%; max-width: 400px; margin: 0 auto; padding: 56px 16px 40px; }
-.brand { display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 12px; margin-bottom: 24px; }
-.pair { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.mark { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
-  font-weight: 600; font-size: 18px; letter-spacing: -0.02em; }
-.mark.app { background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow); }
-.mark.vb { overflow: hidden; box-shadow: var(--shadow); }
-.mark.vb svg { display: block; width: 100%; height: 100%; }
-.wire { width: 36px; height: 1px; border-top: 1px dashed var(--muted-foreground); opacity: .6; }
-h1 { margin: 0; font-size: 22px; line-height: 1.25; font-weight: 600; letter-spacing: -0.025em;
-  text-wrap: balance; }
-.lead { margin: 0; color: var(--muted-foreground); text-wrap: pretty; }
-.host { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px;
-  padding: 1px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--muted); }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: var(--shadow); padding: 20px; }
-.tab-input { position: absolute; opacity: 0; pointer-events: none; }
-.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; margin-bottom: 20px;
-  background: var(--muted); border-radius: 8px; }
-.tab { text-align: center; padding: 6px 8px; border-radius: 6px; font-weight: 500;
-  color: var(--muted-foreground); cursor: pointer; user-select: none;
-  transition: background .15s, color .15s, box-shadow .15s; }
-.tab:hover { color: var(--foreground); }
-#tab-login:checked ~ .tabs [for="tab-login"], #tab-signup:checked ~ .tabs [for="tab-signup"] {
-  background: var(--background); color: var(--foreground);
-  box-shadow: 0 1px 2px oklch(0 0 0 / 10%), 0 0 0 1px var(--border); }
-#tab-login:focus-visible ~ .tabs [for="tab-login"],
-#tab-signup:focus-visible ~ .tabs [for="tab-signup"] {
-  outline: 2px solid var(--ring); outline-offset: 2px; }
-.panel { display: none; }
-#tab-login:checked ~ .panel-login, #tab-signup:checked ~ .panel-signup { display: block; }
-.field { display: grid; gap: 6px; margin-bottom: 16px; }
-label.label { font-weight: 500; font-size: 13.5px; }
-.input { width: 100%; height: 38px; padding: 0 12px; font: inherit; color: inherit;
-  background: transparent; border: 1px solid var(--input); border-radius: 8px;
-  box-shadow: 0 1px 2px oklch(0 0 0 / 5%); outline: none;
-  transition: border-color .15s, box-shadow .15s; }
-.input::placeholder { color: var(--muted-foreground); opacity: .7; }
-.input:focus-visible { border-color: var(--ring);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
-.input.code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  text-transform: uppercase; letter-spacing: .08em; }
-.hint { margin: 0; color: var(--muted-foreground); font-size: 12.5px; line-height: 1.45; }
-.btn { display: inline-flex; align-items: center; justify-content: center; width: 100%;
-  height: 40px; margin-top: 4px; border: 0; border-radius: 8px; cursor: pointer;
-  font: inherit; font-weight: 500; background: var(--primary); color: var(--primary-foreground);
-  transition: opacity .15s, box-shadow .15s; }
-.btn:hover { opacity: .9; }
-.btn:focus-visible { outline: none;
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 45%, transparent); }
-.alert { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; padding: 12px 14px;
-  border: 1px solid color-mix(in oklch, var(--destructive) 45%, transparent);
-  border-radius: var(--radius); color: var(--destructive); background: var(--card); }
-.alert svg { flex: none; margin-top: 2px; }
-.foot { margin-top: 20px; text-align: center; color: var(--muted-foreground); font-size: 12.5px; }
-.foot a, .prose a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
-.foot a:hover { color: var(--foreground); }
-.address { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--muted); user-select: all;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px;
-  overflow-wrap: anywhere; }
-.prose p { margin: 0 0 12px; color: var(--muted-foreground); }
-.prose p:last-child { margin-bottom: 0; }
-.steps { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 8px;
-  color: var(--muted-foreground); }
-.steps b { color: var(--foreground); font-weight: 500; }
-.shell.wide { max-width: 560px; }
-.stack { display: grid; gap: 16px; }
-.card h2 { margin: 0 0 6px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-.card p.note { margin: 0 0 12px; color: var(--muted-foreground); }
-.btn.secondary { background: transparent; color: var(--foreground);
-  border: 1px solid var(--border); }
-.btn.danger { background: var(--destructive); color: oklch(0.985 0 0); }
-.btn.inline { width: auto; height: 32px; padding: 0 12px; margin: 0; font-size: 13px; }
-.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.row form { margin: 0; }
-.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.list li { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
-.list .what { display: grid; min-width: 0; }
-.list .what b { font-weight: 500; overflow-wrap: anywhere; }
-.list .what span { color: var(--muted-foreground); font-size: 12.5px; }
-.ok { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--card); }
-.nav { display: flex; justify-content: center; gap: 16px; margin: -8px 0 20px;
-  font-size: 13px; }
-.nav a, .nav button { color: var(--muted-foreground); background: none; border: 0; padding: 0;
-  font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.nav a:hover, .nav button:hover { color: var(--foreground); }
-.nav form { margin: 0; }
-.code-big { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 20px; letter-spacing: .12em; text-align: center; text-transform: uppercase; }
-"""
 
-# the one script of the pages: the browser's time zone into the sign-up forms
-ZONE_SCRIPT = (
+@cache
+def stylesheet() -> str:
+    """The style of the pages (static/site.css), cached by browsers under its digest."""
+    return (resources.files("vocabbot.server") / "static" / "site.css").read_text("utf-8")
+
+
+@cache
+def style_address() -> str:
+    """The stylesheet's address with its digest, so a new style reaches every browser at once."""
+    digest = hashlib.sha256(stylesheet().encode()).hexdigest()[:12]
+    return f"{STYLE}?v={digest}"
+
+
+# the one script of the pages: the browser's time zone into the sign-up forms and the copy buttons
+SCRIPT = (
     "document.querySelectorAll('input[name=\"tz\"]').forEach(function(i){try{"
     'i.value=Intl.DateTimeFormat().resolvedOptions().timeZone||""}catch(e){}});'
+    "document.querySelectorAll('[data-copy]').forEach(function(b){"
+    "if(!navigator.clipboard)return;var l=b.getAttribute('aria-label');b.hidden=false;"
+    "b.addEventListener('click',function(){var s=document.getElementById(b.dataset.copy);"
+    "if(!s)return;navigator.clipboard.writeText(s.textContent.trim()).then(function(){"
+    "b.classList.add('done');b.setAttribute('aria-label',b.dataset.done||l);"
+    "clearTimeout(b.t);b.t=setTimeout(function(){b.classList.remove('done');"
+    "b.setAttribute('aria-label',l)},1600)},function(){})})});"
 )
-ZONE_HASH = base64.b64encode(hashlib.sha256(ZONE_SCRIPT.encode()).digest()).decode()
+SCRIPT_HASH = base64.b64encode(hashlib.sha256(SCRIPT.encode()).digest()).decode()
 
 HEADERS = {
     "Cache-Control": "no-store",
+    # no form-action: Chrome applies it to the redirect after the sign-in, to the chat's address
     "Content-Security-Policy": (
-        f"default-src 'none'; script-src 'sha256-{ZONE_HASH}'; style-src 'unsafe-inline';"
+        f"default-src 'none'; script-src 'sha256-{SCRIPT_HASH}'; style-src 'self';"
         " font-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'"
     ),
     # same-origin keeps the address from other sites and lets a form name its origin
@@ -185,11 +95,116 @@ APP_HEADERS = {
     ),
 }
 
-ALERT = (
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
-    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>'
+# Lucide's outlines (ISC), as the session page draws them
+PATHS: dict[str, tuple[str, ...]] = {
+    "check": ("M20 6 9 17l-5-5",),
+    "alert": ("M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0", "M12 8v4", "M12 16h.01"),
+    "info": ("M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0", "M12 16v-4", "M12 8h.01"),
+    "circle_check": ("M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0", "m9 12 2 2 4-4"),
+    "arrow": ("M5 12h14", "m12 5 7 7-7 7"),
+    "arrow_up": ("m5 12 7-7 7 7", "M12 19V5"),
+    "chevron": ("m9 18 6-6-6-6",),
+    "plus": ("M5 12h14", "M12 5v14"),
+    "repeat": (
+        "m17 2 4 4-4 4",
+        "M3 11v-1a4 4 0 0 1 4-4h14",
+        "m7 22-4-4 4-4",
+        "M21 13v1a4 4 0 0 1-4 4H3",
+    ),
+    "languages": ("m5 8 6 6", "m4 14 6-6 2-3", "M2 5h12", "M7 2h1", "m22 22-5-10-5 10", "M14 18h6"),
+    "devices": (
+        "M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8",
+        "M10 19v-3.96 3.15",
+        "M7 19h5",
+        "M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z",
+    ),
+    "shield": (
+        "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0"
+        " 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+        "m9 12 2 2 4-4",
+    ),
+    "chat": ("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",),
+    "terminal": ("m4 17 6-6-6-6", "M12 19h8"),
+    "phone": (
+        "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z",
+        "M12 18h.01",
+    ),
+    "laptop": (
+        "M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1"
+        " 1 0 0 1-.9-1.45L4 16",
+    ),
+    "globe": (
+        "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
+        "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20",
+        "M2 12h20",
+    ),
+    "copy": (
+        "M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z",
+        "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2",
+    ),
+    "link": (
+        "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71",
+        "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
+    ),
+    "lock": (
+        "M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z",
+        "M7 11V7a5 5 0 0 1 10 0v4",
+    ),
+    "key": (
+        "m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4",
+        "m21 2-9.6 9.6",
+        "M13 15.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0",
+    ),
+    "mail": (
+        "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+        "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7",
+    ),
+    "download": ("M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", "m7 10 5 5 5-5", "M12 15V3"),
+    "trash": (
+        "M3 6h18",
+        "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6",
+        "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2",
+        "M10 11v6",
+        "M14 11v6",
+    ),
+    "logout": ("M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "m16 17 5-5-5-5", "M21 12H9"),
+    "login": ("M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", "m10 17 5-5-5-5", "M15 12H3"),
+    "user": ("M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0"),
+    "user_plus": (
+        "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+        "M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
+        "M19 8v6",
+        "M22 11h-6",
+    ),
+    "book": (
+        "M12 7v14",
+        "M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0"
+        " 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z",
+    ),
+    "wrench": (
+        "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91"
+        " 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z",
+    ),
+}
+STATUS = {
+    "ok": ("green", "check"),
+    "error": ("red", "alert"),
+    "info": ("blue", "info"),
+    "mail": ("blue", "mail"),
+    "key": ("neutral", "key"),
+    "lock": ("neutral", "lock"),
+    "terminal": ("neutral", "terminal"),
+}
+WORKS = (
+    ("chat", "Claude"),
+    ("chat", "ChatGPT"),
+    ("terminal", "Claude Code"),
+    ("terminal", "Codex"),
 )
+TICKS = re.compile(r"`([^`]+)`")
+
+
+# ------------------------------------------------------------ files of the pages
 
 
 def font() -> bytes:
@@ -206,6 +221,1018 @@ def icon() -> bytes:
 def mark() -> str:
     """The avatar as inline SVG for the pages (scripts/make_icon.py draws it)."""
     return (resources.files("vocabbot.server") / "static" / "vocabbot.svg").read_text("utf-8")
+
+
+def static_text(name: str) -> str:
+    return (resources.files("vocabbot.server") / "static" / name).read_text("utf-8")
+
+
+# ------------------------------------------------------------ the language of a page
+
+
+@cache
+def _bundle(lang: str) -> dict[str, Any]:
+    data: dict[str, Any] = assets.read_json(assets.data_root() / "i18n" / f"{lang}.json")
+    return data
+
+
+def _node(lang: str, name: str) -> Any:
+    node: Any = _bundle(lang)
+    for part in f"server.{name}".split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node
+
+
+def say(lang: str, name: str, /, **values: Any) -> str:
+    """A text of the pages (under `server.`) in a language; Polish fills a gap in English."""
+    node = _node(lang, name)
+    if not isinstance(node, str):
+        node = _node("pl", name)
+    if not isinstance(node, str):
+        return name
+    return node.format(**values) if values else node
+
+
+def items(lang: str, name: str) -> list[Any]:
+    """A list of the pages' texts (paragraphs, cards) in a language, Polish if English lacks it."""
+    node = _node(lang, name)
+    if not isinstance(node, list):
+        node = _node("pl", name)
+    return list(node) if isinstance(node, list) else []
+
+
+def accepted(header: str) -> str:
+    """The pages' language a browser prefers (Accept-Language); Polish when it names neither."""
+    best, best_q = "pl", 0.0
+    for part in header.split(",")[:32]:
+        tag, _, params = part.strip().partition(";")
+        code = tag.strip().lower().split("-")[0]
+        if code not in LANGS:
+            continue
+        q = 1.0
+        for param in params.split(";"):
+            key, _, value = param.strip().partition("=")
+            if key.strip() == "q":
+                try:
+                    q = float(value)
+                except ValueError:
+                    q = 0.0
+        if q > best_q:
+            best, best_q = code, q
+    return best
+
+
+@dataclass(frozen=True)
+class Locale:
+    """The language of a page and what its language switch needs."""
+
+    lang: str = "pl"
+    here: str = "/"  # the page's path and query without `lang`, where the switch leads
+    chosen: bool = False  # asked for with ?lang=, so the answer keeps it in a cookie
+    secure: bool = False
+    site: str = ""  # the server's address, for the links search engines read
+
+    def at(self, here: str) -> Locale:
+        """The same language with the switch leading to another address of the page."""
+        return replace(self, here=here)
+
+    def say(self, name: str, /, **values: Any) -> str:
+        return say(self.lang, name, **values)
+
+    def t(self, name: str, /, **values: Any) -> str:
+        """A text, escaped for HTML."""
+        return escape(say(self.lang, name, **values))
+
+    def link(self, lang: str) -> str:
+        joiner = "&" if "?" in self.here else "?"
+        return f"{self.here}{joiner}lang={lang}"
+
+
+def locale(request: Request, *, secure: bool = False, site: str = "") -> Locale:
+    """The language of the page a request asks for: ?lang=, the cookie, Accept-Language, Polish."""
+    asked = request.query_params.get("lang", "")
+    chosen = asked in LANGS
+    if chosen:
+        lang = asked
+    else:
+        kept = request.cookies.get(LANG_COOKIE, "")
+        lang = kept if kept in LANGS else accepted(request.headers.get("accept-language", ""))
+    query = [(key, value) for key, value in request.query_params.multi_items() if key != "lang"]
+    here = request.url.path + (f"?{urlencode(query)}" if query else "")
+    return Locale(lang, here, chosen, secure, site)
+
+
+def respond(
+    loc: Locale, page: str, status: int = 200, background: BackgroundTask | None = None
+) -> HTMLResponse:
+    """A page with the pages' headers; a language chosen with the switch stays in a cookie."""
+    headers = {**HEADERS, "Content-Language": loc.lang, "Vary": "Accept-Language, Cookie"}
+    response = HTMLResponse(page, status_code=status, headers=headers, background=background)
+    if loc.chosen:
+        response.set_cookie(
+            LANG_COOKIE,
+            loc.lang,
+            max_age=365 * 86400,
+            path="/",
+            httponly=True,
+            secure=loc.secure,
+            samesite="lax",
+        )
+    return response
+
+
+def when(moment: float, lang: str = "pl") -> str:
+    """A moment as the pages show it, in UTC."""
+    stamp = datetime.fromtimestamp(moment, timezone.utc)
+    if lang == "en":
+        return f"{stamp.day} {MONTHS_EN[stamp.month - 1]} {stamp.year}, {stamp:%H:%M} UTC"
+    return stamp.strftime("%d.%m.%Y, %H:%M UTC")
+
+
+# ------------------------------------------------------------ building blocks
+
+
+def _icon(name: str, extra: str = "") -> str:
+    paths = "".join(f'<path d="{d}"/>' for d in PATHS[name])
+    classes = f"icon {extra}" if extra else "icon"
+    return f'<svg class="{classes}" viewBox="0 0 24 24" aria-hidden="true">{paths}</svg>'
+
+
+def _mark(size: str = "") -> str:
+    classes = f"mark vb {size}" if size else "mark vb"
+    return f'<span class="{classes}" aria-hidden="true">{mark().strip()}</span>'
+
+
+def _rich(text: str) -> str:
+    """Escaped text with `code` in backticks."""
+    return TICKS.sub(lambda found: f"<code>{found[1]}</code>", escape(text))
+
+
+def _hidden(name: str, value: str) -> str:
+    return f'<input type="hidden" name="{name}" value="{escape(value)}">'
+
+
+def _logo() -> str:
+    return f'<a class="logo" href="/">{_mark()}<span>VocabBot</span></a>'
+
+
+def _switch(loc: Locale) -> str:
+    links = "".join(
+        f'<a href="{escape(loc.link(code))}" hreflang="{code}" lang="{code}"'
+        f' title="{escape(say(code, "lang_name"))}"'
+        + (' aria-current="true"' if code == loc.lang else "")
+        + f">{code.upper()}</a>"
+        for code in LANGS
+    )
+    label = loc.t("lang_label")
+    return f'<div class="lang" role="group" aria-label="{label}">{_icon("globe")}{links}</div>'
+
+
+def _copy(loc: Locale, target: str) -> str:
+    """A copy button; the script shows it where the browser can copy."""
+    return (
+        f'<button class="icon-btn" type="button" data-copy="{target}" data-done="{loc.t("copied")}"'
+        f' aria-label="{loc.t("copy")}" title="{loc.t("copy")}" hidden>'
+        f"{_icon('copy', 'i-copy')}{_icon('check', 'i-done')}</button>"
+    )
+
+
+def _field(
+    name: str,
+    label: str,
+    *,
+    id_: str,
+    kind: str = "text",
+    value: str = "",
+    hint: str = "",
+    extra: str = "",
+    required: bool = True,
+    classes: str = "input",
+) -> str:
+    hint_html = f'<p class="hint" id="{id_}-hint">{hint}</p>' if hint else ""
+    described = f' aria-describedby="{id_}-hint"' if hint else ""
+    needed = " required" if required else ""
+    return (
+        f'<div class="field"><label for="{id_}">{label}</label>'
+        f'<input class="{classes}" id="{id_}" name="{name}" type="{kind}"'
+        f' value="{escape(value)}"{described} {extra}{needed}>{hint_html}</div>'
+    )
+
+
+def _alert(loc: Locale, error: str | None) -> str:
+    if not error:
+        return ""
+    return (
+        f'<div class="alert tone-red" role="alert">{_icon("alert")}'
+        f"<span>{loc.t(f'errors.{error}')}</span></div>"
+    )
+
+
+def _flash(message: str | None) -> str:
+    if not message:
+        return ""
+    return (
+        f'<div class="alert tone-green" role="status">{_icon("circle_check")}'
+        f"<span>{escape(message)}</span></div>"
+    )
+
+
+def _page(
+    loc: Locale,
+    title: str,
+    body: str,
+    *,
+    index: bool = False,
+    soft: bool = False,
+    description: str = "",
+) -> str:
+    head = "" if index else '<meta name="robots" content="noindex, nofollow">'
+    if description:
+        head += f'<meta name="description" content="{escape(description)}">'
+    if index and loc.site:
+        address = loc.site + urlsplit(loc.here).path
+        for code in LANGS:
+            head += f'<link rel="alternate" hreflang="{code}" href="{escape(address)}?lang={code}">'
+        head += (
+            f'<meta property="og:type" content="website">'
+            f'<meta property="og:title" content="{escape(title)}">'
+            f'<meta property="og:url" content="{escape(address)}">'
+            f'<meta property="og:image" content="{escape(loc.site + ICON)}">'
+            f'<meta property="og:locale" content="{"en_US" if loc.lang == "en" else "pl_PL"}">'
+            '<meta name="twitter:card" content="summary">'
+        )
+        if description:
+            head += f'<meta property="og:description" content="{escape(description)}">'
+    script = f"<script>{SCRIPT}</script>" if ('name="tz"' in body or "data-copy=" in body) else ""
+    tint = "#fafafa" if soft else "#ffffff"
+    tag = '<body class="soft">' if soft else "<body>"
+    return (
+        f'<!doctype html><html lang="{loc.lang}"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+        '<meta name="color-scheme" content="light dark">'
+        f'<meta name="theme-color" content="{tint}" media="(prefers-color-scheme: light)">'
+        '<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">'
+        f'{head}<link rel="icon" href="{ICON}" type="image/png">'
+        f'<link rel="preload" href="{FONT}" as="font" type="font/woff2" crossorigin>'
+        f'<link rel="stylesheet" href="{style_address()}">'
+        f"<title>{escape(title)}</title></head>"
+        f"{tag}{body}{script}</body></html>"
+    )
+
+
+# ------------------------------------------------------------ the frame of the site
+
+
+def _site_top(loc: Locale, *, home: bool) -> str:
+    base = "" if home else "/"
+    current = "" if home else ' aria-current="page"'
+    return (
+        '<header class="top"><div class="wrap bar">'
+        f"{_logo()}"
+        f'<nav class="links" aria-label="VocabBot">'
+        f'<a href="{base}#features">{loc.t("nav_features")}</a>'
+        f'<a href="{base}#connect">{loc.t("nav_connect")}</a>'
+        f'<a href="/privacy"{current}>{loc.t("privacy_link")}</a></nav>'
+        f'<div class="end">{_switch(loc)}'
+        f'<a class="btn ghost sm wide-only" href="/app/login">{loc.t("nav_sign_in")}</a>'
+        f'<a class="btn primary sm" href="/app/">{loc.t("nav_open")}</a></div>'
+        "</div></header>"
+    )
+
+
+def _site_foot(loc: Locale) -> str:
+    return (
+        '<footer class="site-foot"><div class="wrap"><div class="foot-grid">'
+        f'<div class="foot-brand">{_logo()}<p>{loc.t("footer_tagline")}</p></div>'
+        '<nav class="foot-links" aria-label="VocabBot">'
+        f'<a href="/app/">{loc.t("web.nav_app")}</a>'
+        f'<a href="/account">{loc.t("web.nav_account")}</a>'
+        f'<a href="/privacy">{loc.t("privacy_link")}</a></nav></div>'
+        f'<div class="foot-bottom"><span>VocabBot {escape(__version__)}</span>{_switch(loc)}</div>'
+        "</div></footer>"
+    )
+
+
+def _auth(loc: Locale, title: str, head: str, content: str, foot: str = "") -> str:
+    """The frame of a sign-in or a message: the logo, the switch and one narrow column."""
+    body = (
+        '<div class="auth-bg" aria-hidden="true"></div>'
+        f'<header class="auth-top">{_logo()}{_switch(loc)}</header>'
+        f'<main class="auth">{head}{content}'
+        + (f'<p class="auth-foot">{foot}</p>' if foot else "")
+        + "</main>"
+    )
+    return _page(loc, title, body, soft=True)
+
+
+def _head(title: str, lead: str = "", *, app: str | None = None, status: str | None = None) -> str:
+    """The top of a narrow page: the avatar, a status or the pair of applications, a title."""
+    if status is not None:
+        tone, name = STATUS[status]
+        top = f'<span class="status tone-{tone}">{_icon(name)}</span>'
+    elif app is not None:
+        initial = escape((app.strip()[:1] or "?").upper())
+        top = (
+            f'<div class="pair"><span class="tile-app" aria-hidden="true">{initial}</span>'
+            f'<span class="link-line" aria-hidden="true"><span class="link-dot">{_icon("lock")}'
+            f"</span></span>{_mark('lg')}</div>"
+        )
+    else:
+        top = _mark("lg")
+    lead_html = f'<p class="lead">{lead}</p>' if lead else ""
+    return f'<div class="auth-head">{top}<h1>{title}</h1>{lead_html}</div>'
+
+
+def _tabs(loc: Locale, login_form: str, signup_form: str, tab: str) -> str:
+    checked_login = " checked" if tab != "signup" else ""
+    checked_signup = " checked" if tab == "signup" else ""
+    return (
+        '<section class="box">'
+        f'<input class="tab-input" type="radio" name="tab" id="tab-login"{checked_login}>'
+        f'<input class="tab-input" type="radio" name="tab" id="tab-signup"{checked_signup}>'
+        f'<div class="tabs"><label class="tab" for="tab-login">{_icon("login")}'
+        f'{loc.t("tab_login")}</label><label class="tab" for="tab-signup">{_icon("user_plus")}'
+        f"{loc.t('tab_signup')}</label></div>{login_form}{signup_form}</section>"
+    )
+
+
+def _login_fields(loc: Locale, login: str, focus: bool) -> str:
+    return _field(
+        "login",
+        loc.t("login"),
+        id_="login",
+        value=login,
+        extra='autocomplete="username" autocapitalize="none" spellcheck="false"'
+        + (" autofocus" if focus else ""),
+    ) + _field(
+        "password",
+        loc.t("password"),
+        id_="password",
+        kind="password",
+        extra='autocomplete="current-password"',
+    )
+
+
+def _signup_fields(loc: Locale, login: str, focus: bool, *, email: bool, invite: bool) -> str:
+    fields = (
+        _field(
+            "login",
+            loc.t("login"),
+            id_="new-login",
+            value=login,
+            hint=loc.t("login_hint"),
+            extra='autocomplete="username" autocapitalize="none" spellcheck="false"'
+            ' minlength="3" maxlength="40"' + (" autofocus" if focus else ""),
+        )
+        + _field(
+            "password",
+            loc.t("password"),
+            id_="new-password",
+            kind="password",
+            hint=loc.t("password_hint"),
+            extra='autocomplete="new-password" minlength="12" maxlength="200"',
+        )
+        + _field(
+            "password2",
+            loc.t("password_again"),
+            id_="new-password2",
+            kind="password",
+            extra='autocomplete="new-password" minlength="12" maxlength="200"',
+        )
+    )
+    if email:
+        fields += _field(
+            "email",
+            loc.t("web.email"),
+            id_="email",
+            kind="email",
+            hint=loc.t("web.email_hint"),
+            extra='autocomplete="email" maxlength="254"',
+            required=False,
+        )
+    if invite:
+        fields += _field(
+            "invite",
+            loc.t("invite"),
+            id_="invite",
+            hint=loc.t("invite_hint"),
+            classes="input code",
+            extra='autocomplete="off" autocapitalize="characters" spellcheck="false"'
+            ' placeholder="ABCD-EFGH-JKMN" maxlength="20"',
+        )
+    return fields
+
+
+def _version_foot(loc: Locale, before: str = "") -> str:
+    return (
+        f'{before}<a href="/privacy">{loc.t("privacy_link")}</a> · VocabBot {escape(__version__)}'
+    )
+
+
+# ------------------------------------------------------------ sign-ins
+
+
+def sign_in(
+    loc: Locale,
+    request_id: str,
+    app: str,
+    host: str,
+    open_signup: bool,
+    error: str | None = None,
+    login: str = "",
+    tab: str = "login",
+) -> str:
+    """The sign-in that connects a chat application (OAuth)."""
+    hidden = _hidden("request", request_id) + '<input type="hidden" name="tz" value="">'
+    lead = loc.t("connect_hint", app=app)
+    if host:
+        lead += f' {loc.t("return_to")} <span class="host">{escape(host)}</span>'
+    login_form = (
+        f'<form class="pane pane-login" method="post" action="/login">{hidden}'
+        + _hidden("action", "login")
+        + _login_fields(loc, login if tab == "login" else "", tab == "login")
+        + f'<button class="btn primary block" type="submit">{loc.t("login_button")}</button></form>'
+    )
+    signup_form = (
+        f'<form class="pane pane-signup" method="post" action="/login">{hidden}'
+        + _hidden("action", "signup")
+        + _signup_fields(
+            loc,
+            login if tab == "signup" else "",
+            tab == "signup",
+            email=False,
+            invite=not open_signup,
+        )
+        + f'<button class="btn primary block" type="submit">{loc.t("signup_button")}</button>'
+        "</form>"
+    )
+    return _auth(
+        loc,
+        loc.say("connect", app=app),
+        _head(loc.t("connect", app=app), lead, app=app),
+        _alert(loc, error) + _tabs(loc, login_form, signup_form, tab),
+        _version_foot(loc, f"{loc.t('disconnect', app=app)}<br>"),
+    )
+
+
+def web_sign_in(
+    loc: Locale,
+    target: str,
+    open_signup: bool,
+    mail_ready: bool,
+    error: str | None = None,
+    login: str = "",
+    tab: str = "login",
+) -> str:
+    """The sign-in of the session page and the account page: a browser session of 30 days."""
+    hidden = _hidden("next", target) + '<input type="hidden" name="tz" value="">'
+    forgot = (
+        f'<div class="forgot"><a class="link" href="/recover">{loc.t("web.forgot")}</a></div>'
+        if mail_ready
+        else ""
+    )
+    login_form = (
+        f'<form class="pane pane-login" method="post" action="/app/login">{hidden}'
+        + _hidden("action", "login")
+        + _login_fields(loc, login if tab == "login" else "", tab == "login")
+        + forgot
+        + f'<button class="btn primary block" type="submit">{loc.t("web.login_button")}</button>'
+        "</form>"
+    )
+    signup_form = (
+        f'<form class="pane pane-signup" method="post" action="/app/login">{hidden}'
+        + _hidden("action", "signup")
+        + _signup_fields(
+            loc,
+            login if tab == "signup" else "",
+            tab == "signup",
+            email=mail_ready,
+            invite=not open_signup,
+        )
+        + f'<button class="btn primary block" type="submit">{loc.t("web.signup_button")}</button>'
+        "</form>"
+    )
+    return _auth(
+        loc,
+        loc.say("web.sign_in_title"),
+        _head(loc.t("web.sign_in_title"), loc.t("web.sign_in_lead")),
+        _alert(loc, error) + _tabs(loc, login_form, signup_form, tab),
+        _version_foot(loc),
+    )
+
+
+def message_page(
+    loc: Locale,
+    title: str,
+    lead: str,
+    link: tuple[str, str] | None = None,
+    tone: str = "info",
+) -> str:
+    """A page with one message, its status and one way on."""
+    action = (
+        f'<div class="actions-col"><a class="btn primary block" href="{escape(link[0])}">'
+        f"{escape(link[1])}</a></div>"
+        if link
+        else ""
+    )
+    return _auth(
+        loc,
+        f"{title} · VocabBot",
+        _head(escape(title), escape(lead), status=tone),
+        action,
+        f'<a href="/">VocabBot</a> · <a href="/privacy">{loc.t("privacy_link")}</a>',
+    )
+
+
+def expired(loc: Locale) -> str:
+    return message_page(loc, loc.say("expired_title"), loc.say("expired"), tone="error")
+
+
+def recover(loc: Locale, error: str | None = None) -> str:
+    form = (
+        '<section class="box"><form method="post" action="/recover">'
+        + _field(
+            "login",
+            loc.t("login"),
+            id_="login",
+            extra='autocomplete="username" autocapitalize="none" spellcheck="false" autofocus',
+        )
+        + _field(
+            "email",
+            loc.t("web.email_plain"),
+            id_="email",
+            kind="email",
+            extra='autocomplete="email"',
+        )
+        + f'<button class="btn primary block" type="submit">{loc.t("web.recover_button")}</button>'
+        "</form></section>"
+    )
+    return _auth(
+        loc,
+        loc.say("web.recover_title"),
+        _head(loc.t("web.recover_title"), loc.t("web.recover_lead"), status="key"),
+        _alert(loc, error) + form,
+        f'<a href="/app/login">{loc.t("web.back_to_login")}</a>',
+    )
+
+
+def reset(loc: Locale, token: str, login: str, error: str | None = None) -> str:
+    form = (
+        f'<section class="box"><form method="post" action="/recover/{escape(token)}">'
+        + _field(
+            "password",
+            loc.t("password"),
+            id_="password",
+            kind="password",
+            hint=loc.t("password_hint"),
+            extra='autocomplete="new-password" minlength="12" maxlength="200" autofocus',
+        )
+        + _field(
+            "password2",
+            loc.t("password_again"),
+            id_="password2",
+            kind="password",
+            extra='autocomplete="new-password" minlength="12" maxlength="200"',
+        )
+        + f'<button class="btn primary block" type="submit">{loc.t("web.reset_button")}</button>'
+        "</form></section>"
+    )
+    return _auth(
+        loc,
+        loc.say("web.reset_title"),
+        _head(loc.t("web.reset_title"), loc.t("web.reset_lead", login=login), status="lock"),
+        _alert(loc, error) + form,
+    )
+
+
+def device(loc: Locale, code: str, login: str | None, csrf: str, error: str | None = None) -> str:
+    """The page that confirms the code of the program on a computer without a browser."""
+    fields = _field(
+        "code",
+        loc.t("web.device_code"),
+        id_="code",
+        value=code,
+        classes="input code big",
+        extra='autocomplete="off" autocapitalize="characters" spellcheck="false"'
+        ' placeholder="ABCD-EFGH" maxlength="12"' + ("" if code else " autofocus"),
+    )
+    if login is None:
+        fields += _login_fields(loc, "", False)
+        lead = loc.t("web.device_lead")
+    else:
+        lead = loc.t("web.device_lead") + " " + loc.t("web.device_as", login=login)
+    form = (
+        '<section class="box"><form method="post" action="/device">'
+        + _hidden("csrf", csrf)
+        + fields
+        + f'<button class="btn primary block" type="submit">{loc.t("web.device_button")}</button>'
+        "</form></section>"
+    )
+    return _auth(
+        loc,
+        loc.say("web.device_title"),
+        _head(loc.t("web.device_title"), lead, status="terminal"),
+        _alert(loc, error) + form,
+        _version_foot(loc),
+    )
+
+
+# ------------------------------------------------------------ the account
+
+
+def _set(
+    title: str,
+    desc: str,
+    body: str = "",
+    *,
+    foot: str = "",
+    actions: str = "",
+    form: str | None = None,
+    danger: bool = False,
+) -> str:
+    """A settings card: the title and the description, its content and a footer with actions."""
+    classes = "set danger" if danger else "set"
+    opening = (
+        f'<form class="{classes}" method="post" action="/account">{form}'
+        if form is not None
+        else f'<section class="{classes}">'
+    )
+    closing = "</form>" if form is not None else "</section>"
+    footer = (
+        f'<div class="set-foot"><span>{foot}</span><div class="actions">{actions}</div></div>'
+        if foot or actions
+        else ""
+    )
+    return (
+        f'{opening}<div class="set-body"><h2>{title}</h2><p class="desc">{desc}</p>{body}</div>'
+        f"{footer}{closing}"
+    )
+
+
+def _account_top(loc: Locale, login: str, csrf: str) -> str:
+    return (
+        '<header class="top app"><div class="wrap narrow"><div class="bar">'
+        f'{_logo()}<span class="slash" aria-hidden="true">/</span>'
+        f'<span class="who">{escape(login)}</span>'
+        f'<div class="end">{_switch(loc)}'
+        f'<form method="post" action="/app/logout">{_hidden("csrf", csrf)}'
+        f'<button class="btn ghost sm" type="submit" aria-label="{loc.t("web.logout")}">'
+        f'{_icon("logout")}<span class="wide-only">{loc.t("web.logout")}</span></button></form>'
+        "</div></div>"
+        f'<nav class="tabs-nav" aria-label="VocabBot"><a href="/app/">{_icon("book")}'
+        f'{loc.t("web.nav_app")}</a><a href="/account" aria-current="page">{_icon("user")}'
+        f"{loc.t('web.nav_account')}</a></nav></div></header>"
+    )
+
+
+def account(
+    loc: Locale,
+    login: str,
+    created: float,
+    csrf: str,
+    *,
+    has_email: bool,
+    mail_ready: bool,
+    grants: list[Any],
+    can_export: bool,
+    message: str | None = None,
+    error: str | None = None,
+) -> str:
+    """The account page: the connections, the e-mail for recovery, the data, the removal."""
+    token = _hidden("csrf", csrf)
+    if grants:
+        rows = "".join(
+            f'<li><span class="dev-icon">'
+            f"{_icon('terminal' if 'vocabbot' in grant.name.lower() else 'chat')}</span>"
+            f'<span class="what"><b>{escape(grant.name)}</b>'
+            f"<span>{loc.t('web.device_since', when=when(grant.created, loc.lang))} · "
+            f"{loc.t('web.device_used', when=when(grant.used, loc.lang))}</span></span>"
+            f'<form method="post" action="/account">{token}{_hidden("action", "unlink")}'
+            f'{_hidden("grant", grant.id)}<button class="btn secondary sm" type="submit">'
+            f"{loc.t('web.unlink')}</button></form></li>"
+            for grant in grants
+        )
+        devices = f'<ul class="devices">{rows}</ul>'
+    else:
+        devices = (
+            f'<div class="empty-row">{_icon("link")}<span>{loc.t("web.devices_none")}</span></div>'
+        )
+    cards = _set(
+        loc.t("web.devices_title"),
+        loc.t("web.devices_lead"),
+        devices,
+        foot=loc.t("web.devices_foot") if grants else "",
+    )
+    if mail_ready:
+        # the address decides where a new password goes, so a change needs the password
+        remove = (
+            '<button class="btn secondary sm" type="submit" name="action" value="email_remove"'
+            f" formnovalidate>{loc.t('web.email_remove')}</button>"
+            if has_email
+            else ""
+        )
+        fields = (
+            '<div class="fields">'
+            + _field(
+                "email",
+                loc.t("web.email"),
+                id_="email",
+                kind="email",
+                hint=loc.t("web.email_hint"),
+                extra='autocomplete="email" maxlength="254"',
+                required=False,
+            )
+            + _field(
+                "password",
+                loc.t("web.email_password"),
+                id_="email-password",
+                kind="password",
+                extra='autocomplete="current-password"',
+            )
+            + "</div>"
+        )
+        cards += _set(
+            loc.t("web.email_title"),
+            loc.t("web.email_set") if has_email else loc.t("web.email_none"),
+            fields,
+            foot=loc.t("web.email_foot"),
+            actions=remove
+            + '<button class="btn primary sm" type="submit" name="action" value="email">'
+            f"{loc.t('web.email_save')}</button>",
+            form=token,
+        )
+    else:
+        cards += _set(loc.t("web.email_title"), loc.t("web.email_unavailable"))
+    if can_export:
+        cards += _set(
+            loc.t("web.data_title"),
+            _rich(loc.say("web.data_lead")),
+            actions=f'<a class="btn secondary sm" href="/account/export">{_icon("download")}'
+            f"{loc.t('web.export')}</a>",
+        )
+    else:
+        cards += _set(loc.t("web.data_title"), loc.t("web.export_none"))
+    cards += _set(
+        loc.t("web.delete_title"),
+        loc.t("web.delete_lead"),
+        '<div class="fields">'
+        + _field(
+            "password",
+            loc.t("web.delete_password"),
+            id_="delete-password",
+            kind="password",
+            extra='autocomplete="current-password"',
+        )
+        + "</div>",
+        actions=f'<button class="btn danger sm" type="submit">{_icon("trash")}'
+        f"{loc.t('web.delete_button')}</button>",
+        form=token + _hidden("action", "delete"),
+        danger=True,
+    )
+    lead = loc.t("web.account_lead", login=login, created=when(created, loc.lang))
+    body = (
+        _account_top(loc, login, csrf) + '<main class="wrap narrow settings">'
+        f'<div class="page-head"><h1>{loc.t("web.account_title")}</h1><p>{lead}</p></div>'
+        + _flash(message)
+        + _alert(loc, error)
+        + cards
+        + "</main>"
+        + f'<footer class="mini-foot">{_version_foot(loc)}</footer>'
+    )
+    return _page(loc, f"{loc.say('web.account_title')} · VocabBot", body, soft=True)
+
+
+# ------------------------------------------------------------ the start page
+
+
+def _display(loc: Locale) -> str:
+    """The headline: one sentence, its closing words in the colour of the avatar."""
+    return (
+        f'<span class="line">{loc.t("hero_title")}</span> '
+        f'<span class="line accent">{loc.t("hero_accent")}</span>'
+    )
+
+
+def _eyebrow(text: str) -> str:
+    return f'<span class="eyebrow"><i class="pip" aria-hidden="true"></i>{text}</span>'
+
+
+def _showcase(loc: Locale) -> str:
+    """A conversation in a chat application with VocabBot's card, as a session begins."""
+
+    def mock(name: str) -> str:
+        return escape(assets.text(f"server.mock.{name}"))
+
+    def card(name: str) -> str:
+        return escape(assets.text(f"server.card.{name}"))
+
+    window = (
+        '<div class="window" aria-hidden="true">'
+        '<div class="window-bar"><span class="dots"><i></i><i></i><i></i></span>'
+        f'<span class="window-title">{mock("chat_title")}</span>'
+        f'<span class="connector">{_mark()}VocabBot<span class="on"></span></span></div>'
+        '<div class="chat">'
+        f'<div class="msg user">{mock("user")}</div>'
+        f'<div class="msg bot"><span class="bot-avatar" title="{mock("assistant_name")}">'
+        f'{mock("assistant_name")[:1]}</span><div class="bot-body"><p>{mock("assistant")}</p>'
+        f'<span class="toolcall">{_icon("wrench")}<code>vocab_next</code>'
+        f'<span class="ok">{_icon("check")}</span></span>'
+        '<div class="vcard">'
+        f'<div class="vcard-head">{_mark()}<b>VocabBot</b>'
+        f'<span class="count">{mock("counter")}</span></div>'
+        '<div class="vcard-bar"><i></i></div>'
+        f'<div class="stages"><span class="stage on">{card("stage_reviews")} <b>4</b></span>'
+        f'<span class="stage">{card("stage_new")} <b>3</b></span>'
+        f'<span class="stage">{card("stage_drill")} <b>0</b></span></div>'
+        '<div class="vcard-body"><div class="badges">'
+        f'<span class="badge outline"><i class="dot de"></i>{mock("lang")}</span>'
+        f'<span class="badge tone-purple">{_icon("repeat")}{escape(assets.text("phases.review"))}'
+        "</span></div>"
+        f'<div class="prompt">{mock("prompt")}</div>'
+        f'<div class="meta">{mock("meta")} · {card("with_article")}</div></div></div>'
+        f"<p>{mock('question')}</p></div></div></div>"
+        '<div class="composer"><div class="composer-box">'
+        f'<span class="plus">{_icon("plus")}</span>'
+        f'<span class="typed">{mock("answer")}<i class="caret"></i></span>'
+        f'<span class="send">{_icon("arrow_up")}</span></div></div></div>'
+    )
+    caption = loc.t("mock_caption")
+    return (
+        f'<figure class="showcase"><div class="stage-panel">{window}</div>'
+        f"<figcaption>{caption}</figcaption></figure>"
+    )
+
+
+def _visual(name: str) -> str:
+    """The small picture above a feature."""
+    if name == "repeat":
+        curve = (
+            "M20 18 C36 52 52 70 70 76 L70 18 C96 46 118 62 140 70 L140 18 C180 42 220 56 250 62"
+            " L250 18 C270 28 288 35 304 39"
+        )
+        points = "".join(f'<circle class="pt" cx="{x}" cy="18" r="4"/>' for x in (20, 70, 140, 250))
+        return (
+            '<svg class="curve" viewBox="0 0 320 112" aria-hidden="true"><defs>'
+            '<linearGradient id="vb-fade" x1="0" y1="0" x2="0" y2="1">'
+            '<stop offset="0" stop-color="currentColor" stop-opacity=".22"/>'
+            '<stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>'
+            '<path class="gl" d="M12 18H308M12 60H308M12 102H308"/>'
+            f'<path d="{curve} L304 102 L20 102 Z" fill="url(#vb-fade)"/>'
+            f'<path class="line" d="{curve}"/>{points}</svg>'
+        )
+    if name == "languages":
+        chips = "".join(
+            f'<span class="lchip{" on" if code in ("en", "de", "es") else ""}">'
+            f'<i class="dot {code}"></i>{code.upper()}</span>'
+            for code in ("en", "de", "es", "fr", "it")
+        )
+        levels = (
+            '<span class="on">A1</span><span class="on">A2</span><span class="half">B1</span>'
+            "<span>B2</span>"
+        )
+        return (
+            f'<div class="langs"><div class="lang-chips">{chips}</div>'
+            f'<div class="levels">{levels}</div></div>'
+        )
+    if name == "devices":
+        wires = "".join(
+            f'<path d="M160 74 L{x} {y}"/>' for x, y in ((56, 38), (56, 110), (264, 38), (264, 110))
+        )
+        return (
+            '<div class="grid-bg"></div><div class="hub">'
+            f'<svg class="wires" viewBox="0 0 320 148" preserveAspectRatio="none">{wires}</svg>'
+            + "".join(
+                f'<span class="node n{number}">{_icon(name)}</span>'
+                for number, name in enumerate(("chat", "terminal", "phone", "laptop"), start=1)
+            )
+            + f'<span class="core">{_mark()}</span></div>'
+        )
+    return (
+        '<div class="tool"><div class="tool-head">'
+        f'<span class="tool-ico">{_icon("wrench")}</span><code>vocab_answer</code>'
+        '<span class="tool-tag">MCP</span></div><div class="tool-io">'
+        '<div class="io"><span class="k">answer</span><span class="v">"der Hund"</span></div>'
+        f'<div class="io"><span class="k">grade</span><span class="v good">{_icon("check")}"know"'
+        "</span></div></div></div>"
+    )
+
+
+def home(loc: Locale, resource: str) -> str:
+    """The start page: what VocabBot is, how to connect it and the way to the session."""
+    works = "".join(f"<span>{_icon(name)}{escape(label)}</span>" for name, label in WORKS)
+    start = (
+        f'<a class="btn primary lg" href="/app/">{loc.t("hero_primary")}'
+        f"{_icon('arrow', 'arrow')}</a>"
+    )
+    hero = (
+        '<section class="hero"><div class="grid-bg" aria-hidden="true"></div><div class="wrap">'
+        '<div class="hero-copy">'
+        f'<a class="announce" href="/app/"><span class="tag">{loc.t("hero_badge_tag")}</span>'
+        f'<span class="txt">{loc.t("hero_badge")}</span>{_icon("chevron")}</a>'
+        f'<h1 class="display">{_display(loc)}</h1>'
+        f'<p class="lead">{loc.t("hero_lead")}</p>'
+        f'<div class="ctas">{start}'
+        f'<a class="btn secondary lg" href="#connect">{loc.t("hero_secondary")}</a></div>'
+        f'<div class="works"><span class="label">{loc.t("works_with")}</span>{works}</div></div>'
+        f"{_showcase(loc)}</div></section>"
+    )
+    cells = "".join(
+        f'<article class="cell"><div class="visual" aria-hidden="true">{_visual(str(item["icon"]))}'
+        f"</div><h3>{_icon(str(item['icon']))}{escape(str(item['title']))}</h3>"
+        f"<p>{escape(str(item['text']))}</p></article>"
+        for item in items(loc.lang, "features")
+    )
+    features = (
+        '<section class="section" id="features"><div class="wrap"><div class="section-head">'
+        f"{_eyebrow(loc.t('features_eyebrow'))}"
+        f'<h2>{loc.t("features_title")}</h2><p class="sub">{loc.t("features_lead")}</p></div>'
+        f'<div class="bento">{cells}</div></div></section>'
+    )
+    commands = (
+        ("cmd-claude", f"claude mcp add --transport http vocabbot {resource}"),
+        ("cmd-codex", f"codex mcp add vocabbot --url {resource}"),
+    )
+
+    def way(item: dict[str, Any]) -> str:
+        more = ""
+        if item["icon"] == "terminal":
+            more = (
+                '<div class="term">'
+                + "".join(
+                    f'<div class="term-line"><span class="ps" aria-hidden="true">$</span>'
+                    f'<code id="{key}">{escape(line)}</code>{_copy(loc, key)}</div>'
+                    for key, line in commands
+                )
+                + "</div>"
+            )
+        elif item["icon"] == "phone":
+            more = (
+                f'<a class="btn secondary sm" href="/app/">{loc.t("nav_open")}'
+                f"{_icon('arrow', 'arrow')}</a>"
+            )
+        wide = " wide" if item["icon"] == "terminal" else ""
+        return (
+            f'<article class="connect-card{wide}"><div class="cc-head"><span class="tile">'
+            f"{_icon(str(item['icon']))}</span><div><h3>{escape(str(item['name']))}</h3>"
+            f'<p class="where">{escape(str(item["where"]))}</p></div></div>'
+            f'<p class="steps">{_rich(str(item["steps"]))}</p>{more}</article>'
+        )
+
+    connect = (
+        '<section class="section alt" id="connect"><div class="wrap"><div class="section-head">'
+        f"{_eyebrow(loc.t('connect_eyebrow'))}"
+        f'<h2>{loc.t("connect_title")}</h2><p class="sub">{loc.t("connect_lead")}</p></div>'
+        f'<div class="address"><span class="address-label">{_icon("link")}'
+        f'{loc.t("connect_address")}</span><div class="copybox"><code id="mcp-url">'
+        f"{escape(resource)}</code>{_copy(loc, 'mcp-url')}</div></div>"
+        '<div class="connect-grid">'
+        + "".join(way(item) for item in items(loc.lang, "connect_items"))
+        + "</div></div></section>"
+    )
+    cta = (
+        '<section class="section"><div class="wrap"><div class="cta-box">'
+        f'<div class="grid-bg" aria-hidden="true"></div>{_mark("lg")}'
+        f'<h2>{loc.t("cta_title")}</h2><p class="sub">{loc.t("cta_lead")}</p>'
+        f'<div class="ctas">{start}'
+        f'<a class="btn secondary lg" href="/app/login">{loc.t("nav_sign_in")}</a></div>'
+        "</div></div></section>"
+    )
+    body = (
+        _site_top(loc, home=True) + f"<main>{hero}{features}{connect}{cta}</main>" + _site_foot(loc)
+    )
+    title = f"VocabBot · {loc.say('footer_tagline').rstrip('.')}"
+    return _page(loc, title, body, index=True, description=loc.say("hero_lead"))
+
+
+def privacy(loc: Locale) -> str:
+    headings = items(loc.lang, "privacy_headings")
+    texts = items(loc.lang, "privacy")
+    sections = "".join(
+        f'<section class="doc-sec"><span class="num">{number:02d}</span><div>'
+        f"<h2>{escape(str(heading))}</h2><p>{escape(str(text))}</p></div></section>"
+        for number, (heading, text) in enumerate(zip(headings, texts, strict=True), start=1)
+    )
+    head = (
+        f'<div class="doc-head"><span class="eyebrow">{_icon("shield")}VocabBot</span>'
+        f'<h1>{loc.t("privacy_title")}</h1><p class="lead">{loc.t("privacy_lead")}</p></div>'
+    )
+    body = (
+        _site_top(loc, home=False)
+        + f'<main class="wrap narrow doc">{head}{sections}</main>'
+        + _site_foot(loc)
+    )
+    return _page(
+        loc,
+        f"{loc.say('privacy_title')} · VocabBot",
+        body,
+        index=True,
+        description=loc.say("privacy_lead"),
+    )
+
+
+# ------------------------------------------------------------ the card and the session page
 
 
 def card_title() -> str:
@@ -234,494 +1261,6 @@ def card() -> str:
     return template.replace("/*VOCABBOT_LABELS*/{}", blob).replace(
         "/*VOCABBOT_VERSION*/", __version__
     )
-
-
-def _page(title: str, body: str, *, index: bool = False, wide: bool = False) -> str:
-    robots = "" if index else '<meta name="robots" content="noindex, nofollow">'
-    shell = "shell wide" if wide else "shell"
-    script = f"<script>{ZONE_SCRIPT}</script>" if 'name="tz"' in body else ""
-    return (
-        '<!doctype html><html lang="pl"><head><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        '<meta name="color-scheme" content="light dark">'
-        f'{robots}<link rel="icon" href="{ICON}" type="image/png">'
-        f'<link rel="preload" href="{FONT}" as="font" type="font/woff2" crossorigin>'
-        f"<title>{escape(title)}</title><style>{STYLE}</style></head>"
-        f'<body><div class="grid" aria-hidden="true"></div><main class="{shell}">{body}</main>'
-        f"{script}</body></html>"
-    )
-
-
-def _t(name: str, **values: str) -> str:
-    return escape(assets.text(f"server.{name}", **values))
-
-
-def _brand(title: str, lead: str, app: str | None = None) -> str:
-    marks = f'<span class="mark vb" aria-hidden="true">{mark().strip()}</span>'
-    if app is not None:
-        initial = escape((app.strip()[:1] or "?").upper())
-        marks = (
-            f'<span class="mark app" aria-hidden="true">{initial}</span>'
-            f'<span class="wire" aria-hidden="true"></span>{marks}'
-        )
-    return (
-        f'<header class="brand"><div class="pair">{marks}</div>'
-        f'<h1>{title}</h1><p class="lead">{lead}</p></header>'
-    )
-
-
-def _field(
-    name: str,
-    label: str,
-    *,
-    id_: str,
-    kind: str = "text",
-    value: str = "",
-    hint: str = "",
-    extra: str = "",
-) -> str:
-    hint_html = f'<p class="hint" id="{id_}-hint">{hint}</p>' if hint else ""
-    described = f' aria-describedby="{id_}-hint"' if hint else ""
-    classes = "input code" if name == "invite" else "input"
-    return (
-        f'<div class="field"><label class="label" for="{id_}">{label}</label>'
-        f'<input class="{classes}" id="{id_}" name="{name}" type="{kind}"'
-        f' value="{escape(value)}"{described} {extra} required>{hint_html}</div>'
-    )
-
-
-def sign_in(
-    request_id: str,
-    app: str,
-    host: str,
-    open_signup: bool,
-    error: str | None = None,
-    login: str = "",
-    tab: str = "login",
-) -> str:
-    hidden = (
-        f'<input type="hidden" name="request" value="{escape(request_id)}">'
-        '<input type="hidden" name="tz" value="">'
-    )
-    problem = (
-        f'<div class="alert" role="alert">{ALERT}<span>{_t(f"errors.{error}")}</span></div>'
-        if error
-        else ""
-    )
-    lead = _t("connect_hint", app=app)
-    if host:
-        lead += f' {_t("return_to")} <span class="host">{escape(host)}</span>'
-    login_form = (
-        f'<form class="panel panel-login" method="post" action="/login">{hidden}'
-        '<input type="hidden" name="action" value="login">'
-        + _field(
-            "login",
-            _t("login"),
-            id_="login",
-            value=login if tab == "login" else "",
-            extra='autocomplete="username" autocapitalize="none" spellcheck="false"'
-            + (" autofocus" if tab == "login" else ""),
-        )
-        + _field(
-            "password",
-            _t("password"),
-            id_="password",
-            kind="password",
-            extra='autocomplete="current-password"',
-        )
-        + f'<button class="btn" type="submit">{_t("login_button")}</button></form>'
-    )
-    invite = (
-        ""
-        if open_signup
-        else _field(
-            "invite",
-            _t("invite"),
-            id_="invite",
-            hint=_t("invite_hint"),
-            extra='autocomplete="off" autocapitalize="characters" spellcheck="false"'
-            ' placeholder="ABCD-EFGH-JKMN" maxlength="20"',
-        )
-    )
-    signup_form = (
-        f'<form class="panel panel-signup" method="post" action="/login">{hidden}'
-        '<input type="hidden" name="action" value="signup">'
-        + _field(
-            "login",
-            _t("login"),
-            id_="new-login",
-            value=login if tab == "signup" else "",
-            hint=_t("login_hint"),
-            extra='autocomplete="username" autocapitalize="none" spellcheck="false"'
-            ' minlength="3" maxlength="40"' + (" autofocus" if tab == "signup" else ""),
-        )
-        + _field(
-            "password",
-            _t("password"),
-            id_="new-password",
-            kind="password",
-            hint=_t("password_hint"),
-            extra='autocomplete="new-password" minlength="12" maxlength="200"',
-        )
-        + _field(
-            "password2",
-            _t("password_again"),
-            id_="new-password2",
-            kind="password",
-            extra='autocomplete="new-password" minlength="12" maxlength="200"',
-        )
-        + invite
-        + f'<button class="btn" type="submit">{_t("signup_button")}</button></form>'
-    )
-    checked_login = " checked" if tab != "signup" else ""
-    checked_signup = " checked" if tab == "signup" else ""
-    body = (
-        _brand(_t("connect", app=app), lead, app=app) + problem + '<section class="card">'
-        f'<input class="tab-input" type="radio" name="tab" id="tab-login"{checked_login}>'
-        f'<input class="tab-input" type="radio" name="tab" id="tab-signup"{checked_signup}>'
-        f'<div class="tabs"><label class="tab" for="tab-login">{_t("tab_login")}</label>'
-        f'<label class="tab" for="tab-signup">{_t("tab_signup")}</label></div>'
-        f"{login_form}{signup_form}</section>"
-        f'<p class="foot">{_t("disconnect", app=app)}<br>'
-        f'<a href="/privacy">{_t("privacy_link")}</a> · VocabBot {escape(__version__)}</p>'
-    )
-    return _page(assets.text("server.title"), body)
-
-
-def _alert(error: str | None) -> str:
-    if not error:
-        return ""
-    return f'<div class="alert" role="alert">{ALERT}<span>{_t(f"errors.{error}")}</span></div>'
-
-
-def _ok(message: str | None) -> str:
-    return f'<div class="ok" role="status">{escape(message)}</div>' if message else ""
-
-
-def _hidden(name: str, value: str) -> str:
-    return f'<input type="hidden" name="{name}" value="{escape(value)}">'
-
-
-def when(moment: float) -> str:
-    """A moment as the pages show it: day.month.year hour:minute (UTC)."""
-    stamp = datetime.fromtimestamp(moment, timezone.utc)
-    return stamp.strftime("%d.%m.%Y %H:%M UTC")
-
-
-def web_sign_in(
-    target: str,
-    open_signup: bool,
-    mail_ready: bool,
-    error: str | None = None,
-    login: str = "",
-    tab: str = "login",
-) -> str:
-    """The sign-in of the session page and the account page: a browser session of 30 days."""
-    hidden = _hidden("next", target) + '<input type="hidden" name="tz" value="">'
-    login_form = (
-        f'<form class="panel panel-login" method="post" action="/app/login">{hidden}'
-        + _hidden("action", "login")
-        + _field(
-            "login",
-            _t("login"),
-            id_="login",
-            value=login if tab == "login" else "",
-            extra='autocomplete="username" autocapitalize="none" spellcheck="false"'
-            + (" autofocus" if tab == "login" else ""),
-        )
-        + _field(
-            "password",
-            _t("password"),
-            id_="password",
-            kind="password",
-            extra='autocomplete="current-password"',
-        )
-        + f'<button class="btn" type="submit">{_t("web.login_button")}</button></form>'
-    )
-    invite = (
-        ""
-        if open_signup
-        else _field(
-            "invite",
-            _t("invite"),
-            id_="invite",
-            hint=_t("invite_hint"),
-            extra='autocomplete="off" autocapitalize="characters" spellcheck="false"'
-            ' placeholder="ABCD-EFGH-JKMN" maxlength="20"',
-        )
-    )
-    email = (
-        _field(
-            "email",
-            _t("web.email"),
-            id_="email",
-            kind="email",
-            hint=_t("web.email_hint"),
-            extra='autocomplete="email" maxlength="254"',
-        ).replace(" required>", ">")
-        if mail_ready
-        else ""
-    )
-    signup_form = (
-        f'<form class="panel panel-signup" method="post" action="/app/login">{hidden}'
-        + _hidden("action", "signup")
-        + _field(
-            "login",
-            _t("login"),
-            id_="new-login",
-            value=login if tab == "signup" else "",
-            hint=_t("login_hint"),
-            extra='autocomplete="username" autocapitalize="none" spellcheck="false"'
-            ' minlength="3" maxlength="40"' + (" autofocus" if tab == "signup" else ""),
-        )
-        + _field(
-            "password",
-            _t("password"),
-            id_="new-password",
-            kind="password",
-            hint=_t("password_hint"),
-            extra='autocomplete="new-password" minlength="12" maxlength="200"',
-        )
-        + _field(
-            "password2",
-            _t("password_again"),
-            id_="new-password2",
-            kind="password",
-            extra='autocomplete="new-password" minlength="12" maxlength="200"',
-        )
-        + email
-        + invite
-        + f'<button class="btn" type="submit">{_t("web.signup_button")}</button></form>'
-    )
-    checked_login = " checked" if tab != "signup" else ""
-    checked_signup = " checked" if tab == "signup" else ""
-    forgot = f'<a href="/recover">{_t("web.forgot")}</a> · ' if mail_ready else ""
-    body = (
-        _brand(_t("web.sign_in_title"), _t("web.sign_in_lead"))
-        + _alert(error)
-        + '<section class="card">'
-        f'<input class="tab-input" type="radio" name="tab" id="tab-login"{checked_login}>'
-        f'<input class="tab-input" type="radio" name="tab" id="tab-signup"{checked_signup}>'
-        f'<div class="tabs"><label class="tab" for="tab-login">{_t("tab_login")}</label>'
-        f'<label class="tab" for="tab-signup">{_t("tab_signup")}</label></div>'
-        f"{login_form}{signup_form}</section>"
-        f'<p class="foot">{forgot}<a href="/privacy">{_t("privacy_link")}</a> · VocabBot'
-        f" {escape(__version__)}</p>"
-    )
-    return _page(assets.text("server.web.sign_in_title"), body)
-
-
-def _nav(csrf: str, here: str) -> str:
-    links = []
-    if here != "app":
-        links.append(f'<a href="/app/">{_t("web.nav_app")}</a>')
-    if here != "account":
-        links.append(f'<a href="/account">{_t("web.nav_account")}</a>')
-    links.append(
-        f'<form method="post" action="/app/logout">{_hidden("csrf", csrf)}'
-        f'<button type="submit">{_t("web.logout")}</button></form>'
-    )
-    return f'<nav class="nav">{"".join(links)}</nav>'
-
-
-def account(
-    login: str,
-    created: float,
-    csrf: str,
-    *,
-    has_email: bool,
-    mail_ready: bool,
-    grants: list[Any],
-    can_export: bool,
-    message: str | None = None,
-    error: str | None = None,
-) -> str:
-    """The account page: the e-mail for recovery, the connections, the data, the removal."""
-    token = _hidden("csrf", csrf)
-    if mail_ready:
-        state = _t("web.email_set") if has_email else _t("web.email_none")
-        # the address decides where a new password goes, so a change needs the password
-        remove = (
-            f'<button class="btn secondary inline" type="submit" name="action"'
-            f' value="email_remove" formnovalidate>{_t("web.email_remove")}</button>'
-            if has_email
-            else ""
-        )
-        email = (
-            f'<section class="card"><h2>{_t("web.email_title")}</h2><p class="note">{state}</p>'
-            f'<form method="post" action="/account">{token}'
-            + _field(
-                "email",
-                _t("web.email"),
-                id_="email",
-                kind="email",
-                hint=_t("web.email_hint"),
-                extra='autocomplete="email" maxlength="254"',
-            ).replace(" required>", ">")
-            + _field(
-                "password",
-                _t("web.email_password"),
-                id_="email-password",
-                kind="password",
-                extra='autocomplete="current-password"',
-            )
-            + '<div class="row"><button class="btn inline" type="submit" name="action"'
-            f' value="email">{_t("web.email_save")}</button>{remove}</div></form></section>'
-        )
-    else:
-        email = (
-            f'<section class="card"><h2>{_t("web.email_title")}</h2>'
-            f'<p class="note">{_t("web.email_unavailable")}</p></section>'
-        )
-    if grants:
-        items = "".join(
-            f'<li><span class="what"><b>{escape(grant.name)}</b>'
-            f"<span>{_t('web.device_since', when=when(grant.created))} · "
-            f"{_t('web.device_used', when=when(grant.used))}</span></span>"
-            f'<form method="post" action="/account">{token}{_hidden("action", "unlink")}'
-            f'{_hidden("grant", grant.id)}<button class="btn secondary inline" type="submit">'
-            f"{_t('web.unlink')}</button></form></li>"
-            for grant in grants
-        )
-        devices = f'<ul class="list">{items}</ul>'
-    else:
-        devices = f'<p class="note">{_t("web.devices_none")}</p>'
-    data = (
-        f'<p class="note">{_t("web.data_lead")}</p>'
-        f'<a class="btn secondary" href="/account/export">{_t("web.export")}</a>'
-        if can_export
-        else f'<p class="note">{_t("web.export_none")}</p>'
-    )
-    delete = (
-        f'<section class="card"><h2>{_t("web.delete_title")}</h2>'
-        f'<p class="note">{_t("web.delete_lead")}</p>'
-        f'<form method="post" action="/account">{token}{_hidden("action", "delete")}'
-        + _field(
-            "password",
-            _t("web.delete_password"),
-            id_="delete-password",
-            kind="password",
-            extra='autocomplete="current-password"',
-        )
-        + f'<button class="btn danger" type="submit">{_t("web.delete_button")}</button>'
-        "</form></section>"
-    )
-    body = (
-        _brand(_t("web.account_title"), _t("web.account_lead", login=login, created=when(created)))
-        + _nav(csrf, "account")
-        + _ok(message)
-        + _alert(error)
-        + '<div class="stack">'
-        + f'<section class="card"><h2>{_t("web.devices_title")}</h2>{devices}</section>'
-        + email
-        + f'<section class="card"><h2>{_t("web.data_title")}</h2>{data}</section>'
-        + delete
-        + "</div>"
-        + f'<p class="foot"><a href="/privacy">{_t("privacy_link")}</a> · VocabBot'
-        f" {escape(__version__)}</p>"
-    )
-    return _page(assets.text("server.web.account_title"), body, wide=True)
-
-
-def message_page(title: str, lead: str, link: tuple[str, str] | None = None) -> str:
-    """A page with one message and one way on."""
-    more = (
-        f'<section class="card"><a class="btn" href="{escape(link[0])}">{escape(link[1])}</a>'
-        "</section>"
-        if link
-        else ""
-    )
-    body = (
-        _brand(escape(title), escape(lead))
-        + more
-        + f'<p class="foot"><a href="/">VocabBot</a> · <a href="/privacy">{_t("privacy_link")}'
-        "</a></p>"
-    )
-    return _page(title, body)
-
-
-def recover(error: str | None = None) -> str:
-    body = (
-        _brand(_t("web.recover_title"), _t("web.recover_lead"))
-        + _alert(error)
-        + '<section class="card"><form method="post" action="/recover">'
-        + _field(
-            "login",
-            _t("login"),
-            id_="login",
-            extra='autocomplete="username" autocapitalize="none" spellcheck="false" autofocus',
-        )
-        + _field(
-            "email", _t("web.email_plain"), id_="email", kind="email", extra='autocomplete="email"'
-        )
-        + f'<button class="btn" type="submit">{_t("web.recover_button")}</button></form>'
-        "</section>" + f'<p class="foot"><a href="/app/login">{_t("web.back_to_login")}</a></p>'
-    )
-    return _page(assets.text("server.web.recover_title"), body)
-
-
-def reset(token: str, login: str, error: str | None = None) -> str:
-    body = (
-        _brand(_t("web.reset_title"), _t("web.reset_lead", login=login))
-        + _alert(error)
-        + f'<section class="card"><form method="post" action="/recover/{escape(token)}">'
-        + _field(
-            "password",
-            _t("password"),
-            id_="password",
-            kind="password",
-            hint=_t("password_hint"),
-            extra='autocomplete="new-password" minlength="12" maxlength="200" autofocus',
-        )
-        + _field(
-            "password2",
-            _t("password_again"),
-            id_="password2",
-            kind="password",
-            extra='autocomplete="new-password" minlength="12" maxlength="200"',
-        )
-        + f'<button class="btn" type="submit">{_t("web.reset_button")}</button></form></section>'
-    )
-    return _page(assets.text("server.web.reset_title"), body)
-
-
-def device(code: str, login: str | None, csrf: str, error: str | None = None) -> str:
-    """The page that confirms the code of the program on a computer without a browser."""
-    fields = _field(
-        "code",
-        _t("web.device_code"),
-        id_="code",
-        value=code,
-        extra='autocomplete="off" autocapitalize="characters" spellcheck="false"'
-        ' placeholder="ABCD-EFGH" maxlength="12"' + ("" if code else " autofocus"),
-    ).replace('class="input"', 'class="input code"')
-    if login is None:
-        fields += _field(
-            "login",
-            _t("login"),
-            id_="login",
-            extra='autocomplete="username" autocapitalize="none" spellcheck="false"',
-        ) + _field(
-            "password",
-            _t("password"),
-            id_="password",
-            kind="password",
-            extra='autocomplete="current-password"',
-        )
-        lead = _t("web.device_lead")
-    else:
-        lead = _t("web.device_lead") + " " + _t("web.device_as", login=login)
-    body = (
-        _brand(_t("web.device_title"), lead)
-        + _alert(error)
-        + '<section class="card"><form method="post" action="/device">'
-        + _hidden("csrf", csrf)
-        + fields
-        + f'<button class="btn" type="submit">{_t("web.device_button")}</button></form>'
-        "</section>" + f'<p class="foot"><a href="/privacy">{_t("privacy_link")}</a> · VocabBot'
-        f" {escape(__version__)}</p>"
-    )
-    return _page(assets.text("server.web.device_title"), body)
 
 
 @cache
@@ -778,39 +1317,3 @@ def manifest() -> str:
         },
         ensure_ascii=False,
     )
-
-
-def static_text(name: str) -> str:
-    return (resources.files("vocabbot.server") / "static" / name).read_text("utf-8")
-
-
-def expired() -> str:
-    body = _brand(_t("expired_title"), _t("expired")) + (
-        '<p class="foot"><a href="/">VocabBot</a> · '
-        f'<a href="/privacy">{_t("privacy_link")}</a></p>'
-    )
-    return _page(assets.text("server.expired_title"), body)
-
-
-def home(resource: str) -> str:
-    body = (
-        _brand(_t("title"), _t("home")) + '<section class="card prose">'
-        f'<p>{_t("home_address")}</p><code class="address">{escape(resource)}</code>'
-        f'<ul class="steps"><li><b>Claude</b> · {_t("home_claude")}</li>'
-        f"<li><b>ChatGPT</b> · {_t('home_chatgpt')}</li></ul></section>"
-        f'<section class="card prose" style="margin-top:16px"><p>{_t("home_browser")}</p>'
-        f'<a class="btn" href="/app/">{_t("home_open")}</a></section>'
-        f'<p class="foot"><a href="/privacy">{_t("privacy_link")}</a> · VocabBot'
-        f" {escape(__version__)}</p>"
-    )
-    return _page(assets.text("server.title"), body, index=True)
-
-
-def privacy() -> str:
-    paragraphs = "".join(f"<p>{escape(text)}</p>" for text in assets.paragraphs("server.privacy"))
-    body = (
-        _brand(_t("privacy_title"), _t("privacy_lead"))
-        + f'<section class="card prose">{paragraphs}</section>'
-        + f'<p class="foot"><a href="/">VocabBot</a> · {escape(__version__)}</p>'
-    )
-    return _page(assets.text("server.privacy_title"), body, index=True)

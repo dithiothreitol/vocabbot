@@ -28,7 +28,7 @@ from mcp.types import Icon, ToolAnnotations
 from pydantic import BaseModel, Field
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, Response
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from vocabbot import __version__
@@ -508,11 +508,16 @@ def build(settings: Settings) -> Starlette:
         }
     )
 
+    def page_locale(request: Request) -> pages.Locale:
+        return pages.locale(request, secure=settings.secure, site=settings.url)
+
     async def home(request: Request) -> Response:
-        return HTMLResponse(pages.home(settings.resource), headers=pages.HEADERS)
+        loc = page_locale(request)
+        return pages.respond(loc, pages.home(loc, settings.resource))
 
     async def privacy(request: Request) -> Response:
-        return HTMLResponse(pages.privacy(), headers=pages.HEADERS)
+        loc = page_locale(request)
+        return pages.respond(loc, pages.privacy(loc))
 
     async def health(request: Request) -> Response:
         return JSONResponse({"ok": True, "version": __version__})

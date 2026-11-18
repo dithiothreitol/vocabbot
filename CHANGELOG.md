@@ -3,6 +3,36 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## 1.0.0-rc.12 - 2026-11-18
+
+The service moves to `https://vocabbot.run`, and its pages have a new design
+in Polish and English.
+
+### Changed
+
+- The server's pages (the start page, privacy, the sign-ins, the account,
+  password recovery and `/device`) have a new design and speak Polish and
+  English. The language comes from `?lang=`, the switch's cookie
+  `vocabbot_lang` or the browser's `Accept-Language`, with Polish as the
+  default; the recovery message goes out in the language of the page. The
+  English texts live in `data/i18n/en.json`, and a test keeps both languages
+  complete.
+- The start page shows a sample session in a chat app, the method, the setup
+  with copy buttons for the server's address and the Claude Code and Codex
+  commands, and a call to action. The copy is formal and plain, and the
+  accents use the avatar's blue, navy and amber.
+- The pages load their style from `/static/site.css` under the digest of its
+  content, so browsers keep it for a year, and the Content-Security-Policy no
+  longer allows inline styles.
+- The service moves to `https://vocabbot.run`: the program's default server
+  is the new address, and `scripts/deploy_vps.sh` redirects former hosts named
+  in `REDIRECT_FROM` with a permanent 308 redirect.
+
+### Fixed
+
+- The "Otwórz sesję" button on the start page was unreadable in the dark
+  theme (light text on a light background).
+
 ## 1.0.0-rc.11 - 2026-11-18
 
 Stages 12 and 13 of the plan: the account as the shared record on every

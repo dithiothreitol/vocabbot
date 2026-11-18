@@ -20,6 +20,12 @@
     model (`server/guides/*.md`) follow the skills: a change of a skill's
     steps or of `rules/` changes them too. `server/static/card.html` is the
     card of MCP Apps; `pages.card()` fills in its labels from `pl.json`.
+    The server's own pages (`pages.py`, styled by `server/static/site.css`)
+    speak Polish and English: their English texts live in
+    `data/i18n/en.json` beside the `server` texts of `pl.json`, which
+    `scripts/build.py` leaves out of `vocabbot.pyz`, and a test keeps the two
+    complete. Their copy stays formal and plain: no colloquialisms, no long
+    dashes, no gradients or glows; the accents come from the avatar's colours.
   - `data/courses/<lang>/<level>.jsonl` and `meta.json` are the courses. In
     Stage 1 they hold the starter course that `tools/courses/starter.py`
     generates; Stage 2 replaces them with the A1 to B2 courses.

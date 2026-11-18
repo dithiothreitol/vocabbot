@@ -2061,6 +2061,36 @@ push odrzucił GitHub, bo aktywne konto `gh` (`dithiothreitol-gpf`) nie ma
 uprawnień do repozytorium; wypchnąłem z konta `dithiothreitol` po Twojej
 decyzji, a potem przywróciłem poprzednie konto.
 
+Strony serwera przeprojektowałem 18.11.2026 na Twoją prośbę. Strona
+startowa, prywatność, logowania, konto, odzyskiwanie hasła i `/device` mają
+wygląd zgodny z Geist i są dostępne po polsku i po angielsku: język wynika
+z przełącznika (ciasteczko `vocabbot_lang`), a bez niego z nagłówka
+`Accept-Language`, wiadomość odzyskiwania hasła wychodzi w języku strony.
+Teksty zredagowałem w formalnym, naturalnym rejestrze, bez potoczności
+i długich myślników. Akcenty kolorystyczne pochodzą z awatara (niebieski,
+granat i bursztyn) zamiast gradientów i poświat. Strona startowa pokazuje
+przykładową sesję w aplikacji czatu, metodę, konfigurację z kopiowaniem
+adresu i poleceń oraz granatowe wezwanie do działania. Styl leży
+w `static/site.css` (adres ze skrótem treści, pamięć podręczna na rok),
+angielskie teksty w `data/i18n/en.json`. Za Twoją zgodą z 18.11.2026 zmiana
+wchodzi do wersji `1.0.0-rc.12` razem z przeniesieniem na nową domenę.
+
+Nowa domena na Twoją prośbę z 18.11.2026: serwis przenosi się pod adres
+`https://vocabbot.run`. Program domyślnie łączy się z nowym adresem, a skrypt
+wdrożenia przekierowuje `vocab.archxs.com` i `www.vocabbot.run` na nową
+domenę na stałe (308, zmienna `REDIRECT_FROM`). Domena korzysta
+z serwerów nazw hostido.net.pl i do 18.11.2026 wskazywała stronę parkingową
+(185.110.51.x), więc przed wdrożeniem rekordy A domeny `vocabbot.run`
+i `www.vocabbot.run` muszą wskazywać serwer 167.233.57.77. Zmiana domeny
+zmienia wystawcę OAuth i adres MCP: aplikacje czatu trzeba połączyć ponownie,
+przeglądarkę zalogować jeszcze raz, a połączony folder nauki połączyć
+poleceniem `vocabbot login --server https://vocabbot.run`. Wiadomości
+odzyskiwania hasła wysyła odtąd skrzynka pomocy w domenie `vocabbot.run` przez
+`mail.vocabbot.run` na porcie 587 ze STARTTLS (port 465 Hetzner blokuje);
+logowanie z kontenera na serwerze działa, certyfikat obejmuje
+`*.vocabbot.run`, a hasło jest takie samo jak dotychczasowe. Rekord
+`mail.vocabbot.run` pozostaje przy serwerach hostido.
+
 Do sprawdzenia poza sesją pracy:
 
 | Temat | Potrzebne |

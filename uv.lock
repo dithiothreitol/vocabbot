@@ -2236,7 +2236,7 @@ wheels = [
 
 [[package]]
 name = "vocabbot"
-version = "1.0.0rc11"
+version = "1.0.0rc12"
 source = { editable = "." }
 
 [package.optional-dependencies]

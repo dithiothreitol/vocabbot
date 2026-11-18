@@ -21,6 +21,7 @@ korzysta z żadnego modelu.
 | `/login` | strona logowania i zakładania konta z kodem zaproszenia |
 | `/`, `/privacy`, `/health` | strona startowa, informacja o prywatności i kontrola działania |
 | `/static/vocabbot.png`, `/favicon.ico` | awatar VocabBota: ikona stron w przeglądarce i ikona, którą serwer podaje w informacjach MCP (`icons`) |
+| `/static/site.css` | arkusz stylów stron; strony odwołują się do niego ze skrótem treści, więc przeglądarki przechowują go przez rok |
 | `/sync` | synchronizacja folderu nauki połączonego z kontem (`vocabbot login`), z tym samym tokenem dostępu co `/mcp` |
 | `/device`, `/device/authorize`, `/device/token` | logowanie programu kodem potwierdzonym na innym urządzeniu (przepływ urządzenia, RFC 8628) |
 | `/app/`, `/app/login`, `/api/<nazwa>` | strona sesji w przeglądarce, jej logowanie i wywołania silnika |
@@ -46,6 +47,14 @@ korzysta z żadnego modelu.
   `timezone`; nowe konto dostaje strefę odczytaną z przeglądarki), a dla
   planu bez strefy w strefie serwera (domyślnie `Europe/Warsaw`), zawsze
   o godzinie z ustawienia `day_starts_at`.
+- Strony serwera (strona startowa, prywatność, logowania, konto,
+  odzyskiwanie hasła i `/device`) są dostępne po polsku i po angielsku.
+  Język wynika z parametru `?lang=`, następnie z ciasteczka `vocabbot_lang`
+  ustawianego przełącznikiem, a potem z nagłówka `Accept-Language`
+  przeglądarki; domyślny jest polski. Teksty angielskie znajdują się
+  w `data/i18n/en.json`, a brakujący tekst zastępuje polski; wiadomość
+  odzyskiwania hasła wychodzi w języku strony. Strona sesji, karta i teksty
+  silnika pozostają po polsku, tak jak kurs.
 
 ## Uruchomienie serwera
 
@@ -76,6 +85,18 @@ zapasową w `/opt/vocabbot/backups`:
 ```
 VPS=root@203.0.113.7 DOMAIN=vocab.example.org PROXY_NETWORK=proxy_net \
 CADDY=proxy-caddy-1 CADDY_SITES=/opt/caddy/conf.d scripts/deploy_vps.sh
+```
+
+Po przeniesieniu serwisu na nową domenę zmienna `REDIRECT_FROM` wskazuje
+dotychczasowe adresy (oraz ewentualny adres z `www.`): Caddy przekierowuje je
+na `DOMAIN` na stałe, z zachowaniem metody żądania (308). Każdy z tych adresów
+wymaga rekordu A wskazującego serwer. Nowa domena zmienia wystawcę OAuth
+i adres MCP, dlatego aplikacje czatu trzeba połączyć ponownie z nowym
+adresem, w przeglądarce zalogować się jeszcze raz, a połączony folder nauki
+połączyć poleceniem `vocabbot login --server https://<nowa domena>`.
+
+```
+... DOMAIN=vocab.example.org REDIRECT_FROM="old.example.org www.vocab.example.org" scripts/deploy_vps.sh
 ```
 
 Odzyskiwanie hasła przez e-mail wymaga konta SMTP: polecenie dostaje
@@ -131,7 +152,9 @@ pozwala zakładać konta bez zaproszenia.
   `/api/<nazwa>`, więc pytanie przychodzi bez odpowiedzi i ocenia silnik.
   Przeglądarka loguje się na `/app/login` i dostaje ciasteczko sesji na
   30 dni (`HttpOnly`, `SameSite=Strict`, `Secure` przy https); każdy zapis
-  wymaga żetonu formularza i pochodzenia z adresu serwera.
+  wymaga żetonu formularza i pochodzenia z adresu serwera. Przełącznik
+  języka stron zapisuje wybór w drugim ciasteczku, `vocabbot_lang`
+  (`SameSite=Lax`, rok), wyłącznie wtedy, gdy uczący się go użyje.
 - **Strona konta** (`/account`) pokazuje połączone aplikacje i komputery
   z datą ostatniego użycia i odłącza każde z nich, pobiera dane jako
   archiwum zip w postaci folderu nauki, przechowuje opcjonalny adres e-mail
@@ -199,7 +222,7 @@ jest opcjonalny i trafia na serwer wyłącznie jako skrót. Serwer nie
 potrzebuje imienia.
 Aplikacja czatu przetwarza rozmowę według własnych zasad i przekazuje
 serwerowi wyłącznie wywołania narzędzi VocabBota. Strona `/privacy` podaje
-uczącemu się te same informacje po polsku.
+uczącemu się te same informacje po polsku i po angielsku.
 
 ## Kontrole
 
