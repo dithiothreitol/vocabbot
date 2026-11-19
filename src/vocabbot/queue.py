@@ -19,6 +19,14 @@ so the list stays a function of the log before the day and of that file.
 
 Languages are interleaved (or kept in blocks), and cards of one concept stay
 at least `sibling_distance` positions apart.
+
+With the plan's `together` (Stage 14b, families.py) the languages of the set
+learn and review by families: a concept met in one language of the set comes
+first in the others, the gap of `sibling_gap_days` does not hold between them,
+the cards of one family stand side by side as a block, and a due card brings
+the cards of its family in the other languages of the set once half of their
+interval has passed (`companions`, reviews before their day). Languages outside
+the set keep the rules above.
 """
 
 from __future__ import annotations
@@ -31,8 +39,8 @@ from datetime import date, timedelta
 from fractions import Fraction
 from typing import Any
 
+from vocabbot import families, store
 from vocabbot import presence as attendance
-from vocabbot import store
 from vocabbot.book import Book, Today, activity, extend, fitted_replay
 from vocabbot.courses import Catalog, card_id, split_card
 from vocabbot.fsrs import Scheduler
@@ -85,6 +93,9 @@ class DayPlan:
     extra_reviews: int = 0  # reviews the learner added to the day
     waiting: int = 0  # due cards outside today's list (the limit, a day off)
     later: int = 0  # cards with a later date, not on today's list and not answered today
+    # reviews before their day that join a due card of their family (plan `together`)
+    companions: list[str] = field(default_factory=list)
+    team: list[str] = field(default_factory=list)  # the languages learned by families
 
     def lang_codes(self) -> list[str]:
         return [item["code"] for item in self.plan["languages"]]
@@ -208,17 +219,27 @@ def spread(
     cards: list[str], family: dict[str, str], distance: int, context: list[str]
 ) -> list[str]:
     """Keep cards of one family `distance` positions apart where the list allows it."""
+    return spread_units([[card] for card in cards], family, distance, context)
+
+
+def spread_units(
+    units: list[list[str]], family: dict[str, str], distance: int, context: list[str]
+) -> list[str]:
+    """`spread` for units: a block of one family (plan `together`) moves as a whole, and the
+    cards of that family outside the block keep their distance from it."""
     if distance <= 0:
-        return list(cards)
+        return [card for unit in units for card in unit]
     placed = list(context[-distance:])
     out: list[str] = []
-    pending = list(cards)
+    pending = list(units)
     while pending:
         recent = {family[c] for c in placed[-distance:]}
-        index = next((i for i, card in enumerate(pending) if family[card] not in recent), 0)
-        card = pending.pop(index)
-        out.append(card)
-        placed.append(card)
+        index = next(
+            (i for i, unit in enumerate(pending) if not {family[c] for c in unit} & recent), 0
+        )
+        unit = pending.pop(index)
+        out += unit
+        placed += unit
     return out
 
 
@@ -248,6 +269,11 @@ def select_new(
     word marked as known, which does not use the limit) join after them one at
     a time in a fixed order of languages, so a larger number only appends:
     a card already shown never leaves the list and the day keeps its number.
+
+    With families (plan `together`) a language of the set first takes the
+    concepts met in another language of the set and not yet in its own, the
+    oldest first (then by the concept's id), and only then its own course order;
+    the gap of `sibling_gap_days` does not hold between two languages of the set.
     """
     active = [item for item in plan["languages"] if not item.get("paused")]
     weights = {item["code"]: int(item.get("weight", 1)) for item in active}
@@ -293,6 +319,7 @@ def select_new(
             introduced[str(entry["concept"])].append((state.lang, card, state.first_day))
     taken = set(before.cards)
     gap_days = int(plan["sibling_gap_days"])
+    codes_together = set(families.team(plan))
 
     def blocked(card: str, entry: dict[str, Any]) -> bool:
         entry_id = split_card(card)[0]
@@ -301,11 +328,68 @@ def select_new(
                 gap = 1
             elif lang == entry["lang"]:
                 continue
+            elif lang in codes_together and entry["lang"] in codes_together:
+                continue  # a family of the set enters its languages together
             else:
                 gap = gap_days
             if (day - first_day).days < gap:
                 return True
         return False
+
+    # the concepts of the set waiting in a language: met in another language of the set
+    # before today (oldest first), and those met today (by their id)
+    levels_of = {item["code"]: set(item["levels"]) for item in active}
+    backlog: dict[str, list[str]] = {}
+    fresh: dict[str, set[str]] = {code: set() for code in codes_together}
+    done_fresh: dict[str, set[str]] = {code: set() for code in codes_together}
+    at: dict[str, int] = dict.fromkeys(codes_together, 0)
+    for code in codes_together:
+        waiting_since: list[tuple[date, str]] = []
+        for concept, items in introduced.items():
+            langs = {lang for lang, _, _ in items}
+            if code in langs or not langs & (codes_together - {code}):
+                continue
+            met = min(first for lang, _, first in items if lang in codes_together)
+            waiting_since.append((met, concept))
+        backlog[code] = [concept for _, concept in sorted(waiting_since)]
+
+    def family_cards(code: str, concept: str) -> Iterator[tuple[str, dict[str, Any]]]:
+        for entry in catalog.family(concept):
+            if entry.get("lang") == code and entry.get("level") in levels_of.get(code, ()):
+                for direction in directions:
+                    yield card_id(str(entry["id"]), direction), entry
+
+    def usable(card: str, entry: dict[str, Any]) -> bool:
+        return not (card in taken or split_card(card)[0] in suspended or blocked(card, entry))
+
+    def accept(code: str, card: str, entry: dict[str, Any]) -> None:
+        taken.add(card)
+        picks[code].append(card)
+        concept = str(entry["concept"])
+        introduced[concept].append((code, card, day))
+        if code in codes_together:
+            langs = {lang for lang, _, _ in introduced[concept]}
+            for other in codes_together - langs:
+                fresh[other].add(concept)
+
+    def complete(code: str) -> bool:
+        """The next card of a family the language of the set has not met yet."""
+        while at[code] < len(backlog[code]):
+            for card, entry in family_cards(code, backlog[code][at[code]]):
+                if usable(card, entry):
+                    accept(code, card, entry)
+                    return True
+            at[code] += 1
+        while True:
+            waiting = sorted(fresh[code] - done_fresh[code])
+            if not waiting:
+                return False
+            for card, entry in family_cards(code, waiting[0]):
+                if usable(card, entry):
+                    accept(code, card, entry)
+                    done_fresh[code].add(waiting[0])
+                    return True
+            done_fresh[code].add(waiting[0])
 
     streams = {
         item["code"]: _candidates(catalog, item["code"], item["levels"], directions)
@@ -315,12 +399,12 @@ def select_new(
     exhausted: set[str] = set()
 
     def take(code: str) -> bool:
+        if code in codes_together and complete(code):
+            return True
         for card, entry in streams[code]:
-            if card in taken or split_card(card)[0] in suspended or blocked(card, entry):
+            if not usable(card, entry):
                 continue
-            taken.add(card)
-            picks[code].append(card)
-            introduced[str(entry["concept"])].append((code, card, day))
+            accept(code, card, entry)
             return True
         exhausted.add(code)
         return False
@@ -410,8 +494,16 @@ def books(
     return before, extend(before, later)
 
 
-def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int = 0) -> DayPlan:
-    plan = learner.plan()
+def compute(
+    learner: store.Learner,
+    catalog: Catalog,
+    day: date,
+    *,
+    ahead: int = 0,
+    plan: dict[str, Any] | None = None,
+) -> DayPlan:
+    """The day of a learner; `plan` replaces the folder's plan (a preview's forecast)."""
+    plan = learner.plan() if plan is None else plan
     before, book = books(learner, day, plan)
     today = activity(book, day)
     profile = attendance.profile(before.rows, day) if plan.get("presence") == "on" else None
@@ -457,7 +549,39 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     # the cards with the nearest later dates, as reviews before their day
     reviews = due_cards[: planned_reviews + extra_reviews]
     added_due = reviews[planned_reviews:]
-    reviews_ahead = [card for _, card in later][: extra_reviews - len(added_due)]
+    # families (plan `together`): a due card of the set brings its family in the other
+    # languages of the set; the list comes from the state before the day, so it does not
+    # change during the day, and the answered cards leave it like any other
+    team = families.team(plan)
+    keys: dict[str, families.Key | None] = {}
+    companions: list[str] = []
+    planned_companions = 0
+    if team:
+        members: dict[families.Key, list[str]] = defaultdict(list)
+        dates: dict[str, tuple[date, date]] = {}
+        rank = {code: index for index, code in enumerate(team)}
+        for card, state in before.cards.items():
+            if state.lang not in rank:
+                continue
+            entry_id, direction = split_card(card)
+            entry = catalog.entry(entry_id)
+            if entry_id in suspended or direction not in directions or entry is None:
+                continue
+            found = families.key_of(card, entry)
+            keys[card] = found
+            if found is not None:
+                members[found].append(card)
+                dates[card] = (state.last_day, state.due(schedulers.get(state.lang, scheduler)))
+        for cards in members.values():
+            cards.sort(key=lambda card: (rank[card[:2]], card))
+        anchors = [card for card in reviews if card[:2] in rank]
+        companions = families.joined(anchors, members, keys, dates, day)
+        planned_anchors = [card for card in reviews[:planned_reviews] if card[:2] in rank]
+        planned_companions = len(families.joined(planned_anchors, members, keys, dates, day))
+    joining = set(companions)
+    reviews_ahead = [card for _, card in later if card not in joining][
+        : extra_reviews - len(added_due)
+    ]
     waiting = len(due_cards) - len(reviews)
     overflow = 0 if off else waiting
 
@@ -467,7 +591,9 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     if profile is not None and profile.minutes and planned:
         per_card = attendance.seconds(before.rows)
         # the day's own reviews count: reviews the learner adds leave the new words as they are
-        base = attendance.paced(planned, planned_reviews, profile.minutes, per_card)
+        base = attendance.paced(
+            planned, planned_reviews + planned_companions, profile.minutes, per_card
+        )
         paced_new = base if base < planned else None
     total = base + extra
     new, quota = select_new(plan, catalog, before, today, day, total, suspended, base=base)
@@ -486,13 +612,29 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
     ahead_cards = [card for card in reviews_ahead if card not in done]
     ahead_planned_left = list(ahead_cards)
     if ahead > len(ahead_cards):
-        ahead_cards = [card for _, card in later if card not in done][:ahead]
-    entries = {card: catalog.card(card) for card in {*reviews, *new, *drill, *ahead_cards}}
+        ahead_cards = [card for _, card in later if card not in done and card not in joining][
+            :ahead
+        ]
+    entries = {
+        card: catalog.card(card) for card in {*reviews, *new, *drill, *ahead_cards, *companions}
+    }
     lang_of = {card: card[:2] for card in entries}
     family = {card: str((entry or {}).get("concept", card)) for card, entry in entries.items()}
     arrange = interleave if plan["mix"] == "interleaved" else blocks
     distance = int(plan["sibling_distance"])
     due_of = {card: due for due, card in due_list}
+    for card, entry in entries.items():
+        if card not in keys:
+            keys[card] = families.key_of(card, entry)
+    # the reviews that join a family wait for the block of their due card
+    to_join: dict[families.Key, list[str]] = defaultdict(list)
+    for card in companions:
+        joined_key = keys.get(card)
+        if joined_key is not None:
+            to_join[joined_key].append(card)
+
+    def grouped(cards: list[str]) -> list[list[str]]:
+        return families.units(cards, keys, team, day, to_join)
 
     # The whole day's reviews and new words are put in order first and the
     # cards already answered are left out afterwards, so the order of what
@@ -506,20 +648,23 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         schedulers,
         day,
     )
-    full_reviews = spread(
-        arrange([c for c in planned_order if entries.get(c)], lang_of, codes),
+    full_reviews = spread_units(
+        grouped(arrange([c for c in planned_order if entries.get(c)], lang_of, codes)),
         family,
         distance,
         [],
     )
-    full_reviews += spread(
-        arrange([c for c in added_due if entries.get(c)], lang_of, codes),
+    full_reviews += spread_units(
+        grouped(arrange([c for c in added_due if entries.get(c)], lang_of, codes)),
         family,
         distance,
         full_reviews,
     )
-    full_new = spread(
-        arrange([c for c in new if entries.get(c)], lang_of, codes), family, distance, full_reviews
+    full_new = spread_units(
+        grouped(arrange([c for c in new if entries.get(c)], lang_of, codes)),
+        family,
+        distance,
+        full_reviews,
     )
     left_reviews = [c for c in full_reviews if c not in done]
     left_new = [c for c in full_new if c not in done]
@@ -543,7 +688,9 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         for card in ordered:
             entry = entries[card]
             assert entry is not None
-            sequence.append(Item(card, lang_of[card], phase, entry, due_of.get(card)))
+            # a review that joined its family is a review before its day
+            shown = "ahead" if phase == "review" and card in joining else phase
+            sequence.append(Item(card, lang_of[card], shown, entry, due_of.get(card)))
 
     return DayPlan(
         day=day,
@@ -571,5 +718,8 @@ def compute(learner: store.Learner, catalog: Catalog, day: date, *, ahead: int =
         ahead=reviews_ahead,
         extra_reviews=extra_reviews,
         waiting=waiting,
-        later=sum(1 for _, card in later if card not in done) - len(ahead_planned_left),
+        later=sum(1 for _, card in later if card not in done and card not in joining)
+        - len(ahead_planned_left),
+        companions=companions,
+        team=team,
     )

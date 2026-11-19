@@ -32,6 +32,7 @@ learner ── chat ── skill ── bin/vocabbot.pyz --json ┘     │     
 | `optimize.py` | the full fit of the 21 FSRS-6 parameters on the standard library (reverse-mode derivatives, Adam as in py-fsrs) |
 | `replay.py` | `replay`: predictions of every review before its outcome, log loss, RMSE(bins) and AUC of each variant against FSRS-6 on the later part of the log |
 | `presence.py` | the presence profile from the log (the chance of a session on each weekday, the usual minutes), pacing of new words |
+| `families.py` | learning by families (the plan's `together`): the set of a plan, the reviews that join a due card of their family, the order of a block, the shape and the differing parts of two forms, the correspondences of endings (`data/correspondences.json`) and the family table of a result |
 | `server/` | the remote MCP server with accounts (`vocabbot-server`, the `server` extra): OAuth 2.1 with the MCP SDK, accounts and tokens in SQLite, the sign-in page, one learner folder per account, the guides for the model, and the card of MCP Apps (`static/card.html`, its labels from `pl.json`) that shows the session's results with the recordings; outside `vocabbot.pyz` and the only part that needs packages beyond the standard library |
 | `cli.py`, `drill.py`, `term.py` | the program, its terminal session and the terminal layer (colour by `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb`, ASCII symbols for consoles without Unicode fonts, widths of wide and combining characters) |
 
@@ -65,7 +66,8 @@ row that names the row it replaces.
 | Numbers come from the engine | every count, date and forecast is a field of a result; rule 4 |
 | No change without a yes | `init`, `plan set`, `words add` and `doctor` repairs return a preview; only `commit --confirm <token>` writes, within 30 minutes and only if the files did not change; in Claude Code and Cowork the plugin's hook (`plugin/hooks/`) sends every `commit` and every direct write into a learner's folder to the host's permission prompt; rule 7; `validate.py` refuses a skill that writes the learner's files directly or commits without a yes |
 | The learner's text cannot steer the shell | answers, words and notes come on standard input; rule 6 |
-| A new word in two languages does not interfere | `sibling_gap_days` between the introductions of one concept, `sibling_distance` between its cards in a session |
+| A new word in two languages does not interfere | `sibling_gap_days` between the introductions of one concept, `sibling_distance` between its cards in a session; with a family set (`together`) these hold only towards the languages outside the set |
+| A family table never answers a question of the day | `families.table` shows no word of a card still waiting today, nor a word that is the answer of a waiting card; a test walks whole days through the commands, the tools and `/api` |
 
 The rules live in `rules/*.md`; `scripts/build.py skills` copies them into
 `shared/rules.md` of every skill together with `shared/labels.md` and the

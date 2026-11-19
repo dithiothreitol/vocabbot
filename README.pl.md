@@ -59,6 +59,14 @@ samą sesję w czacie.
   o jedną literę albo jeden znak diakrytyczny („sempre” zamiast hiszpańskiego
   „siempre” zachowuje ocenę „prawie”, a `status` liczy ją jako pomyłkę
   języków).
+- **Rodziny słów.** Ustawienie planu `together` (na przykład
+  `together=es,it,fr`) uczy tych samych słów w wybranych językach razem:
+  pojęcie wchodzi do nich tego samego dnia, jego karty stoją obok siebie,
+  karta z terminem przyprowadza swoją rodzinę w pozostałych językach, gdy
+  minęła połowa ich odstępu, a wynik odpowiedzi pokazuje rodzinę
+  z wyróżnionymi różnicami i regularną odpowiedniością końcówek („-ción”,
+  „-zione”, „-tion”). Bez tego ustawienia każdy język ma własną kolejność
+  i odstępy opisane wyżej; `status` mierzy oba sposoby.
 - **Plan.** Języki, poziomy, wagi, liczba nowych słów, dni wolne, docelowa
   trwałość i kolejność języków są ustawieniami planu. Każda zmiana planu
   i własnych słów powstaje najpierw jako podgląd i trafia do folderu nauki

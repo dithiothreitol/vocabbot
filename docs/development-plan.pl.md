@@ -32,8 +32,10 @@ dnia zrealizowałem je razem jako wersję `1.0.0-rc.11`, za Twoją zgodą
 wydaną na GitHubie i w PyPI oraz wdrożoną na serwer. Etap 14 (rodziny słów:
 te same słowa w kilku językach razem oraz pomiar pomyłek między językami)
 zaproponowałem 19.11.2026 na Twoją prośbę i tego samego dnia
-zaakceptowałeś go z rekomendacjami. Część 14a (zapis i pomiar pomyłek
-między językami) zrealizowałem tego samego dnia; następna jest część 14b. Do
+zaakceptowałeś go z rekomendacjami. Części 14a (zapis i pomiar pomyłek
+między językami) i 14b (nauka rodzinami jako ustawienie `together`)
+zrealizowałem tego samego dnia, a za Twoją zgodą wchodzą razem do wersji
+`1.0.0-rc.14`; część 14c wymaga co najmniej 28 dni Twojej nauki. Do
 wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską
 planu zawiera `development-plan.md`.
 
@@ -2137,8 +2139,9 @@ Do sprawdzenia poza sesją pracy:
 ### Etap 14. Rodziny słów: te same słowa w kilku językach razem
 
 Etap 14 zaproponowałem 19.11.2026 na Twoją prośbę. Stan: zaakceptowany
-19.11.2026 razem z rekomendacjami z tabeli decyzji. Część 14a zrealizowałem
-tego samego dnia (wynik na końcu etapu); następna jest część 14b. Etap ma trzy
+19.11.2026 razem z rekomendacjami z tabeli decyzji. Części 14a i 14b
+zrealizowałem tego samego dnia (wyniki na końcu etapu); część 14c wymaga co
+najmniej 28 dni Twojej nauki. Etap ma trzy
 części: 14a poprawia ocenianie i dodaje pomiar, 14b dodaje naukę rodzinami
 jako ustawienie planu, 14c opisuje pomiar na dzienniku. Ustawienia domyślne
 zostają bez zmian, a rozdział 2.4 nadal uzasadnia rozdzielanie.
@@ -2450,7 +2453,52 @@ Wnioski:
    dotyczy wyłącznie literówki i znaku diakrytycznego. Przypadek „grande”
    dla francuskiego „grand” pokazał tę granicę na kursie startowym.
 3. Część nie zmienia terminów ani kolejki, więc może wejść do wydania przed
-   częścią 14b. Wydanie `1.0.0-rc.14` czeka na Twoją zgodę.
+   częścią 14b. Za Twoją zgodą z 19.11.2026 wchodzi do wersji `1.0.0-rc.14`
+   razem z częścią 14b.
+
+#### Wynik części 14b (19.11.2026)
+
+Część 14b dodała naukę rodzinami jako ustawienie planu `together`.
+Ustawienia domyślne zostają bez zmian.
+
+| Kryterium | Wynik |
+|---|---|
+| ustawienia domyślne bez zmian (S1) | po części 14b symulacja 30 dni nadal daje 1224 wiersze o skrócie `6e49b0db…61d8`; dotychczasowe testy przechodzą bez zmiany oczekiwań |
+| ustawienie | `together` przyjmuje listę, `all` i `none`, odrzuca kod spoza planu i pojedynczy kod, skraca się przy wyłączeniu języka i łączy się z drugiego urządzenia przez `log/plan.jsonl`; podgląd zmiany pokazuje prognozę 28 dni przed zmianą i po niej |
+| nowe słowa i kolejność | przy równych wagach dzień składa się z całych rodzin; język zestawu dopełnia najpierw najstarsze rodziny; różne wagi, poziomy, odłożone słowo i wstrzymany język nie gubią miejsc limitu; karty rodziny stoją jednym blokiem, a pierwszy język bloku się zmienia |
+| powtórki rodziną | karta dołącza do bloku dokładnie wtedy, gdy nie ma dziś terminu, minął co najmniej dzień i połowa jej odstępu; test sprawdza to dla każdej karty przez 24 dni; wiersz ma `ahead: true`, a żadna karta nie ma dwóch powtórek jednego dnia |
+| pierwsza odpowiedź | druga karta rodziny odgadnięta tego samego dnia dostaje „wiem” i nie dodaje słowa |
+| pytanie bez odpowiedzi | przez 6 dni, w każdym kroku, żadna tabela rodziny nie pokazuje słowa karty czekającej dziś ani słowa, które jest odpowiedzią takiej karty; strona sesji i program dają te same wiersze i te same tabele |
+| S2 i S3 | 30 dni hiszpańskiego i francuskiego w zestawie i angielskiego poza nim, dwa razy: dzienniki identyczne bajt w bajt, rodziny wchodzą do obu języków tego samego dnia, angielski zachowuje odstęp 3 dni, karty dołączają do bloków, `mixups_30` zlicza dokładnie wstawione pomyłki, a dziennik bez pola `other_lang` daje ten sam stan kart |
+| S4 | po 15 dniach z rozdzielaniem każdy język miał 4 zaległe rodziny; 2 z nich wstrzymał na kilka dni odstęp wobec angielskiego, pozostałe weszły pierwszego dnia po zmianie, a wszystkie zostały dopełnione |
+| S5 | prognoza 28 dni na tym samym dzienniku kursu startowego: z rozdzielaniem 20,9 powtórki i 5,4 min dziennie, rodzinami 21,4 powtórki i 5,4 min; 13,3% powtórek to karty dołączone do rodziny |
+| S6 | serwer jako proces, hiszpański i włoski z pakowanych kursów: telefon zaczyna blok na stronie sesji, pierwszy komputer pobiera konto i kończy ten sam blok w terminalu z tabelą rodziny zawierającą słowo z telefonu, drugi komputer wpisuje słowo drugiego języka; wszystkie strony kończą z tym samym dziennikiem i licznikiem, a telefon pokazuje pomyłkę w postępie |
+| S7 | `sessions/session-families.json`; `session_test.py --check` przygotowuje 9 z 9 sesji; przebieg z modelem czeka na osobną zgodę |
+| S8 | przejście sesji w przeglądarce przy 360 px w motywie jasnym i przy 1280 px w ciemnym: tabela rodziny pod wynikiem, karta „Nauka rodzinami” w postępach, wybór języków w formularzu planu, bez przewijania w poziomie i bez błędów w konsoli |
+| testy | 26 nowych testów (21 w `tests/test_families.py`, 3 symulacje, test strony sesji i test od początku do końca) oraz rozszerzony test aplikacji czatu; razem 354 na Pythonie 3.15 i 326 na 3.10 (1 pominięty bez grupy `data`); `ruff`, `mypy`, `build.py skills`, `validate.py`, `session_test.py --check` i `claude plugin validate --strict` bez uwag |
+
+Zmiany wobec zakresu:
+
+1. Odpowiedniości końcówek leżą w `data/correspondences.json`, a nie
+   w `data/lang/`, ponieważ `assets.known_languages()` uznaje każdy plik
+   JSON w tym folderze za język nauki.
+2. Plik ma 16 wzorców zamiast 19: `-ismo`, `-ancia` i `-ura` mają przy
+   bliskich rdzeniach 8, 6 i 7 pojęć, a test wymaga co najmniej 10.
+
+Wnioski:
+
+1. Odstęp wobec języka spoza zestawu może na kilka dni wstrzymać
+   dopełnienie rodziny (S4). Tak działa reguła z zakresu i warto to brać pod
+   uwagę, gdy angielski uczy się obok zestawu romańskiego.
+2. Tabela rodziny ukrywa słowa wszystkich kart czekających dziś poza kartą,
+   na którą właśnie padła odpowiedź. Jej słowo i tak pokazuje wynik, także
+   wtedy, gdy karta wraca do utrwalania.
+3. W prognozie nauka rodzinami dodaje na kursie startowym około 2%
+   powtórek dziennie (20,9 wobec 21,4). Wpływ na pamięć pokaże dopiero
+   część 14c.
+4. Lista nowych słów dnia zachowuje swoje karty przy dodawaniu słów, ale nie
+   ich kolejność według języków; tak działała już wcześniej, a test sprawdza
+   zawieranie, nie przedrostek.
 
 ---
 

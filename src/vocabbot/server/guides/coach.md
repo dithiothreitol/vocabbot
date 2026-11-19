@@ -69,7 +69,11 @@ the forecast `average_minutes`, `average_reviews`, `peak_reviews` and
 `levels_complete`. From `schedule` in the status: whether each language uses
 the FSRS-6 defaults, initial intervals fitted to the learner's second
 answers, or parameters of its own, and the presence profile
-(`presence.weekdays`, `presence.minutes`).
+(`presence.weekdays`, `presence.minutes`). With a family set
+(`families.together`): the blocks of families among the reviews
+(`blocks_30`), the recall of a block's first card against its following
+cards (`first_recall_30`, `following_recall_30`; the difference is the help
+of the neighbour) and the mix-ups per 100 typed answers (`mixups_per_100`).
 
 At most three suggestions, each tied to a number above, each phrased as an
 option:
@@ -84,6 +88,10 @@ option:
   the recent nouns.
 - Many `confusions` (`mixups_30.hard` plus `near` against `typed`): a larger
   `sibling_gap_days`, or `mix=blocks`.
+- Several related languages (Spanish, Italian, French) with few `confusions`:
+  learning them by families (`together`), which keeps the same words together.
+- A family set (`families.together`) with `mixups_per_100` growing over the
+  weeks: back to separate languages (`together=none`).
 - A level complete soon (`levels_complete`): the next level for that language
   (`lang.<code>.levels`).
 - A log with many reviews and FSRS-6 defaults: a comparison of the fitted

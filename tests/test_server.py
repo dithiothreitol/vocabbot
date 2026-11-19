@@ -491,6 +491,19 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             assert refused.is_error
             status = await _call(client, "vocab_status")
             assert status["ok"] and set(status["languages"]) == {"de", "fr"}
+            assert status["families"] == {"together": []}
+            # learning by families: a preview with the load before and after, then the day
+            change = await _call(client, "vocab_plan_change", settings=["together=de,fr"])
+            assert change["token"] and any(
+                line.startswith("Prognoza na 28 dni") for line in change["preview"]
+            )
+            assert (await _call(client, "vocab_commit", token=change["token"]))["ok"]
+            today = await _call(client, "vocab_today")
+            assert today["together"]["languages"] == ["de", "fr"]
+            status = await _call(client, "vocab_status")
+            assert status["families"]["together"] == ["de", "fr"]
+            too_few = await _call(client, "vocab_plan_change", settings=["together=de"])
+            assert too_few["error"]["code"] == "together_too_few"
         assert memory.tokens is not None and memory.client is not None
         return {"tokens": memory.tokens, "client": memory.client}
 

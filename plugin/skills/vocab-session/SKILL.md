@@ -137,6 +137,12 @@ default) or `show`. `view` in every result of the session holds the plan's setti
   that language one letter or one accent away ("sempre" for "siempre"): say
   so and show the difference. A result with `error` was refused; show its
   message and go on.
+  A result of a card learned by families (`together` in the plan) may hold
+  `family`: show its rows under the result as "<language>: <word>", with the
+  parts marked false in `parts` emphasised, a row with `waiting` as "czeka
+  dziś w kolejce" and `rule` as the endings that correspond. Show only these
+  words; never add an equivalent of your own, because a card of the family may
+  still wait today.
 
 **One card at a time (`batch` 1).** Every message holds the result of the
 last answer and then the next card from `next.items` of that result: its

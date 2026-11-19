@@ -76,7 +76,8 @@
     "other_account": "Serwer zna ten program jako konto {login}, a folder należy do konta {linked}. Zaloguj się na konto {linked} (vocabbot login --again) albo odłącz folder (vocabbot logout).",
     "folder_not_empty": "Folder {folder} zawiera już dzienniki bez planu; import tworzy tylko nowy folder albo dodaje wiersze do folderu z planem.",
     "account_plan_invalid": "Plan konta nie przechodzi kontroli tej wersji programu ({detail}). Zaktualizuj program; dzienniki konta są już w folderze.",
-    "server_error": "Serwer nie wykonał polecenia z powodu błędu ({detail})."
+    "server_error": "Serwer nie wykonał polecenia z powodu błędu ({detail}).",
+    "together_too_few": "Nauka rodzinami wymaga co najmniej dwóch języków planu."
   },
   "quiz": {
     "title": "Test poziomujący: {name}, poziomy {levels}. Wpisz słowo w języku nauki; pusta odpowiedź oznacza „nie wiem”.",
@@ -126,7 +127,9 @@
     "fit_default": "{name}: zostaje FSRS-6, bo dopasowanie nie przewiduje lepiej albo dziennik ma za mało powtórek",
     "fit_summary": "parametry FSRS-6 dopasowane do dziennika ({languages})",
     "timezone": "Strefa czasowa dnia nauki: {value}",
-    "timezone_local": "Strefa czasowa dnia nauki: strefa tego komputera"
+    "timezone_local": "Strefa czasowa dnia nauki: strefa tego komputera",
+    "together": "Nauka rodzinami: {value}",
+    "together_none": "wyłączona"
   },
   "weekdays": {
     "mon": "poniedziałek",
@@ -497,7 +500,10 @@
       "note": "Notatka",
       "minutes": "około {minutes} min",
       "other_lang": "To słowo z innego języka nauki ({lang}).",
-      "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang})."
+      "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang}).",
+      "family_title": "Ta sama rodzina w innych językach nauki",
+      "family_waiting": "czeka dziś w kolejce",
+      "family_rule": "Regularna odpowiedniość końcówek: {endings}"
     },
     "web": {
       "sign_in_title": "Zaloguj się do VocabBota",
@@ -667,7 +673,17 @@
       "max_three": "Plan obejmuje najwyżej trzy języki.",
       "choose_language": "Wybierz co najmniej jeden język.",
       "level_set": "Ustawiono poziom {levels}.",
-      "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang})."
+      "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang}).",
+      "family_title": "Ta sama rodzina w innych językach nauki",
+      "family_waiting": "czeka dziś w kolejce",
+      "family_rule": "Regularna odpowiedniość końcówek: {endings}",
+      "together": "Nauka rodzinami",
+      "together_hint": "Wybrane języki poznają i powtarzają te same słowa razem. Wymaga co najmniej dwóch języków; bez wyboru każdy język ma własną kolejność.",
+      "families_title": "Nauka rodzinami",
+      "families_blocks": "Bloki rodzin w powtórkach (30 dni)",
+      "families_first": "Trafność pierwszej karty bloku",
+      "families_following": "Trafność kolejnych kart bloku",
+      "families_mixups": "Pomyłki języków na 100 odpowiedzi"
     },
     "api_errors": {
       "too_large": "Żądanie jest za duże.",
@@ -938,5 +954,12 @@
     "browser_done": "Zalogowano. Możesz zamknąć tę kartę i wrócić do terminala.",
     "device_code": "Na telefonie albo innym komputerze wejdź na {url} i wpisz kod {code}. Czekam na potwierdzenie…",
     "browser_failed": "Logowanie nie powiodło się. Wróć do terminala i spróbuj ponownie: vocabbot login."
+  },
+  "family": {
+    "title": "Ta sama rodzina w innych językach nauki:",
+    "waiting": "czeka dziś w kolejce",
+    "rule": "Regularna odpowiedniość końcówek: {endings}",
+    "status": "Nauka rodzinami ({languages}): bloki rodzin w powtórkach z 30 dni: {blocks}, trafność pierwszej karty bloku: {first}, kolejnych kart: {following}, pomyłki języków na 100 wpisanych odpowiedzi: {mixups}",
+    "forecast": "Prognoza na {days} dni: obecnie {reviews} powtórek i {minutes} min dziennie, po zmianie {reviews_after} powtórek i {minutes_after} min dziennie"
   }
 }

@@ -19,6 +19,7 @@ and give one preview.
 | `diacritics` | `strict` (a missing diacritic gives "prawie") or `lenient` | `diacritics=lenient` |
 | `day_starts_at` | 0 to 12, the hour a learning day starts (default 4) | `day_starts_at=5` |
 | `sibling_gap_days` | 0 to 14, days between learning one concept in two languages (default 3) | `sibling_gap_days=5` |
+| `together` | languages learned by families, at least two of the plan, `all` or `none` (default): a concept enters them together, its cards stand side by side as a block, a due card brings its family in the other languages of the set as reviews before their day, and the gap of `sibling_gap_days` holds only towards the other languages; the preview shows the load of 28 days before and after the change | `together=es,it,fr` |
 | `max_languages` | 1 to 6; a fourth language needs this raised first | `max_languages=4` |
 | `batch` | 1 to 20, the cards in one message of the chat session; 1 (default) asks one card at a time, as SuperMemo does | `batch=5` |
 | `new_words` | `ask` (default): a new word comes at once as a question, as in SuperMemo, and a right first answer marks it as known before the course; `show`: the word is shown first and asked afterwards | `new_words=show` |

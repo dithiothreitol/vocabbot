@@ -67,6 +67,11 @@
   .sentence .pl { color: var(--vb-muted); font-size: 13px; }
   .link { background: none; border: 0; padding: 0; margin: 2px 0 0; font: inherit; font-size: 12px; color: var(--vb-muted); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
   .note-line { margin-top: 6px; font-size: 13px; }
+  .family { margin-top: 8px; font-size: 13px; }
+  .family .rows { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin-top: 2px; }
+  .family .lang { color: var(--vb-muted); }
+  .family .waiting { color: var(--vb-muted); font-style: italic; }
+  .family mark { background: none; color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
   .note-line b { font-weight: 600; margin-right: 4px; }
   .prompt { margin-top: 10px; font-size: 13px; font-weight: 600; }
   .grade { font-weight: 600; }
@@ -322,7 +327,34 @@
       var note = noteLine(result.word);
       if (note) block.appendChild(note);
     }
+    var family = familyBlock(result.family);
+    if (family) block.appendChild(family);
     return block;
+  }
+  // the family of the answered word in the other languages learned together (plan `together`);
+  // a card still waiting today shows no word, as the engine leaves it out
+  function marked(parts) {
+    var span = el("span");
+    (parts || []).forEach(function (part) {
+      span.appendChild(part[1] ? document.createTextNode(String(part[0])) : el("mark", null, String(part[0])));
+    });
+    return span;
+  }
+  function familyBlock(family) {
+    if (!family || !family.rows || !family.rows.length) return null;
+    var box = el("div", "family");
+    box.appendChild(el("div", "details", text("family_title")));
+    var rows = el("div", "rows");
+    family.rows.forEach(function (row) {
+      rows.appendChild(el("span", "lang", (L.languages && L.languages[row.lang]) || String(row.lang).toUpperCase()));
+      rows.appendChild(row.waiting ? el("span", "waiting", text("family_waiting")) : marked(row.parts));
+    });
+    box.appendChild(rows);
+    if (family.rule) {
+      var endings = Object.keys(family.rule).map(function (code) { return "-" + family.rule[code]; }).join(" · ");
+      box.appendChild(el("div", "details", text("family_rule", { endings: endings })));
+    }
+    return box;
   }
   function renderToday(data) {
     var words = data.learned_today || [];

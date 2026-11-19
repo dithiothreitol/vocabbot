@@ -5,8 +5,42 @@ the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
 ## Unreleased
 
-Part 14a of the plan: the mix-ups between the languages being learned are
-recorded and measured; no grade, due date or queue changes.
+Stage 14 of the plan: the same words in several languages learned together
+as an option of the plan (`together`), and the mix-ups between the languages
+recorded and measured. The defaults do not change.
+
+### Added
+
+- Learning by families: the plan setting `together` (at least two languages
+  of the plan, `all` or `none`, the default) makes a concept enter the set's
+  languages on the same day. A language of the set first completes the
+  families it has not met, the oldest first, and the gap of
+  `sibling_gap_days` holds only towards the languages outside the set. The
+  cards of one family stand side by side as a block whose first language
+  turns from day to day, and a due card brings its family in the other
+  languages of the set as reviews before their day once half of their
+  interval has passed (`companions`, rows with `ahead`). The second card of
+  a family answered right on the day its neighbour was shown is learned
+  ("know"), not known before the course.
+- The result of an answer to a card of the set holds `family`: the family's
+  words in the other languages with the letters that differ, `waiting` for a
+  card still waiting today (or a word that answers one), and `rule`, the
+  regular correspondence of endings when it fits every word shown
+  (`data/correspondences.json`, 16 patterns of Spanish, Italian and French,
+  each fitting at least 10 concepts of the courses). The terminal, the card
+  in the chat and the session page show the table.
+- `status` gives `families`: the set, the family blocks among the reviews of
+  30 days, the recall of a block's first card against the following ones,
+  and the mix-ups per 100 typed answers. `forecast` and `replay --days`
+  simulate the same choice of new words and the same joined reviews
+  (`joined_share`), and the preview of a change of `together` shows the
+  load of 28 days before and after it.
+- The session page chooses the set's languages in the plan's form and shows
+  the measurement among the progress; the guides and the skills describe the
+  setting, the table and the coach's suggestions.
+- `families.py` holds the shared logic on the standard library;
+  `sessions/session-families.json` is a session test of a block with a
+  model.
 
 ### Changed
 

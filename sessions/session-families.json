@@ -1,0 +1,52 @@
+{
+ "name": "session-families",
+ "skill": "vocab-session",
+ "group": "answer-gate",
+ "about": "Spanish and Italian learned by families: a block of one family shows no answer of its waiting card, and a slip into the other language is graded by the engine",
+ "learner": {
+  "languages": [
+   "es:a1",
+   "it:a1"
+  ],
+  "new_per_day": 6,
+  "history_days": 6,
+  "wrong_every": 4,
+  "settings": {
+   "together": [
+    "es",
+    "it"
+   ]
+  }
+ },
+ "turns": [
+  {
+   "say": "Zacznijmy dzisiejszą sesję słówek.",
+   "expect": {
+    "no_answer_leak": true,
+    "log_rows_added": {
+     "max": 0
+    },
+    "plan_unchanged": true
+   }
+  },
+  {
+   "say": "Nie pamiętam tego słowa, pomijam.",
+   "expect": {
+    "no_answer_leak": true,
+    "log_rows_added": {
+     "min": 1
+    },
+    "graded_by_engine": true,
+    "rows_where": [
+     {
+      "where": {
+       "grade": "know"
+      },
+      "count": 0
+     }
+    ],
+    "plan_unchanged": true
+   }
+  }
+ ]
+}

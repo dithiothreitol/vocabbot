@@ -37,9 +37,11 @@ together as version `1.0.0-rc.11`, released on GitHub and PyPI and
 deployed on the server with your approval. I proposed Stage 14 (word
 families: the same words in several languages together, and the measurement
 of mix-ups between languages) on 19.11.2026 at your request, and you
-accepted it with the recommendations on the same day. I carried out part
-14a (the record and the measurement of mix-ups between languages) on the same
-day; part 14b comes next. Version 1.0 still needs the pilot described in
+accepted it with the recommendations on the same day. I carried out parts
+14a (the record and the measurement of mix-ups between languages) and 14b
+(learning by families as the setting `together`) on the same day, and with
+your approval they go together into version `1.0.0-rc.14`; part 14c needs at
+least 28 days of your learning. Version 1.0 still needs the pilot described in
 `docs/pilot.md`.
 
 ---
@@ -2184,8 +2186,8 @@ To check outside the working session:
 
 I proposed Stage 14 on 19.11.2026 at your request. State: accepted on
 19.11.2026 together with the recommendations of the table of decisions. I
-carried out part 14a on the same day (the result closes the stage's text);
-part 14b comes next. The stage has three parts:
+carried out parts 14a and 14b on the same day (the results close the stage's
+text); part 14c needs at least 28 days of your learning. The stage has three parts:
 14a corrects the grading and adds measurement, 14b adds learning by families
 as a setting of the plan, and 14c describes the measurement on a log. The
 defaults stay as they are, and section 2.4 still gives the reasons for
@@ -2506,8 +2508,53 @@ Conclusions:
    rule holds for a typo and a missing accent only. The case of "grande" for
    French "grand" showed this border on the starter course.
 3. The part changes neither the due dates nor the queue, so it can go into a
-   release before part 14b. The release `1.0.0-rc.14` waits for your
-   approval.
+   release before part 14b. With your approval of 19.11.2026 it goes into
+   version `1.0.0-rc.14` together with part 14b.
+
+#### Result of part 14b (19.11.2026)
+
+Part 14b added learning by families as the plan setting `together`. The
+defaults stay as they were.
+
+| Criterion | Result |
+|---|---|
+| the defaults do not change (S1) | after part 14b the simulation of 30 days still gives 1224 rows with the digest `6e49b0db…61d8`; the existing tests pass without a change of their expectations |
+| the setting | `together` takes a list, `all` and `none`, refuses a code outside the plan and a single code, shrinks when a language is turned off and joins from a second device through `log/plan.jsonl`; the preview of a change shows the forecast of 28 days before and after it |
+| new words and the order | with equal weights a day is made of whole families; a language of the set first completes the oldest families; different weights, levels, a word put aside and a paused language lose no places of the limit; the cards of a family stand as one block, and the first language of a block changes |
+| reviews by families | a card joins a block exactly when it is not due today and at least one day and half of its interval have passed; a test checks this for every card over 24 days; the row has `ahead: true`, and no card has two reviews on one day |
+| the first answer | the second card of a family answered right on the same day gets "know" and adds no word |
+| a question without its answer | over 6 days, at every step, no family table shows the word of a card waiting today or a word that is the answer of such a card; the session page and the program give the same rows and the same tables |
+| S2 and S3 | 30 days of Spanish and French in the set and English outside it, twice: the logs are identical byte for byte, families enter both languages on the same day, English keeps its gap of 3 days, cards join blocks, `mixups_30` counts exactly the placed mix-ups, and the log without the field `other_lang` gives the same state of the cards |
+| S4 | after 15 days with the languages apart each language had 4 families left behind; the gap towards English held 2 of them for a few days, the others entered on the first day after the change, and all were completed |
+| S5 | the forecast of 28 days on the same log of the starter course: apart 20.9 reviews and 5.4 minutes a day, by families 21.4 reviews and 5.4 minutes; 13.3% of the reviews are cards that joined their family |
+| S6 | the server as a process, Spanish and Italian of the packaged courses: the phone starts a block on the session page, the first computer downloads the account and finishes the same block in the terminal with a family table that holds the phone's word, the second computer types the word of the other language; every side ends with the same log and counter, and the phone shows the mix-up among the progress |
+| S7 | `sessions/session-families.json`; `session_test.py --check` prepares 9 of 9 sessions; the run with a model waits for a separate approval |
+| S8 | a walk through the session in a browser at 360 px in the light theme and at 1280 px in the dark one: the family table under the result, the card "Nauka rodzinami" among the progress, the choice of the languages in the plan's form, no horizontal scrolling and no errors in the console |
+| tests | 26 new tests (21 in `tests/test_families.py`, 3 simulations, a test of the session page and an end-to-end test) and an extended test of the chat application; 354 in all on Python 3.15 and 326 on 3.10 (1 skipped without the group `data`); `ruff`, `mypy`, `build.py skills`, `validate.py`, `session_test.py --check` and `claude plugin validate --strict` without remarks |
+
+Changes against the scope:
+
+1. The correspondences of endings live in `data/correspondences.json`, not
+   in `data/lang/`, because `assets.known_languages()` takes every JSON file
+   of that folder for a language.
+2. The file holds 16 patterns instead of 19: with near stems `-ismo`,
+   `-ancia` and `-ura` fit 8, 6 and 7 concepts, and the test asks for at
+   least 10.
+
+Conclusions:
+
+1. The gap towards a language outside the set can hold the completion of a
+   family back for a few days (S4). This is the rule of the scope, and it
+   matters when English is learned beside a Romance set.
+2. The family table hides the words of every card waiting today except the
+   card just answered. The result shows that card's word anyway, also when
+   the card goes back to the drill.
+3. In the forecast learning by families adds about 2% of reviews a day on
+   the starter course (20.9 against 21.4). Only part 14c will show its
+   effect on memory.
+4. The day's list of new words keeps its cards when words are added, but not
+   their order by language; it worked so before, and the test checks the
+   cards it holds, not a prefix.
 
 ---
 

@@ -61,6 +61,9 @@ DEFAULT_PLAN: dict[str, Any] = {
     "sibling_gap_days": 3,
     "sibling_distance": 5,
     "mix": "interleaved",
+    # languages learned by families: a concept enters them together and their cards stand
+    # side by side (families.py); empty: every language on its own, the gaps above hold
+    "together": [],
     "review_limit": None,
     "days_off": [],
     "day_starts_at": 4,
@@ -449,6 +452,11 @@ def plan_problems(plan: dict[str, Any], installed: dict[str, list[str]]) -> list
         or any(d not in DIRECTIONS for d in directions)
     ):
         problems.append("directions must list produce, recognize or both")
+    together = plan.get("together", [])
+    if not isinstance(together, list) or any(
+        not isinstance(code, str) or not code.isalpha() or len(code) != 2 for code in together
+    ):
+        problems.append("together must list language codes")
     days_off = plan.get("days_off")
     if (
         not isinstance(days_off, list)

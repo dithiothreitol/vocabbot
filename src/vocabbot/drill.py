@@ -519,22 +519,23 @@ class Drill:
         verdict = session.evaluate(dp, self.catalog, entry, given)
         word = self.word_of(entry)
         if verdict.grade == "know":
-            grade = session.logged_grade(dp, kind, "know")
+            grade = session.logged_grade(dp, kind, "know", entry, self.catalog)
             result = self.save(dp, item, entry, kind, state, grade, verdict, given, ms, ahead)
             summary = f"{q['meaning']} {style.glyph('arrow')} {word['word']}"
             back = when_back(result)
             if grade == "known":
                 back = f"{assets.text('drill.known_saved')}{style.sep}{back}"
             self.screen.fold(self.line_for(item, grade, summary, back), plain_too=True)
+            self.family_lines(result, word)
             if kind == "learn":
                 self.first_contact(word)
             return
         self.show_verdict(verdict, word, given)
-        proposed = session.logged_grade(dp, kind, verdict.grade)
+        proposed = session.logged_grade(dp, kind, verdict.grade, entry, self.catalog)
         keys = "drill.grade_keys_drill" if kind == "drill" else "drill.grade_keys"
         grade_name = assets.text(f"grades.{proposed}")
         key = self.screen.key(style(assets.text(keys, grade=grade_name), "dim") + " ")
-        grade = session.logged_grade(dp, kind, KEY_GRADES.get(key, proposed))
+        grade = session.logged_grade(dp, kind, KEY_GRADES.get(key, proposed), entry, self.catalog)
         result = self.save(dp, item, entry, kind, state, grade, verdict, given, ms, ahead)
         summary = f"{q['meaning']} {style.glyph('arrow')} {word['word']}"
         if verdict.errors and grade not in ("know", "known"):
@@ -542,6 +543,7 @@ class Drill:
             summary += f"  ({errors})"
             self.to_work_on.append(f"{word['word']} ({errors})")
         self.screen.fold(self.line_for(item, grade, summary, when_back(result)))
+        self.family_lines(result, word)
         if key in ("q", "esc"):
             raise Quit
 
@@ -595,6 +597,33 @@ class Drill:
         if grade == "known":
             back = f"{assets.text('drill.known_saved')}{style.sep}{back}".rstrip(style.sep)
         self.screen.fold(self.line_for(item, grade, summary, back))
+        self.family_lines(result, word)
+
+    def family_lines(self, result: dict[str, Any], word: dict[str, Any]) -> None:
+        """The family of the answered word in the other languages of the set (plan
+        `together`); a card still waiting today shows no word."""
+        family = result.get("family")
+        if not family:
+            return
+        style = self.style
+        lines = []
+        for row in family["rows"]:
+            name = assets.language_name(row["lang"])
+            if row.get("waiting"):
+                shown = style(assets.text("family.waiting"), "dim")
+            else:
+                shown = "".join(
+                    str(part) if same else style(str(part), "bold", "yellow")
+                    for part, same in row["parts"]
+                )
+            lines.append(f"    {style(name, 'dim')}  {shown}")
+        rule = family.get("rule")
+        if rule:
+            endings = " · ".join(f"-{ending}" for ending in rule.values())
+            lines.append(f"    {style(assets.text('family.rule', endings=endings), 'dim')}")
+        self.screen.show(f"  {style(assets.text('family.title'), 'dim')}")
+        for line in lines:
+            self.screen.show(line)
 
     def skip(self, item: Item, q: dict[str, Any]) -> None:
         """/pomin: the word leaves the queue without a report; `flag --clear` brings it back."""
@@ -658,6 +687,7 @@ class Drill:
             ms=ms,
             source="cli",
             ahead=ahead,
+            catalog=self.catalog,
         )
         self.counts[grade] += 1
         self.done += 1

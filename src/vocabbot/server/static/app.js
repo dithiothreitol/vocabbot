@@ -618,6 +618,7 @@
       var otherKey = result.grade === "almost" ? "other_lang_near" : "other_lang";
       card.appendChild(note("blue", "info", t(otherKey, { lang: langName(result.other_lang) })));
     }
+    add(card, familyBox(result.family));
     add(card, noteBox(result.word));
     if (result.level_hint) {
       var hint = note("blue", "sparkles", c("level_hint", result.level_hint));
@@ -801,6 +802,47 @@
     });
   }
   function nextCard() { onNext(S.data); }
+
+  // the family of the answered word in the other languages learned together (plan
+  // `together`); a card still waiting today shows no word, as the engine leaves it out
+  function marked(parts) {
+    var span = el("span");
+    (parts || []).forEach(function (part) {
+      span.appendChild(part[1] ? document.createTextNode(String(part[0])) : el("mark", null, String(part[0])));
+    });
+    return span;
+  }
+  function familyBox(family) {
+    if (!family || !family.rows || !family.rows.length) return null;
+    var box = el("div", "family");
+    box.appendChild(el("div", "title", t("family_title")));
+    var grid = el("div", "grid");
+    family.rows.forEach(function (row) {
+      grid.appendChild(el("span", "lang", langName(row.lang)));
+      grid.appendChild(row.waiting ? el("span", "waiting", t("family_waiting")) : marked(row.parts));
+    });
+    box.appendChild(grid);
+    if (family.rule) {
+      var endings = Object.keys(family.rule).map(function (code) { return "-" + family.rule[code]; }).join(" · ");
+      box.appendChild(el("div", "rule", t("family_rule", { endings: endings })));
+    }
+    return box;
+  }
+  function percent(value) { return value === null || value === undefined ? "–" : Math.round(value * 100) + "%"; }
+  function familiesCard(families) {
+    if (!families || !families.together || families.together.length < 2) return null;
+    var card = el("section", "card");
+    card.appendChild(add(el("div", "card-title"), icon("languages"), el("h3", null, t("families_title")),
+      el("span", "spacer"), el("span", "subtle tiny", families.together.map(langName).join(", "))));
+    var kpis = el("div", "kpis");
+    add(kpis,
+      kpi("repeat", t("families_blocks"), families.blocks_30 || 0),
+      kpi("check", t("families_first"), percent(families.first_recall_30)),
+      kpi("check", t("families_following"), percent(families.following_recall_30)),
+      kpi("alert", t("families_mixups"), families.mixups_per_100 === null || families.mixups_per_100 === undefined ? "–" : families.mixups_per_100));
+    card.appendChild(kpis);
+    return card;
+  }
 
   // ---------------------------------------------------------------- progress
 
@@ -1013,6 +1055,7 @@
       box.appendChild(kpis);
       box.appendChild(heatmap(status.activity));
       codes.forEach(function (code) { box.appendChild(languageCard(code, status.languages[code], Number(status.target_retention || 0.9))); });
+      add(box, familiesCard(status.families));
       if (forecast && forecast.ok !== false) box.appendChild(forecastCard(forecast));
       var aside = (status.skipped || []).concat(status.reported || []);
       if (aside.length) {
@@ -1106,6 +1149,13 @@
       form.appendChild(field(t("answer_mode"), mode));
       var translation = segmented([{ value: "hidden", label: t("translation_hidden") }, { value: "shown", label: t("translation_shown") }], plan.sentence_translation);
       form.appendChild(field(t("translation"), translation));
+      // the languages learned by families: at least two of the plan, or none
+      var planCodes = (plan.languages || []).map(function (item) { return item.code; });
+      var together = null;
+      if (planCodes.length >= 2) {
+        together = chips(planCodes.map(function (code) { return { value: code, label: langName(code) }; }), plan.together || []);
+        form.appendChild(field(t("together"), together, t("together_hint")));
+      }
       var advanced = el("input", "input");
       advanced.id = "advanced";
       advanced.placeholder = "retention=0.85";
@@ -1123,6 +1173,10 @@
         if (days.join(",") !== (plan.days_off || []).join(",")) settings.push("days_off=" + (days.join(",") || "none"));
         if (mode.value !== plan.answer_mode) settings.push("answer_mode=" + mode.value);
         if (translation.value !== plan.sentence_translation) settings.push("sentence_translation=" + translation.value);
+        if (together) {
+          var chosen = together.selected();
+          if (chosen.join(",") !== (plan.together || []).join(",")) settings.push("together=" + (chosen.join(",") || "none"));
+        }
         advanced.value.split(/[\s;]+/).forEach(function (part) { if (part.indexOf("=") > 0) settings.push(part); });
         clear(holder);
         if (!settings.length) { toast(t("no_change")); return; }

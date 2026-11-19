@@ -38,6 +38,7 @@ się na wersji 1.0.0-rc.4.
 | 14 | Konto na komputerze | `vocabbot login` z istniejącym folderem, potem `vocabbot login --code` na drugim komputerze | podgląd liczy odpowiedzi po obu stronach; przed potwierdzeniem nic się nie zmienia; drugi komputer pobiera konto; `status` pokazuje ostatnią synchronizację i 0 czekających wierszy |
 | 15 | Telefon w przeglądarce | strona `/app/` serwera w telefonie, dodana do ekranu głównego | karty dnia, „Pokaż” z kafelkami ocen, nagrania, notatki, postępy i plan; sesja toczy się dalej w terminalu od tej samej karty |
 | 16 | Bez sieci | odpowiedzi w terminalu przy wyłączonej sieci, potem przy włączonej | odpowiedzi czekają w folderze; następne polecenie je wysyła; strona konta pokazuje komputer z datą ostatniego użycia |
+| 17 | Rodziny słów | co najmniej 14 dni nauki z rozdzielaniem, potem `together=…` dla dwóch albo trzech języków przez co najmniej 14 dni, z tymi samymi językami i tą samą liczbą nowych słów | podgląd pokazuje prognozę przed zmianą i po niej; pojęcie wchodzi do języków zestawu tego samego dnia; karty rodziny stoją obok siebie; wynik pokazuje tabelę rodziny bez słów kart czekających dziś; `status` podaje `families` i `mixups_30` |
 
 ## Mierniki
 
@@ -49,6 +50,7 @@ się na wersji 1.0.0-rc.4.
 | Błędne hasła | zapisane | zgłoszenia `flag` z notatką; cel z Etapu 2 to najwyżej 3% dla A1–A2 i 5% dla B1–B2 |
 | Minuty dziennie | zapisane | porównanie z prognozą `vocabbot forecast` |
 | Trwałość z 30 dni | blisko 90% | `vocabbot status` po dwóch tygodniach |
+| Rodziny słów (scenariusz 17) | porównanie obu okresów | pomyłki języków na 100 wpisanych odpowiedzi, trwałość każdego języka z 30 dni, powtórki i minuty dziennie, trafność pierwszej i kolejnych kart bloku (`status`, `families`) oraz błąd FSRS-6 dla kart z odpowiednikiem (`vocabbot replay`, grupy `sibling` i `alone`) |
 
 ## Błędy
 

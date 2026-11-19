@@ -386,6 +386,22 @@ def render_next(data: dict[str, Any]) -> list[str]:
     return lines
 
 
+def render_family(family: dict[str, Any] | None) -> list[str]:
+    """The family of an answered word in the other languages learned together; a card
+    still waiting today shows no word."""
+    if not family:
+        return []
+    lines = [assets.text("family.title")]
+    for row in family["rows"]:
+        word = assets.text("family.waiting") if row.get("waiting") else row["word"]
+        lines.append(f"  {assets.language_name(row['lang'])}: {word}")
+    rule = family.get("rule")
+    if rule:
+        endings = " · ".join(f"-{ending}" for ending in rule.values())
+        lines.append(f"  {assets.text('family.rule', endings=endings)}")
+    return lines
+
+
 def render_answer(data: dict[str, Any]) -> list[str]:
     if "results" in data:
         lines: list[str] = []
@@ -407,6 +423,7 @@ def render_answer(data: dict[str, Any]) -> list[str]:
         # "almost": the spelling of another language; otherwise its word
         key = "cli.other_lang_near" if grade == "almost" else "cli.other_lang"
         lines.append(assets.text(key, lang=assets.language_name(data["other_lang"])))
+    lines += render_family(data.get("family"))
     if data["word"].get("example"):
         lines.append(f"  {data['word']['example']}  {data['word'].get('example_pl', '')}".rstrip())
     if data["word"].get("note"):
@@ -459,6 +476,23 @@ def render_status(data: dict[str, Any]) -> list[str]:
             words = ", ".join(f"{w['word']} ({w['card']})" for w in data[key][:10])
             lines.append(assets.text(name, words=words))
     lines.append(assets.text("cli.streak", days=data["streak_days"]))
+    found = data.get("families") or {}
+    if found.get("together"):
+
+        def share(value: Any) -> str:
+            return f"{round(value * 100)}%" if isinstance(value, (int, float)) else "-"
+
+        mixups = found.get("mixups_per_100")
+        lines.append(
+            assets.text(
+                "family.status",
+                languages=", ".join(assets.language_name(c) for c in found["together"]),
+                blocks=found.get("blocks_30", 0),
+                first=share(found.get("first_recall_30")),
+                following=share(found.get("following_recall_30")),
+                mixups=mixups if mixups is not None else "-",
+            )
+        )
     plan = data.get("schedule")
     if plan:
         intervals = ", ".join(

@@ -1,0 +1,213 @@
+{
+  "about": "Regular correspondences of endings between the Romance courses (Stage 14 of the plan). A pattern fits words whose stems are at most one edit apart in four letters; every pattern fits at least 10 concepts of the packaged courses, as `concepts` counts.",
+  "patterns": [
+    {
+      "endings": {
+        "es": "ción",
+        "it": "zione",
+        "fr": "tion"
+      },
+      "concepts": 131,
+      "example": {
+        "es": "información",
+        "it": "informazione",
+        "fr": "information"
+      }
+    },
+    {
+      "endings": {
+        "es": "sión",
+        "it": "sione",
+        "fr": "sion"
+      },
+      "concepts": 32,
+      "example": {
+        "es": "televisión",
+        "it": "televisione",
+        "fr": "télévision"
+      }
+    },
+    {
+      "endings": {
+        "es": "dad",
+        "it": "tà",
+        "fr": "té"
+      },
+      "concepts": 49,
+      "example": {
+        "es": "universidad",
+        "it": "università",
+        "fr": "université"
+      }
+    },
+    {
+      "endings": {
+        "es": "mente",
+        "it": "mente",
+        "fr": "ment"
+      },
+      "concepts": 28,
+      "example": {
+        "es": "probablemente",
+        "it": "probabilmente",
+        "fr": "probablement"
+      }
+    },
+    {
+      "endings": {
+        "es": "ista",
+        "it": "ista",
+        "fr": "iste"
+      },
+      "concepts": 16,
+      "example": {
+        "es": "lista",
+        "it": "lista",
+        "fr": "liste"
+      }
+    },
+    {
+      "endings": {
+        "es": "encia",
+        "it": "enza",
+        "fr": "ence"
+      },
+      "concepts": 23,
+      "example": {
+        "es": "diferencia",
+        "it": "differenza",
+        "fr": "différence"
+      }
+    },
+    {
+      "endings": {
+        "es": "able",
+        "it": "abile",
+        "fr": "able"
+      },
+      "concepts": 20,
+      "example": {
+        "es": "probable",
+        "it": "probabile",
+        "fr": "probable"
+      }
+    },
+    {
+      "endings": {
+        "es": "ible",
+        "it": "ibile",
+        "fr": "ible"
+      },
+      "concepts": 12,
+      "example": {
+        "es": "terrible",
+        "it": "terribile",
+        "fr": "terrible"
+      }
+    },
+    {
+      "endings": {
+        "es": "oso",
+        "it": "oso",
+        "fr": "eux"
+      },
+      "concepts": 17,
+      "example": {
+        "es": "delicioso",
+        "it": "delizioso",
+        "fr": "délicieux"
+      }
+    },
+    {
+      "endings": {
+        "es": "ivo",
+        "it": "ivo",
+        "fr": "if"
+      },
+      "concepts": 33,
+      "example": {
+        "es": "educativo",
+        "it": "educativo",
+        "fr": "éducatif"
+      }
+    },
+    {
+      "endings": {
+        "es": "ico",
+        "it": "ico",
+        "fr": "ique"
+      },
+      "concepts": 49,
+      "example": {
+        "es": "único",
+        "it": "unico",
+        "fr": "unique"
+      }
+    },
+    {
+      "endings": {
+        "es": "ario",
+        "it": "ario",
+        "fr": "aire"
+      },
+      "concepts": 15,
+      "example": {
+        "es": "necesario",
+        "it": "necessario",
+        "fr": "nécessaire"
+      }
+    },
+    {
+      "endings": {
+        "es": "or",
+        "it": "ore",
+        "fr": "eur"
+      },
+      "concepts": 46,
+      "example": {
+        "es": "color",
+        "it": "colore",
+        "fr": "couleur"
+      }
+    },
+    {
+      "endings": {
+        "es": "ía",
+        "it": "ia",
+        "fr": "ie"
+      },
+      "concepts": 26,
+      "example": {
+        "es": "tecnología",
+        "it": "tecnologia",
+        "fr": "technologie"
+      }
+    },
+    {
+      "endings": {
+        "es": "al",
+        "it": "ale",
+        "fr": "al"
+      },
+      "concepts": 53,
+      "example": {
+        "es": "social",
+        "it": "sociale",
+        "fr": "social"
+      }
+    },
+    {
+      "endings": {
+        "es": "ar",
+        "it": "are",
+        "fr": "er"
+      },
+      "concepts": 148,
+      "example": {
+        "es": "pensar",
+        "it": "pensare",
+        "fr": "penser"
+      }
+    }
+  ]
+}

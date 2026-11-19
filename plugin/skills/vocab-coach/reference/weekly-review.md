@@ -13,6 +13,7 @@ Every number comes from `status` and `forecast` of this conversation.
 | most frequent error classes | `errors_30` |
 | hard words | `leeches` (count, and up to five by name) |
 | mix-ups with other languages | `confusions`; `mixups_30` (`hard`, `near` of `typed` answers) |
+| learning by families | `families`: `together`, `blocks_30`, `first_recall_30` against `following_recall_30`, `mixups_per_100` |
 
 Then `streak_days`, and from `forecast`: `average_minutes`, `average_reviews`,
 `peak_reviews` and `levels_complete`.
@@ -37,6 +38,10 @@ At most three, each tied to a number above, each phrased as an option:
   of genders for the recent nouns.
 - Many `confusions` (`mixups_30.hard` plus `near` against `typed`): a larger
   `sibling_gap_days`, or `mix=blocks`.
+- Several related languages (Spanish, Italian, French) with few `confusions`:
+  learning them by families (`together`), which keeps the same words together.
+- A family set (`families.together`) with `mixups_per_100` growing over the
+  weeks: back to separate languages (`together=none`).
 - A level complete soon (`levels_complete`): the next level for that
   language (`lang.<code>.levels`).
 - A log with many reviews and FSRS-6 defaults: `vocab-start` can compare the

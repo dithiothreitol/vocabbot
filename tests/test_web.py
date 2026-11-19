@@ -10,6 +10,7 @@ import socket
 import threading
 import time
 import zipfile
+from collections import defaultdict
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -512,6 +513,67 @@ def test_the_session_page_keeps_answers_back_and_logs_what_the_program_logs(
     out = web.post("/app/logout", data={"csrf": token})
     assert out.status_code == 303
     assert web.get("/api/today").status_code == 401
+
+
+def test_the_session_page_learns_by_families_as_the_program_does(
+    serve: Callable[..., Served], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    served = serve()
+    web = browser(served, "ola")
+    token = csrf(web)
+    settings = ["new_words=ask", "answer_mode=type", "days_off=none", "together=es,fr"]
+    preview = api(
+        web,
+        token,
+        "setup",
+        {"languages": ["es:a1", "fr:a1"], "new_per_day": 6, "settings": settings},
+    )
+    assert preview["ok"] and api(web, token, "commit", {"token": preview["token"]})["ok"]
+    assert api(web, token, "plan")["plan"]["together"] == ["es", "fr"]
+    folder = tmp_path / "folder"
+    argv = ["init", str(folder), "--lang", "es:a1", "--lang", "fr:a1", "--new", "6", "--json"]
+    for setting in settings:
+        argv += ["--set", setting]
+    assert cli.main(argv) == 0
+    made = json.loads(capsys.readouterr().out)
+    assert cli.main(["commit", "--confirm", made["token"], "--json"]) == 0
+    capsys.readouterr()
+    learner = store.Learner(folder)
+    catalog = Catalog(COURSES, learner=folder)
+    day = store.learning_day(session.now_utc(), 4, None)
+    plain = Catalog(COURSES)
+    tables_page: list[Any] = []
+    tables_program: list[Any] = []
+    for n in range(14):
+        shown = api(web, token, "next")
+        if not shown["items"]:
+            break
+        item = shown["items"][0]
+        assert "word" not in item
+        answer = correct(plain, item["card"]) if n % 4 != 3 else "zzz"
+        graded = api(web, token, "answer", {"card": item["card"], "answer": answer})
+        result = session.answer(learner, catalog, day, session.now_utc(), item["card"], answer)
+        tables_page.append(graded["results"][0].get("family"))
+        tables_program.append(result.get("family"))
+    # the page and the program give the same rows and the same family tables
+    owner = served.registry.find("ola")
+    assert owner is not None
+    on_server = store.Learner(served.settings.learners / owner.id).rows()[0]
+    in_folder = store.Learner(folder).rows()[0]
+
+    def kept(rows: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
+        return [(r["card"], r["grade"], r.get("kind"), r.get("error"), r["day"]) for r in rows]
+
+    assert kept(on_server) == kept(in_folder) and len(on_server) >= 12
+    assert tables_page == tables_program and any(tables_page)
+    # a family enters both languages on the same day, as a block of two cards
+    learned = [(r["card"][:2], r["card"][3:9]) for r in on_server if r["kind"] == "learn"]
+    concepts = defaultdict(set)
+    for lang, concept in learned:
+        concepts[concept].add(lang)
+    assert sum(1 for langs in concepts.values() if langs == {"es", "fr"}) >= 2
+    status = api(web, token, "status")
+    assert status["families"]["together"] == ["es", "fr"]
 
 
 def test_a_folder_of_one_account_never_joins_another(

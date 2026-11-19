@@ -55,6 +55,14 @@ Claude and Codex that runs the same session in a chat.
   language being learned is recognised and named, also when it is that
   language's spelling one letter or one accent away ("sempre" for Spanish
   "siempre" keeps "almost" and is counted as a mix-up in `status`).
+- **Families.** The plan setting `together` (for example `together=es,it,fr`)
+  learns the same words in the chosen languages together: a concept enters
+  all of them on one day, its cards stand side by side, a due card brings its
+  family in the other languages once half of their interval has passed, and
+  the result of an answer shows the family with the letters that differ and
+  the regular correspondence of endings (`-ción`, `-zione`, `-tion`). Without
+  the setting every language keeps its own order and the gaps above; `status`
+  measures both ways.
 - **Plan.** Languages, levels, weights, new words a day, days off, the target
   recall and the order of languages are settings of a plan. Every change of
   the plan or of the learner's own words is a preview first and is written

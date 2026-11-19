@@ -37,6 +37,7 @@ on version 1.0.0-rc.4.
 | 14 | The account on a computer | `vocabbot login` with an existing folder, then `vocabbot login --code` on a second computer | the preview counts the answers on both sides; nothing changes before the yes; the second computer downloads the account; `status` shows the last synchronisation and 0 rows waiting |
 | 15 | The phone in a browser | the server's `/app/` on your phone, added to the home screen | the day's cards, "Pokaż" with the grade tiles, recordings, notes, progress and the plan; the session goes on in the terminal at the same card |
 | 16 | Without a network | answers in the terminal with the network off, then on | the answers wait in the folder; the next command sends them; the account page lists the computer with its last use |
+| 17 | Word families | at least 14 days with the languages apart, then `together=…` for two or three languages for at least 14 days, with the same languages and the same number of new words | the preview shows the forecast before and after the change; a concept enters the set's languages on the same day; the cards of a family stand side by side; a result shows the family table without the words of cards still waiting today; `status` gives `families` and `mixups_30` |
 
 ## Measures
 
@@ -48,6 +49,7 @@ on version 1.0.0-rc.4.
 | Wrong entries | recorded | `flag` reports with a note; the Stage 2 targets are at most 3% for A1–A2 and 5% for B1–B2 |
 | Minutes a day | recorded | compared with `vocabbot forecast` |
 | Recall over 30 days | close to 90% | `vocabbot status` after two weeks |
+| Word families (scenario 17) | a comparison of both periods | language mix-ups per 100 typed answers, the recall of each language over 30 days, reviews and minutes a day, the recall of the first and of the following cards of a block (`status`, `families`) and the error of FSRS-6 for cards with an equivalent (`vocabbot replay`, the groups `sibling` and `alone`) |
 
 ## Defects
 

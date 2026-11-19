@@ -54,6 +54,11 @@ def describe(plan: dict[str, Any]) -> list[str]:
         ),
         assets.text("plan.mix", value=assets.text(f"mix.{plan['mix']}")),
         assets.text("plan.sibling_gap", value=plan["sibling_gap_days"]),
+        assets.text(
+            "plan.together",
+            value=", ".join(assets.language_name(code) for code in plan.get("together") or [])
+            or assets.text("plan.together_none"),
+        ),
         assets.text("plan.review_limit", value=limit),
         assets.text("plan.days_off", value=days_off),
         assets.text("plan.day_starts_at", value=plan["day_starts_at"]),
@@ -210,11 +215,32 @@ def _value(key: str, raw: str) -> Any:
     raise VocabError("unknown_key", key=key)
 
 
+def _together(plan: dict[str, Any], raw: str) -> list[str]:
+    """The languages learned by families: `none`, `all` or at least two codes of the plan."""
+    value = raw.strip().lower()
+    codes = [item["code"] for item in plan["languages"]]
+    if value in ("none", "brak", "off", ""):
+        return []
+    if value in ("all", "wszystkie"):
+        chosen = list(codes)
+    else:
+        chosen = list(dict.fromkeys(part.strip() for part in value.split(",") if part.strip()))
+    for code in chosen:
+        if code not in codes:
+            raise VocabError("lang_not_in_plan", card="", lang=code)
+    if len(chosen) < 2:
+        raise VocabError("together_too_few")
+    return [code for code in codes if code in chosen]
+
+
 def _apply(plan: dict[str, Any], assignment: str) -> None:
     key, sep, raw = assignment.partition("=")
     key = key.strip()
     if not sep or not key:
         raise VocabError("bad_assignment", value=assignment)
+    if key == "together":
+        plan["together"] = _together(plan, raw)
+        return
     if not key.startswith("lang."):
         plan[key] = _value(key, raw)
         if key == "parameters":
@@ -230,6 +256,9 @@ def _apply(plan: dict[str, Any], assignment: str) -> None:
             if item is None:
                 raise VocabError("lang_not_in_plan", card="", lang=code)
             languages.remove(item)
+            # a language that leaves the plan leaves its families; one language is no set
+            left = [other for other in plan.get("together") or [] if other != code]
+            plan["together"] = left if len(left) >= 2 else []
         elif value in ("paused", "active"):
             if item is None:
                 raise VocabError("lang_not_in_plan", card="", lang=code)
@@ -379,7 +408,7 @@ def _setting_ok(key: str, value: Any) -> bool:
     """A value of a known setting has the type the plan needs (its range is checked later)."""
     if key == "languages":
         return isinstance(value, list) and all(_language_ok(item) for item in value)
-    if key in ("days_off", "directions"):
+    if key in ("days_off", "directions", "together"):
         return isinstance(value, list) and all(isinstance(item, str) for item in value)
     if key == "review_limit":
         return value is None or (isinstance(value, int) and not isinstance(value, bool))
@@ -571,6 +600,36 @@ def apply_history(
     return {"changed": True, **({"notes": notes} if notes else {})}
 
 
+FAMILY_FORECAST_DAYS = 28
+
+
+def _family_forecast(
+    learner: store.Learner,
+    catalog: Catalog,
+    old: dict[str, Any],
+    new: dict[str, Any],
+    now: datetime,
+) -> list[str]:
+    """A change of the languages learned by families shows the load before and after it."""
+    from vocabbot import families, progress
+
+    if families.team(old) == families.team(new) or not (learner.root / store.PLAN).is_file():
+        return []
+    day = store.learning_day(now, int(old["day_starts_at"]), learner.zone())
+    before = progress.forecast(learner, catalog, day, FAMILY_FORECAST_DAYS, plan=old)
+    after = progress.forecast(learner, catalog, day, FAMILY_FORECAST_DAYS, plan=new)
+    return [
+        assets.text(
+            "family.forecast",
+            days=FAMILY_FORECAST_DAYS,
+            reviews=before["average_reviews"],
+            minutes=before["average_minutes"],
+            reviews_after=after["average_reviews"],
+            minutes_after=after["average_minutes"],
+        )
+    ]
+
+
 def set_preview(
     learner: store.Learner, catalog: Catalog, assignments: list[str], now: datetime
 ) -> dict[str, Any]:
@@ -589,7 +648,7 @@ def set_preview(
     return gate.preview(
         learner.path(store.PENDING),
         summary,
-        changes,
+        changes + _family_forecast(learner, catalog, old, new, now),
         [
             gate.Change(learner.path(store.PLAN), "write", store.dump_json(new)),
             history_change(learner.root, old, new, now),

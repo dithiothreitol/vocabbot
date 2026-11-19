@@ -27,7 +27,9 @@ pytest.importorskip("mcp")
 
 import httpx2
 
-from vocabbot import store, sync
+import vocabbot as vocabbot_package
+from vocabbot import families, store, sync
+from vocabbot.courses import Catalog
 
 PASSWORD = "correct horse battery"
 CODE = re.compile(r"[A-Z2-9]{4}-[A-Z2-9]{4}")
@@ -264,3 +266,115 @@ def test_a_learner_moves_between_a_phone_and_two_computers(
     assert out["revoked"] and out["unlinked"]
     assert phone.get("/account").text.count("Program VocabBot") == 1
     assert "sync" not in vocabbot(one, "today", "--learner", str(folder_one))
+
+
+PACKAGED = Path(vocabbot_package.__file__).parent / "data" / "courses"
+
+
+def test_a_family_moves_between_the_phone_and_two_computers(
+    server: dict[str, Any], tmp_path: Path
+) -> None:
+    """S6 of Stage 14: Spanish and Italian by families on a phone and two computers."""
+    url = server["url"]
+    courses = Catalog(PACKAGED)
+    phone = httpx2.Client(base_url=url, follow_redirects=False, timeout=60)
+    opened = phone.post(
+        "/app/login",
+        data={
+            "action": "signup",
+            "login": "ola",
+            "password": PASSWORD,
+            "password2": PASSWORD,
+            "invite": server["invite"],
+            "tz": "Europe/Warsaw",
+            "next": "/app/",
+        },
+    )
+    assert opened.status_code == 303, opened.text
+    csrf = re.search(r'name="vocabbot-csrf" content="([0-9a-f]+)"', phone.get("/app/").text)
+    assert csrf
+    token = csrf[1]
+    settings = ["together=es,it", "new_words=show", "answer_mode=type"]
+    preview = api(
+        phone,
+        token,
+        "setup",
+        {"languages": ["es:a1", "it:a1"], "new_per_day": 6, "settings": settings},
+    )
+    assert preview["ok"], preview
+    assert api(phone, token, "commit", {"token": preview["token"]})["ok"]
+    assert api(phone, token, "today")["together"]["languages"] == ["es", "it"]
+
+    # the phone starts a block: the first card of a family
+    first = api(phone, token, "next")["items"][0]["card"]
+    word = courses.card(first)
+    assert word is not None
+    graded = api(phone, token, "answer", {"card": first, "answer": word["display"]})
+    assert graded["results"][0]["grade"] == "know"
+    account_folder = next((server["data"] / "learners").iterdir())
+
+    # the first computer downloads the account and finishes the same block in the terminal
+    one = tmp_path / "computer-one"
+    folder_one = tmp_path / "VocabBot-one"
+    assert login_with_code(one, phone, url, "--learner", str(folder_one))["downloaded"]
+    second = vocabbot(one, "next", "--learner", str(folder_one))["items"][0]["card"]
+    assert second[:2] != first[:2] and second[2:] == first[2:]  # the same family
+    other = courses.card(second)
+    assert other is not None
+    done = vocabbot(
+        one, "answer", "--card", second, "--learner", str(folder_one), stdin=other["display"]
+    )
+    assert done["grade"] == "know"
+    family = done["family"]["rows"]
+    assert family == [
+        {
+            "lang": first[:2],
+            "card": first,
+            "word": word["display"],
+            "parts": family[0]["parts"],
+        }
+    ]
+
+    # the second computer types the word of the other language of the next family
+    two = tmp_path / "computer-two"
+    folder_two = tmp_path / "VocabBot-two"
+    assert login_with_code(two, phone, url, "--learner", str(folder_two))["downloaded"]
+    shown = vocabbot(two, "next", "--learner", str(folder_two))["items"]
+    card = shown[0]["card"]
+    entry = courses.card(card)
+    assert entry is not None
+    sibling = next(
+        e
+        for e in courses.family(entry["concept"])
+        if e["lang"] not in (card[:2],) and e["lang"] in ("es", "it")
+    )
+    slip = vocabbot(
+        two, "answer", "--card", card, "--learner", str(folder_two), stdin=sibling["display"]
+    )
+    identical = families.shape(entry["display"], sibling["display"]) == "identical"
+    if identical:
+        assert slip["grade"] == "know", slip
+    else:
+        assert slip["other_lang"] == sibling["lang"], slip
+
+    # every side ends with the same log and the same day; the phone sees the mix-up
+    assert vocabbot(one, "sync", "--learner", str(folder_one))["ok"]
+    assert vocabbot(two, "sync", "--learner", str(folder_two))["ok"]
+    assert vocabbot(one, "sync", "--learner", str(folder_one))["ok"]
+    assert rows_of(folder_one) == rows_of(folder_two) == rows_of(account_folder)
+    assert len(rows_of(account_folder)) == 3
+    counters = {
+        vocabbot(one, "today", "--learner", str(folder_one))["counter"],
+        vocabbot(two, "today", "--learner", str(folder_two))["counter"],
+        api(phone, token, "today")["counter"],
+    }
+    assert len(counters) == 1, counters
+    status = api(phone, token, "status")
+    assert status["families"]["together"] == ["es", "it"]
+    if not identical:
+        mixed = sum(
+            lang["mixups_30"]["hard"] + lang["mixups_30"]["near"]
+            for lang in status["languages"].values()
+        )
+        assert mixed == 1
+        assert status["languages"][card[:2]]["confusions"][0]["card"] == card

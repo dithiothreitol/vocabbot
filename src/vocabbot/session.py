@@ -27,7 +27,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from vocabbot import answers, assets, store
+from vocabbot import answers, assets, families, store
 from vocabbot import presence as attendance
 from vocabbot.book import RATING, CardState, spread_key
 from vocabbot.courses import Catalog, hide_other_answers, presentation, question, split_card
@@ -87,7 +87,7 @@ def classify(
     state = dp.before.cards.get(card)
     if state is not None:
         due = state.due(dp.scheduler_for(state.lang))
-        if due <= dp.day or ahead or card in dp.ahead:
+        if due <= dp.day or ahead or card in dp.ahead or card in dp.companions:
             return entry, "review", state
         raise VocabError("not_due", card=card, due=due.isoformat())
     if card in dp.new:
@@ -122,14 +122,28 @@ def asks_new_words(plan: dict[str, Any]) -> bool:
     return str(plan.get("new_words", "ask")) == "ask"
 
 
-def logged_grade(dp: DayPlan, kind: str, grade: str) -> str:
+def logged_grade(
+    dp: DayPlan,
+    kind: str,
+    grade: str,
+    entry: dict[str, Any] | None = None,
+    catalog: Catalog | None = None,
+) -> str:
     """The grade a row gets for a graded answer.
 
-    A new word asked at once and answered right was known before the course.
-    The drill has two grades, as in SuperMemo: "almost" keeps the card there.
+    A new word asked at once and answered right was known before the course,
+    unless the learner saw its family in another language of the set today
+    (plan `together`): a word worked out from its neighbour is learned, not
+    known. The drill has two grades, as in SuperMemo: "almost" keeps the card
+    there.
     """
     if kind == "learn" and grade == "know" and asks_new_words(dp.plan):
-        return "known"
+        neighbour = (
+            entry is not None
+            and catalog is not None
+            and families.met_today(dp.plan, dp.today.seen, entry, catalog)
+        )
+        return "know" if neighbour else "known"
     if kind == "drill" and grade == "almost":
         return "dont_know"
     return grade
@@ -307,8 +321,13 @@ def record(
     ms: int | None = None,
     source: str = "cli",
     ahead: bool = False,
+    catalog: Catalog | None = None,
 ) -> dict[str, Any]:
-    """Append one graded answer to the log and describe what it changed."""
+    """Append one graded answer to the log and describe what it changed.
+
+    With `catalog`, the result of a card learned by families (plan `together`)
+    holds the family table.
+    """
     rows, _ = learner.rows()
     row: dict[str, Any] = {
         "ts": _next_ts(rows, now, dp.day),
@@ -330,7 +349,7 @@ def record(
     if ms is not None and ms > 0:
         row["ms"] = int(ms)
     early = state is not None and state.due(dp.scheduler_for(state.lang)) > dp.day
-    if kind == "review" and early and (ahead or card in dp.ahead):
+    if kind == "review" and early and (ahead or card in dp.ahead or card in dp.companions):
         row["ahead"] = True
     learner.append_review(row)
     due, interval = _schedule_after(dp, card, kind, state, grade)
@@ -364,7 +383,34 @@ def record(
         back = back_text(dp.day, due, result["drill"])
         if back:
             result["back"] = back
+    if catalog is not None:
+        family = family_table(dp, catalog, card, entry)
+        if family is not None:
+            result["family"] = family
     return result
+
+
+def family_table(
+    dp: DayPlan, catalog: Catalog, card: str, entry: dict[str, Any]
+) -> dict[str, Any] | None:
+    """The family of an answered card in the other languages of the set (plan `together`).
+
+    A card that still waits today, in any stage, shows no word, and neither does
+    a word that answers a waiting card, so the table never answers a question of
+    the day.
+    """
+    if not dp.team:
+        return None
+    waiting = {item.card for item in dp.sequence if item.card != card}
+    return families.table(
+        dp.plan,
+        card,
+        entry,
+        catalog,
+        lambda other: other in dp.book.cards,
+        waiting,
+        families.hidden_forms(waiting, catalog),
+    )
 
 
 def answer(
@@ -393,13 +439,14 @@ def answer(
         entry,
         kind,
         state,
-        logged_grade(dp, kind, verdict.grade),
+        logged_grade(dp, kind, verdict.grade, entry, catalog),
         now,
         verdict=verdict,
         given=given,
         ms=ms,
         source=source,
         ahead=ahead,
+        catalog=catalog,
     )
     if kind == "learn":
         hint = level_hint(learner.rows()[0], catalog, str(entry["lang"]), dp.plan, day)
@@ -431,8 +478,20 @@ def self_grade(
         raise VocabError("known_only_first", card=card)
     if grade != "known" and split_card(card)[1] == "p" and not self_assessed(dp.plan):
         raise VocabError("production_needs_answer", card=card)
-    grade = logged_grade(dp, kind, grade)
-    result = record(learner, dp, card, entry, kind, state, grade, now, source=source, ahead=ahead)
+    grade = logged_grade(dp, kind, grade, entry, catalog)
+    result = record(
+        learner,
+        dp,
+        card,
+        entry,
+        kind,
+        state,
+        grade,
+        now,
+        source=source,
+        ahead=ahead,
+        catalog=catalog,
+    )
     if kind == "learn":
         hint = level_hint(learner.rows()[0], catalog, str(entry["lang"]), dp.plan, day)
         if hint is not None:
@@ -782,6 +841,10 @@ def summary(learner: store.Learner, catalog: Catalog, dp: DayPlan) -> dict[str, 
     hint = ahead_hint(dp)
     if hint:
         out["ahead_hint"] = hint
+    if dp.team:
+        # learning by families: the cards of one family come as a block, and the reviews
+        # that joined a due card of their family count among the reviews before their day
+        out["together"] = {"languages": dp.team, "joined": len(dp.companions)}
     return out
 
 
