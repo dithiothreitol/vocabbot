@@ -2556,6 +2556,14 @@ Conclusions:
    their order by language; it worked so before, and the test checks the
    cards it holds, not a prefix.
 
+Release and deployment with your approval of 19.11.2026 (both parts
+together): commit `d5cf94d`, the tag `v1.0.0-rc.14`, a pre-release on GitHub
+with all 9 packages and `vocabbot 1.0.0rc14` on PyPI through trusted
+publishing, with sums that match GitHub's. CI is green. The server
+`vocabbot-server:1.0.0rc14-d5cf94d` runs at `https://vocabbot.run`; as the
+section on compatibility asks, I deployed it before the program was
+published.
+
 ---
 
 ## 11. Completeness check

@@ -2500,6 +2500,13 @@ Wnioski:
    ich kolejność według języków; tak działała już wcześniej, a test sprawdza
    zawieranie, nie przedrostek.
 
+Wydanie i wdrożenie za Twoją zgodą z 19.11.2026 (obie części razem): commit
+`d5cf94d`, tag `v1.0.0-rc.14`, wydanie przedpremierowe na GitHubie
+z kompletem 9 paczek i `vocabbot 1.0.0rc14` w PyPI przez zaufane
+publikowanie, z sumami zgodnymi z GitHubem. CI jest zielone. Serwer
+`vocabbot-server:1.0.0rc14-d5cf94d` działa pod `https://vocabbot.run`; zgodnie
+z rozdziałem o zgodności wersji wdrożyłem go przed publikacją programu.
+
 ---
 
 ## 11. Weryfikacja kompletności
