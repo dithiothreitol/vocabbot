@@ -32,7 +32,8 @@ python3 "${CLAUDE_SKILL_DIR}/bin/vocabbot.pyz" <command> --json
 `status --json` gives, for each language: `levels` (learned and total per
 level), `cards`, `due_week`, `retention_30` against `target_retention`,
 `reviews_30`, `errors_30_pl` (error classes in Polish), `leeches` (words with many
-lapses), `confusions` (answers given in another language being learned),
+lapses), `confusions` (answers given in another language being learned)
+and `mixups_30` (their counts over 30 days),
 `recent` (words introduced in the last seven days), plus `streak_days` and
 `today`. Run it once and work from it.
 
@@ -58,6 +59,9 @@ yes to its text, in their next message.
 
 From `confusions` (and words the learner names), show a small table: the
 Polish meaning, the word in each language being learned, what was typed.
+A mix-up with `near: true` is the spelling of the other language one letter
+or one accent away ("sempre" for Spanish "siempre"); it kept the grade
+"prawie". Without `near` the learner typed the other language's word.
 Point at the difference that decides (spelling, gender, a false friend).
 The engine spaces one concept in two languages by `sibling_gap_days`; a
 learner who mixes many words can raise it through `vocab-start`.

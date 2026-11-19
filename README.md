@@ -52,7 +52,9 @@ Claude and Codex that runs the same session in a chat.
 - **Several languages.** New words a day are shared between the languages by
   weight; the languages are interleaved in one session; one concept is not
   introduced in two languages within three days; an answer given in another
-  language being learned is recognised and named.
+  language being learned is recognised and named, also when it is that
+  language's spelling one letter or one accent away ("sempre" for Spanish
+  "siempre" keeps "almost" and is counted as a mix-up in `status`).
 - **Plan.** Languages, levels, weights, new words a day, days off, the target
   recall and the order of languages are settings of a plan. Every change of
   the plan or of the learner's own words is a preview first and is written

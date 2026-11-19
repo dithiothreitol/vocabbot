@@ -105,6 +105,56 @@ def test_answer_in_another_language(
     assert verdict.other_lang == other
 
 
+@pytest.mark.parametrize(
+    ("lang", "number", "given", "near", "errors", "other"),
+    [
+        # one letter from the card's word and exactly the word of another language of the plan
+        ("es", 31, "grand", ("fr",), ("typo",), "fr"),
+        ("es", 59, "facile", ("fr", "en"), ("typo",), "fr"),
+        # the same slip without French in the plan is a typo
+        ("es", 31, "grand", (), ("typo",), None),
+        ("es", 31, "grand", ("de",), ("typo",), None),
+        # "grande" is the feminine form of French "grand", a word of the card's own language
+        ("fr", 31, "grande", ("es",), ("form",), None),
+        # a missing accent that is no word of another language stays a diacritic
+        ("es", 59, "facil", ("fr",), ("diacritic",), None),
+    ],
+)
+@pytest.mark.parametrize("lenient", [False, True])
+def test_a_slip_into_another_language_keeps_its_grade(
+    catalog: Catalog,
+    lang: str,
+    number: int,
+    given: str,
+    near: tuple[str, ...],
+    errors: tuple[str, ...],
+    other: str | None,
+    lenient: bool,
+) -> None:
+    entry = entry_of(catalog, lang, number)
+    family = [e for e in catalog.family(entry["concept"]) if e["lang"] != lang]
+    verdict = answers.grade(given, entry, lenient=lenient, siblings=family, near=near)
+    before = answers.grade(given, entry, lenient=lenient, siblings=family)
+    # the grade and the error classes are those of the grading before Stage 14
+    assert (verdict.grade, verdict.errors) == (before.grade, before.errors)
+    assert verdict.errors == errors
+    assert verdict.other_lang == other
+    if not (lenient and errors == ("diacritic",)):
+        assert verdict.grade == "almost"
+
+
+def test_a_word_of_another_language_still_needs_no_plan(catalog: Catalog) -> None:
+    entry = entry_of(catalog, "es", 20)  # la mano; French la main
+    family = [e for e in catalog.family(entry["concept"]) if e["lang"] != "es"]
+    for near in ((), ("fr",)):
+        verdict = answers.grade("la main", entry, siblings=family, near=near)
+        assert (verdict.grade, verdict.errors, verdict.other_lang) == (
+            "dont_know",
+            ("wrong_language",),
+            "fr",
+        )
+
+
 def test_same_word_in_two_languages_is_right(catalog: Catalog) -> None:
     entry = entry_of(catalog, "es", 27)  # dormir in Spanish and French
     family = [e for e in catalog.family(entry["concept"]) if e["lang"] != "es"]

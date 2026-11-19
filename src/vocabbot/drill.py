@@ -675,7 +675,9 @@ class Drill:
         self.screen.show(f"  {style(style.glyph('result'), 'dim')} {style(head, colour, 'bold')}")
         if verdict.other_lang:
             other = assets.language_name(verdict.other_lang)
-            self.screen.show(f"    {assets.text('cli.other_lang', lang=other)}", "red")
+            # "almost": the spelling of another language, and the difference follows
+            key = "cli.other_lang_near" if grade == "almost" else "cli.other_lang"
+            self.screen.show(f"    {assets.text(key, lang=other)}", colour)
         target = verdict.matched or word["word"]
         if given.strip() and not set(verdict.errors) & NO_DIFF:
             wrong, right, caret = term.difference(given.strip(), str(target), style)

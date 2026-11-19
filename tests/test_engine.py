@@ -289,6 +289,44 @@ def test_status_lists_confused_and_recent_words(tmp_path: Path, catalog: Catalog
     assert all("word" in word and "meaning" in word for word in report["recent"])
 
 
+def test_a_slip_into_another_language_is_counted_and_changes_no_date(
+    tmp_path: Path, catalog: Catalog
+) -> None:
+    # Spanish and French together: "grand" for Spanish "grande" is French spelled out
+    both = make_learner(
+        tmp_path / "both", ["es:a1-a2", "fr:a1-a2"], new_per_day=100, sibling_gap_days=0
+    )
+    alone = make_learner(tmp_path / "alone", ["es:a1-a2"], new_per_day=100)
+    card = card_of("es", 31)
+    for learner in (both, alone):
+        assert card in compute(learner, catalog, MONDAY).new
+    result = session.answer(both, catalog, MONDAY, moment(MONDAY), card, "grand")
+    plain = session.answer(alone, catalog, MONDAY, moment(MONDAY), card, "grand")
+    assert result["grade"] == plain["grade"] == "almost"
+    assert result["errors"] == plain["errors"] == ["typo"]
+    assert result["other_lang"] == "fr" and "other_lang" not in plain
+    assert result["next_due"] == plain["next_due"] and result["drill"] and plain["drill"]
+    row = json.loads(both.path(store.REVIEWS).read_text("utf-8").splitlines()[-1])
+    assert (row["grade"], row["error"], row["other_lang"]) == ("almost", "typo", "fr")
+    # a hard mix-up and a right answer for the counts
+    hand = card_of("es", 20)
+    session.answer(both, catalog, MONDAY, moment(MONDAY, 1), hand, "la main")
+    session.answer(both, catalog, MONDAY, moment(MONDAY, 2), card_of("es", 27), "dormir")
+    report = progress.status(both, catalog, MONDAY)["languages"]["es"]
+    assert report["mixups_30"] == {"hard": 1, "near": 1, "typed": 3}
+    kinds = {item["card"]: item["near"] for item in report["confusions"]}
+    assert kinds == {card: True, hand: False}
+    assert progress.status(alone, catalog, MONDAY)["languages"]["es"]["mixups_30"] == {
+        "hard": 0,
+        "near": 0,
+        "typed": 1,
+    }
+    # the state of every card is the same without the field: it never moves a date
+    rows = [json.loads(line) for line in both.path(store.REVIEWS).read_text("utf-8").splitlines()]
+    stripped = [{k: v for k, v in r.items() if k != "other_lang"} for r in rows]
+    assert replay(rows).cards == replay(stripped).cards
+
+
 def test_lookup_finds_words_and_meanings(tmp_path: Path, catalog: Catalog) -> None:
     learner = make_learner(tmp_path, ["de:a1-a2"], new_per_day=2)
     house = card_of("de", 1)

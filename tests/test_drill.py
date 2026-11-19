@@ -262,3 +262,27 @@ def test_a_word_put_aside_and_a_note_in_the_terminal(tmp_path: Path, catalog: Ca
     assert any("Zapisano notatkę" in line for line in screen.out)
     assert any("Po /notatka wpisz" in line for line in screen.out)
     assert third in compute(learner, catalog, MONDAY).new
+
+
+class Slips(Script):
+    """Types the given answers for the listed cards, the right ones elsewhere."""
+
+    def __init__(self, catalog: Catalog, typed: dict[str, str]) -> None:
+        super().__init__(catalog, wrong=set(), known=set())
+        self.typed = dict(typed)
+
+    def _line(self, prompt: str) -> str:
+        if self.current in self.typed:
+            return self.typed.pop(self.current)
+        return super()._line(prompt)
+
+
+def test_the_terminal_names_the_language_of_a_slip(tmp_path: Path, catalog: Catalog) -> None:
+    learner = make_learner(tmp_path, ["es:a1-a2", "fr:a1-a2"], new_per_day=100, sibling_gap_days=0)
+    card = "es-c90031#p"  # grande; French grand
+    assert card in compute(learner, catalog, MONDAY).new
+    screen = Slips(catalog, {card: "grand"})
+    run(learner, catalog, MONDAY, screen)
+    assert any("Tak wygląda to słowo w języku: francuski." in line for line in screen.out)
+    row = next(r for r in learner.rows()[0] if r["card"] == card)
+    assert (row["grade"], row["other_lang"]) == ("almost", "fr")

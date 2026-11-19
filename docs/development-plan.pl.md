@@ -32,7 +32,8 @@ dnia zrealizowałem je razem jako wersję `1.0.0-rc.11`, za Twoją zgodą
 wydaną na GitHubie i w PyPI oraz wdrożoną na serwer. Etap 14 (rodziny słów:
 te same słowa w kilku językach razem oraz pomiar pomyłek między językami)
 zaproponowałem 19.11.2026 na Twoją prośbę i tego samego dnia
-zaakceptowałeś go z rekomendacjami; realizacja zaczyna się od części 14a. Do
+zaakceptowałeś go z rekomendacjami. Część 14a (zapis i pomiar pomyłek
+między językami) zrealizowałem tego samego dnia; następna jest część 14b. Do
 wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską
 planu zawiera `development-plan.md`.
 
@@ -2136,8 +2137,8 @@ Do sprawdzenia poza sesją pracy:
 ### Etap 14. Rodziny słów: te same słowa w kilku językach razem
 
 Etap 14 zaproponowałem 19.11.2026 na Twoją prośbę. Stan: zaakceptowany
-19.11.2026 razem z rekomendacjami z tabeli decyzji; realizacja zaczyna się
-od części 14a. Etap ma trzy
+19.11.2026 razem z rekomendacjami z tabeli decyzji. Część 14a zrealizowałem
+tego samego dnia (wynik na końcu etapu); następna jest część 14b. Etap ma trzy
 części: 14a poprawia ocenianie i dodaje pomiar, 14b dodaje naukę rodzinami
 jako ustawienie planu, 14c opisuje pomiar na dzienniku. Ustawienia domyślne
 zostają bez zmian, a rozdział 2.4 nadal uzasadnia rozdzielanie.
@@ -2424,6 +2425,32 @@ taką, jaką zakłada symulator. To pokaże dopiero część 14c.
 | czytanie rodziną, czyli karty rozpoznawania kilku języków naraz jak w EuRom5 | decyzja po pomiarze z części 14c |
 | podobieństwo jako cecha harmonogramu | należy do planu Nucifragi (cel 6 oraz cechy pokrewieństwa i fałszywych przyjaciół) |
 | zmiana ustawień domyślnych | dopiero po danych z części 14c |
+
+#### Wynik części 14a (19.11.2026)
+
+Część 14a zapisuje i mierzy pomyłki między językami. Ocena, termin powtórki
+i kolejka dnia zostają takie same jak przed etapem.
+
+| Kryterium | Wynik |
+|---|---|
+| pomyłka o jedną literę jest widoczna | „grand” na hiszpańskie „grande” i „facile” na „fácil” z francuskim w planie dają „prawie” z klasą `typo` i `other_lang: fr`, także w trybie `lenient`; bez francuskiego w planie zostaje literówka; „grande” na francuskie „grand” zostaje formą słowa, a „facil” brakiem znaku diakrytycznego |
+| ustawienia domyślne bez zmian (S1) | dotychczasowa symulacja 30 dni daje 1224 wiersze o skrócie SHA-256 `6e49b0db…61d8`, tym samym co przed etapem |
+| pomiar jest wiarygodny | nowa symulacja 30 dni z hiszpańskim i francuskim, w której uczący się wpisuje francuskie słowa na wybrane karty hiszpańskie: `mixups_30` zlicza dokładnie tyle pomyłek bliskich, twardych i wpisanych odpowiedzi, ile umieściła symulacja; dziennik bez pola `other_lang` daje ten sam stan każdej karty |
+| porównanie z FSRS-6 | `replay` podaje wyniki każdego wariantu osobno dla powtórek kart z odpowiednikiem poznanym w innym języku i dla pozostałych; podział nie zmienia wyników całości; terminal pokazuje oba wiersze dla FSRS-6 |
+| interfejsy | terminal, karta w czacie i strona sesji pokazują „Tak wygląda to słowo w języku: …” przy ocenie „prawie” i dotychczasowy komunikat przy ocenie „nie wiem”; karta w czacie dostała nazwy języków, więc pokazuje pomyłki języków, których wcześniej nie pokazywała |
+| testy | 18 nowych testów; razem 328 na Pythonie 3.15 i 300 na 3.10 (1 pominięty bez grupy `data`); `ruff`, `mypy`, `build.py skills`, `validate.py`, `session_test.py --check` i `claude plugin validate --strict` bez uwag |
+
+Wnioski:
+
+1. Pomyłka o jedną literę była dotąd niewidoczna dla trenera, choć
+   w kursach hiszpańskiego i włoskiego 46,1% wspólnych pojęć ma prawie tę
+   samą formę. Od tej wersji `status` ją liczy, co daje punkt wyjścia do
+   pomiaru w części 14c.
+2. Ocena „prawie” obejmuje także poprawne formy języka karty, dlatego reguła
+   dotyczy wyłącznie literówki i znaku diakrytycznego. Przypadek „grande”
+   dla francuskiego „grand” pokazał tę granicę na kursie startowym.
+3. Część nie zmienia terminów ani kolejki, więc może wejść do wydania przed
+   częścią 14b. Wydanie `1.0.0-rc.14` czeka na Twoją zgodę.
 
 ---
 

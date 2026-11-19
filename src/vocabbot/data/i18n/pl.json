@@ -315,7 +315,8 @@
     "sync_refused": "serwer odrzucił {count} wierszy",
     "sync_plan_problems": "plan po połączeniu nie przeszedł kontroli, więc obowiązuje dotychczasowy (vocabbot doctor)",
     "logged_out": "Wylogowano z {server}. Folder pozostaje na tym komputerze i działa bez konta.",
-    "exported": "Zapisano archiwum {file} ({bytes} bajtów)."
+    "exported": "Zapisano archiwum {file} ({bytes} bajtów).",
+    "other_lang_near": "Tak wygląda to słowo w języku: {lang}."
   },
   "drill": {
     "summary": "powtórki {reviews} · nowe słowa {new} · utrwalanie {drill} · około {minutes} min",
@@ -415,6 +416,11 @@
       "fsrs6_presence": "FSRS-6 i plan według obecności",
       "fit": "parametry z planu",
       "fit_presence": "parametry z planu i obecność"
+    },
+    "groups_title": "FSRS-6 dla słów znanych już w innym języku nauki i dla pozostałych",
+    "groups": {
+      "sibling": "znane w innym języku ({reviews} powt.)",
+      "alone": "pozostałe ({reviews} powt.)"
     }
   },
   "weekdays_short": {
@@ -489,7 +495,9 @@
       "grade_prompt": "Twoja ocena: {grades}",
       "translation": "Tłumaczenie",
       "note": "Notatka",
-      "minutes": "około {minutes} min"
+      "minutes": "około {minutes} min",
+      "other_lang": "To słowo z innego języka nauki ({lang}).",
+      "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang})."
     },
     "web": {
       "sign_in_title": "Zaloguj się do VocabBota",
@@ -658,7 +666,8 @@
       "weight_label": "Udział w nowych słowach",
       "max_three": "Plan obejmuje najwyżej trzy języki.",
       "choose_language": "Wybierz co najmniej jeden język.",
-      "level_set": "Ustawiono poziom {levels}."
+      "level_set": "Ustawiono poziom {levels}.",
+      "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang})."
     },
     "api_errors": {
       "too_large": "Żądanie jest za duże.",

@@ -189,11 +189,17 @@ def cmd_replay(ctx: Context) -> dict[str, Any]:
     rows, _ = learner.rows()
     own = plan.get("parameters") or {}
     current = replay.plan_parameters(own) if own else None
-    result = replay.compare(rows, share=ctx.args.share, current=current)
+    catalog = ctx.catalog()
+
+    def concept_of(card: str) -> str | None:
+        entry = catalog.card(card)
+        return str(entry["concept"]) if entry and entry.get("concept") else None
+
+    result = replay.compare(rows, share=ctx.args.share, current=current, concept_of=concept_of)
     if ctx.args.days > 0:
         fitted = ParameterSet.of_plan(own) if own else None
         result["workload"] = progress.workload(
-            learner, ctx.catalog(), ctx.day(), ctx.args.days, fitted=fitted
+            learner, catalog, ctx.day(), ctx.args.days, fitted=fitted
         )
     return result
 
@@ -250,6 +256,18 @@ def render_replay(data: dict[str, Any]) -> list[str]:
         if variant["name"] == data.get("best") and variant["name"] != "fsrs6":
             line += style("  " + assets.text("replay.best"), "green")
         lines.append(line)
+    base = next((v for v in data["variants"] if v["name"] == "fsrs6"), None)
+    groups = (base or {}).get("groups") or {}
+    if groups.get("sibling", {}).get("reviews"):
+        lines.append("")
+        lines.append(style(assets.text("replay.groups_title"), "bold"))
+        for key in ("sibling", "alone"):
+            got = groups[key]
+            name = term.pad(assets.text(f"replay.groups.{key}", reviews=got["reviews"]), width)
+            lines.append(
+                f"  {name}{_score(got.get('log_loss')):>8}{_score(got.get('rmse_bins')):>11}"
+                f"{_score(got.get('auc')):>8}"
+            )
     work = data.get("workload")
     if work:
         lines.append("")
@@ -386,7 +404,9 @@ def render_answer(data: dict[str, Any]) -> list[str]:
     else:
         lines = [assets.text("cli.answer_dont_know", word=word)]
     if data.get("other_lang"):
-        lines.append(assets.text("cli.other_lang", lang=assets.language_name(data["other_lang"])))
+        # "almost": the spelling of another language; otherwise its word
+        key = "cli.other_lang_near" if grade == "almost" else "cli.other_lang"
+        lines.append(assets.text(key, lang=assets.language_name(data["other_lang"])))
     if data["word"].get("example"):
         lines.append(f"  {data['word']['example']}  {data['word'].get('example_pl', '')}".rstrip())
     if data["word"].get("note"):

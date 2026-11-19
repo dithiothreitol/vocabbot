@@ -220,6 +220,48 @@ def test_compare_scores_every_variant_on_the_later_part(tmp_path: Path, catalog:
     short = replay.compare(write_log(tmp_path / "short", catalog, 21))
     fit = {v["name"]: v for v in short["variants"]}["fit"]
     assert not fit["available"] and fit["reviews"] < optimize.MIN_REVIEWS
+    assert "groups" not in names["fsrs6"]  # without the courses' concepts
+
+
+def test_compare_scores_cards_known_in_another_language_apart(
+    tmp_path: Path, catalog: Catalog
+) -> None:
+    rows = write_log(tmp_path, catalog, 56)
+
+    def concept_of(card: str) -> str | None:
+        entry = catalog.card(card)
+        return str(entry["concept"]) if entry else None
+
+    result = replay.compare(rows, concept_of=concept_of)
+    book = replay_log(rows)
+    since = date.fromisoformat(result["since"])
+    first: dict[tuple[str, str], date] = {}
+    for row in book.rows:
+        if row.kind == "learn":
+            first.setdefault((concept_of(row.card) or "", row.lang), row.day)
+    # the reviews of the later part whose concept had a first answer in the other language
+    expected = sum(
+        1
+        for row in book.rows
+        if row.kind == "review"
+        and row.day >= since
+        and any(
+            lang != row.lang and day <= row.day
+            for (concept, lang), day in first.items()
+            if concept == concept_of(row.card)
+        )
+    )
+    assert 0 < expected < result["test_reviews"]
+    for variant in result["variants"]:
+        if not variant["available"]:
+            continue
+        groups = variant["groups"]
+        assert groups["sibling"]["reviews"] == expected
+        assert groups["sibling"]["reviews"] + groups["alone"]["reviews"] == result["test_reviews"]
+    plain = replay.compare(rows)
+    # the split changes no score of the whole
+    for with_groups, without in zip(result["variants"], plain["variants"], strict=True):
+        assert with_groups.get("scores") == without.get("scores")
 
 
 # ---------------------------------------------------------------- presence

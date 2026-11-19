@@ -32,7 +32,9 @@
 - With `diacritics: lenient` in the plan, a missing diacritic does not lower
   the grade; the log still records it.
 - Answers in another language being learned get `other_lang`; this happens
-  most with words that look alike, so name the language in the result.
+  most with words that look alike, so name the language in the result. A
+  spelling one letter or one accent away keeps the grade "prawie" and gets
+  `other_lang` too.
 - The plan's `batch` sets the cards of one message: 1 by default, one card
   at a time. `next --count <n>` overrides it for one call.
 - The terminal session (`vocabbot drill`) and the chat share the folder and

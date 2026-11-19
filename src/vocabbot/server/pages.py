@@ -1880,6 +1880,8 @@ def card() -> str:
         "phases": texts["phases"],
         "pos": texts["pos"],
         "grades": texts["grades"],
+        # the language a learner's answer came from (`other_lang` of a result)
+        "languages": {code: assets.language_name(code) for code in assets.known_languages()},
     }
     blob = json.dumps(labels, ensure_ascii=False).replace("</", "<\\/")
     template = (resources.files("vocabbot.server") / "static" / "card.html").read_text("utf-8")

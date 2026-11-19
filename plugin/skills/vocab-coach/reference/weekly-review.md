@@ -12,7 +12,7 @@ Every number comes from `status` and `forecast` of this conversation.
 | reviews due within 7 days | `due_week` |
 | most frequent error classes | `errors_30` |
 | hard words | `leeches` (count, and up to five by name) |
-| mix-ups with other languages | `confusions` |
+| mix-ups with other languages | `confusions`; `mixups_30` (`hard`, `near` of `typed` answers) |
 
 Then `streak_days`, and from `forecast`: `average_minutes`, `average_reviews`,
 `peak_reviews` and `levels_complete`.
@@ -35,7 +35,8 @@ At most three, each tied to a number above, each phrased as an option:
   language, or `diacritics=lenient` in the plan.
 - `article` or `gender` among the top error classes: the coach's practice
   of genders for the recent nouns.
-- Many `confusions`: a larger `sibling_gap_days`, or `mix=blocks`.
+- Many `confusions` (`mixups_30.hard` plus `near` against `typed`): a larger
+  `sibling_gap_days`, or `mix=blocks`.
 - A level complete soon (`levels_complete`): the next level for that
   language (`lang.<code>.levels`).
 - A log with many reviews and FSRS-6 defaults: `vocab-start` can compare the

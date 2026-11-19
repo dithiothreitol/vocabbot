@@ -55,7 +55,10 @@ samą sesję w czacie.
 - **Kilka języków.** Silnik dzieli dzienny limit nowych słów między języki
   według wag, przeplata języki w jednej sesji, wprowadza jedno pojęcie
   w dwóch językach w odstępie co najmniej trzech dni i rozpoznaje odpowiedź
-  udzieloną w innym z uczonych języków.
+  udzieloną w innym z uczonych języków, także gdy jest jego pisownią różną
+  o jedną literę albo jeden znak diakrytyczny („sempre” zamiast hiszpańskiego
+  „siempre” zachowuje ocenę „prawie”, a `status` liczy ją jako pomyłkę
+  języków).
 - **Plan.** Języki, poziomy, wagi, liczba nowych słów, dni wolne, docelowa
   trwałość i kolejność języków są ustawieniami planu. Każda zmiana planu
   i własnych słów powstaje najpierw jako podgląd i trafia do folderu nauki

@@ -306,6 +306,11 @@
     if (result.errors_pl && result.errors_pl.length) head.appendChild(el("span", "details", " (" + result.errors_pl.join(", ") + ")"));
     if (result.back) head.appendChild(el("span", "details", " · " + result.back));
     block.appendChild(head);
+    if (result.other_lang) {
+      // "almost": the spelling of another language being learned; otherwise its word
+      var language = (L.languages && L.languages[result.other_lang]) || String(result.other_lang).toUpperCase();
+      block.appendChild(el("div", "details", text(result.grade === "almost" ? "other_lang_near" : "other_lang", { lang: language })));
+    }
     if (result.word) {
       block.appendChild(wordLine(result.word, result.lang));
       // the first contact with a new word shows it in full for every grade

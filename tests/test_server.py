@@ -406,6 +406,9 @@ def test_a_chat_application_connects_signs_up_and_learns(live: Settings) -> None
             assert card.mime_type == "text/html;profile=mcp-app"
             html = card.text  # type: ignore[union-attr]
             assert "VOCABBOT_LABELS" not in html and "Nowe słowo" in html
+            # the language of a mix-up: its word, or its spelling one letter away
+            assert "Tak wygląda to słowo w innym języku nauki" in html
+            assert '"languages": {' in html and '"it": "włoski"' in html
             assert "ui/initialize" in html and "ui/notifications/size-changed" in html
             assert card.meta == {
                 "ui": {

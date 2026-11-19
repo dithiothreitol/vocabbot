@@ -37,8 +37,9 @@ together as version `1.0.0-rc.11`, released on GitHub and PyPI and
 deployed on the server with your approval. I proposed Stage 14 (word
 families: the same words in several languages together, and the measurement
 of mix-ups between languages) on 19.11.2026 at your request, and you
-accepted it with the recommendations on the same day; the work starts with
-part 14a. Version 1.0 still needs the pilot described in
+accepted it with the recommendations on the same day. I carried out part
+14a (the record and the measurement of mix-ups between languages) on the same
+day; part 14b comes next. Version 1.0 still needs the pilot described in
 `docs/pilot.md`.
 
 ---
@@ -2182,8 +2183,9 @@ To check outside the working session:
 ### Stage 14. Word families: the same words in several languages together
 
 I proposed Stage 14 on 19.11.2026 at your request. State: accepted on
-19.11.2026 together with the recommendations of the table of decisions; the
-work starts with part 14a. The stage has three parts:
+19.11.2026 together with the recommendations of the table of decisions. I
+carried out part 14a on the same day (the result closes the stage's text);
+part 14b comes next. The stage has three parts:
 14a corrects the grading and adds measurement, 14b adds learning by families
 as a setting of the plan, and 14c describes the measurement on a log. The
 defaults stay as they are, and section 2.4 still gives the reasons for
@@ -2479,6 +2481,33 @@ learner has the memory the simulator assumes. Only part 14c will show that.
 | reading by families, that is recognition cards of several languages at once as in EuRom5 | a decision after the measurement of part 14c |
 | similarity as a feature of the schedule | it belongs to the Nucifraga plan (goal 6 and the features of kinship and false friends) |
 | a change of the defaults | only after the data of part 14c |
+
+#### Result of part 14a (19.11.2026)
+
+Part 14a records and measures the mix-ups between languages. The grade, the
+due date and the day's queue stay as they were before the stage.
+
+| Criterion | Result |
+|---|---|
+| a slip of one letter is visible | "grand" for Spanish "grande" and "facile" for "fácil" with French in the plan give "almost" with the class `typo` and `other_lang: fr`, in the `lenient` mode too; without French in the plan the slip stays a typo; "grande" for French "grand" stays a form of the word, and "facil" a missing accent |
+| the defaults do not change (S1) | the existing simulation of 30 days gives 1224 rows with the SHA-256 digest `6e49b0db…61d8`, the same as before the stage |
+| the measurement can be trusted | a new simulation of 30 days with Spanish and French, in which the learner types French words for chosen Spanish cards: `mixups_30` counts exactly as many near and hard mix-ups and typed answers as the simulation placed; the log without the field `other_lang` gives the same state of every card |
+| comparison with FSRS-6 | `replay` gives the scores of every variant apart for the reviews of cards with an equivalent met in another language and for the rest; the split changes no score of the whole; the terminal shows both rows for FSRS-6 |
+| interfaces | the terminal, the card in the chat and the session page say "Tak wygląda to słowo w języku: …" with the grade "almost" and keep the former message with the grade "dont_know"; the card in the chat got the names of the languages, so it shows language mix-ups it did not show before |
+| tests | 18 new tests; 328 in all on Python 3.15 and 300 on 3.10 (1 skipped without the group `data`); `ruff`, `mypy`, `build.py skills`, `validate.py`, `session_test.py --check` and `claude plugin validate --strict` without remarks |
+
+Conclusions:
+
+1. A slip of one letter was invisible to the coach so far, although 46.1% of
+   the concepts shared by the Spanish and the Italian course have nearly the
+   same form. From this version `status` counts it, which gives the
+   measurement of part 14c its starting point.
+2. The grade "almost" also covers right forms of the card's language, so the
+   rule holds for a typo and a missing accent only. The case of "grande" for
+   French "grand" showed this border on the starter course.
+3. The part changes neither the due dates nor the queue, so it can go into a
+   release before part 14b. The release `1.0.0-rc.14` waits for your
+   approval.
 
 ---
 

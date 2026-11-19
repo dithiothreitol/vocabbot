@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
 
 from conftest import correct, make_learner, moment
 
-from vocabbot import session, store
+from vocabbot import progress, session, store
+from vocabbot.book import replay
 from vocabbot.courses import Catalog
 from vocabbot.queue import compute
 
@@ -77,3 +79,54 @@ def test_thirty_days_three_languages(tmp_path: Path, catalog: Catalog) -> None:
     learner = store.Learner(tmp_path / "a")
     final = compute(learner, catalog, START + timedelta(days=30))
     assert len(final.before.cards) == 180
+
+
+# Spanish cards the scripted learner answers in French: one letter away (near) or far (hard)
+SLIPS = {"es-c90031#p": "grand", "es-c90059#p": "facile", "es-c90020#p": "la main"}
+NEAR = {"es-c90031#p", "es-c90059#p"}
+
+
+def simulate_slips(root: Path, catalog: Catalog) -> tuple[store.Learner, dict[str, int]]:
+    """Thirty days of Spanish and French; some Spanish cards get the French word at times."""
+    learner = make_learner(root, ["es:a1-a2", "fr:a1-a2"], new_per_day=8, sibling_gap_days=0)
+    placed = {"near": 0, "hard": 0, "typed": 0}
+    for offset in range(30):
+        day = START + timedelta(days=offset)
+        tries: dict[str, int] = defaultdict(int)
+        second = 0
+        dp = compute(learner, catalog, day)
+        while dp.sequence:
+            item = dp.sequence[0]
+            tries[item.card] += 1
+            assert tries[item.card] < 20, item
+            roll = chance(item.card, day, tries[item.card])
+            if item.card in SLIPS and item.phase != "drill" and roll < 0.6:
+                given = SLIPS[item.card]
+                placed["near" if item.card in NEAR else "hard"] += 1
+            else:
+                given = correct(catalog, item.card) if roll < 0.85 else "xyz"
+            placed["typed"] += 1
+            second += 1
+            session.answer(learner, catalog, day, moment(day, second), item.card, given)
+            dp = compute(learner, catalog, day)
+    return learner, placed
+
+
+def test_thirty_days_count_every_mix_up_and_move_no_date(tmp_path: Path, catalog: Catalog) -> None:
+    learner, placed = simulate_slips(tmp_path, catalog)
+    log = learner.path(store.REVIEWS).read_bytes()
+    assert placed["near"] >= 3 and placed["hard"] >= 1
+    last = START + timedelta(days=29)
+    report = progress.status(learner, catalog, last)["languages"]
+    counted = {
+        key: sum(lang["mixups_30"][key] for lang in report.values())
+        for key in ("near", "hard", "typed")
+    }
+    assert counted == placed
+    rows = [json.loads(line) for line in log.decode("utf-8").splitlines()]
+    for row in rows:
+        if row["card"] in NEAR and row.get("given") == SLIPS[row["card"]]:
+            assert (row["grade"], row["error"], row["other_lang"]) == ("almost", "typo", "fr")
+    # the language of a slip is a record only: without it every card has the same state
+    stripped = [{k: v for k, v in r.items() if k != "other_lang"} for r in rows]
+    assert replay(rows).cards == replay(stripped).cards

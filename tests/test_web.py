@@ -437,6 +437,7 @@ def test_the_session_page_keeps_answers_back_and_logs_what_the_program_logs(
     policy = page.headers["content-security-policy"]
     assert "script-src 'self'" in policy and "media-src https://upload.wikimedia.org" in policy
     assert "VOCABBOT_LABELS" not in page.text and '"tab_session"' in page.text
+    assert '"other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang})."' in page.text
     token = csrf(web)
     assert api(web, token, "me")["login"] == "ola"
     assert api(web, token, "today")["error"]["code"] == "no_account_plan"

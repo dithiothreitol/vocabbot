@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import cache
 from typing import Any
 
@@ -336,6 +336,27 @@ def _best(
     return best
 
 
+# the classes of "almost" that may come from the spelling of another language; the others
+# ("form", "article", "case", "reflexive") mean a right word of the card's own language
+SPELLING_SLIPS = frozenset({"typo", "diacritic"})
+
+
+def _spelled_elsewhere(
+    given: str, verdict: Verdict, siblings: list[dict[str, Any]], near: set[str]
+) -> Verdict:
+    """An "almost" that is exactly the word of another language being learned names it."""
+    if verdict.grade != ALMOST or not SPELLING_SLIPS.intersection(verdict.errors):
+        return verdict
+    for sibling in siblings:
+        code = str(sibling["lang"])
+        if code not in near:
+            continue
+        candidates = [*accepted_forms(sibling), str(sibling.get("lemma") or "")]
+        if _best(given, candidates, sibling, rules(code), lenient=False).grade == KNOW:
+            return replace(verdict, other_lang=code)
+    return verdict
+
+
 def accepted_forms(entry: dict[str, Any]) -> list[str]:
     forms = [str(entry["display"])]
     forms += [str(a) for a in entry.get("accept", ()) if a not in forms]
@@ -348,12 +369,18 @@ def grade(
     *,
     lenient: bool = False,
     siblings: Iterable[dict[str, Any]] = (),
+    near: Iterable[str] = (),
 ) -> Verdict:
     """Grade a typed answer to a production card of `entry`.
 
     `siblings` are entries of the same concept in other languages; an answer
-    that matches one of them is reported as given in that language.
+    that matches one of them is reported as given in that language. `near`
+    names the other languages the learner is learning: an answer one letter
+    or one accent away ("sempre" for "siempre") keeps its grade "almost", and
+    when it is exactly the word of one of these languages the verdict names
+    that language too. For a learner of Spanish alone "sempre" stays a typo.
     """
+    siblings = list(siblings)
     lang = rules(str(entry["lang"]))
     given = normalize(answer)
     if not given:
@@ -367,7 +394,7 @@ def grade(
         # "drank" for "drink" is another form of the word, not a typo
         return Verdict(ALMOST, ("form",), other_form.matched)
     if best.grade != DONT_KNOW:
-        return best
+        return _spelled_elsewhere(given, best, siblings, set(near))
     for form in accepted_forms(entry):
         base = without_reflexive(normalize(form), entry, lang)
         if base and _best(given, [base], entry, lang, lenient=True).grade == KNOW:

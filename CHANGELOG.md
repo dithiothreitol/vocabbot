@@ -3,6 +3,29 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+Part 14a of the plan: the mix-ups between the languages being learned are
+recorded and measured; no grade, due date or queue changes.
+
+### Changed
+
+- An answer one letter or one accent away from the card's word that is
+  exactly the word of another language of the plan ("sempre" for Spanish
+  "siempre" with Italian in the plan) keeps its grade "almost" and its error
+  class, and the row and the result name that language (`other_lang`). The
+  terminal, the card in the chat and the session page say "Tak wygląda to
+  słowo w języku: …". For a language outside the plan the slip stays a typo,
+  and the other classes of "almost" (a form, an article) stay as they were:
+  "grande" for French "grand" is the feminine form.
+- `status` lists both kinds of mix-ups in `confusions` (`near: true` for a
+  spelling one letter away) and gives `mixups_30` for each language: the hard
+  and the near mix-ups and the typed answers of 30 days.
+- `replay` scores every variant also apart for the reviews of cards whose
+  concept the learner had met in another language and for the rest
+  (`groups`), and the terminal shows them for FSRS-6.
+- The coach's guide and skill read both kinds of mix-ups.
+
 ## 1.0.0-rc.13 - 2026-11-18
 
 The start page has a new design with motion, and the server tells search

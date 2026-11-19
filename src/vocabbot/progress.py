@@ -72,10 +72,16 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
                 }
             )
         errors = Counter(row.error for row in recent if row.error)
+        # mix-ups between languages: the word of another language ("dont_know") and its
+        # spelling one letter or one accent away ("almost", `near`); typed answers only,
+        # because a self-assessment leaves no text
+        typed = [row for row in recent if "given" in row.raw]
+        mixed = [row for row in typed if row.raw.get("other_lang")]
+        near = [row for row in mixed if row.error != "wrong_language"]
         confusions = []
-        for row in reversed(recent):
+        for row in reversed(mixed):
             entry = catalog.card(row.card)
-            if row.error == "wrong_language" and entry is not None:
+            if entry is not None:
                 confusions.append(
                     {
                         "card": row.card,
@@ -83,6 +89,7 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
                         "meaning": entry["gloss"]["pl"],
                         "given": row.raw.get("given", ""),
                         "other_lang": row.raw.get("other_lang"),
+                        "near": row.error != "wrong_language",
                         "day": row.day.isoformat(),
                         "waiting_today": row.card in remaining,
                     }
@@ -103,6 +110,11 @@ def status(learner: store.Learner, catalog: Catalog, day: date) -> dict[str, Any
             },
             "leeches": leeches[:20],
             "confusions": confusions[:CONFUSIONS_MAX],
+            "mixups_30": {
+                "hard": len(mixed) - len(near),
+                "near": len(near),
+                "typed": len(typed),
+            },
             "recent": recent_words(catalog, cards, remaining, day),
             "paused": bool(item.get("paused")),
         }

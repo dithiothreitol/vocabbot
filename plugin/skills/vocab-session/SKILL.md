@@ -133,7 +133,9 @@ default) or `show`. `view` in every result of the session holds the plan's setti
   End the line with `back` when the result holds it ("wróci za 4 dni"). A
   learner's note (`word.note`) follows the word as "Notatka: …".
   `other_lang` means the learner typed the word of another language being
-  learned: name that language. A result with `error` was refused; show its
+  learned: name that language. With the grade "prawie" it is the spelling of
+  that language one letter or one accent away ("sempre" for "siempre"): say
+  so and show the difference. A result with `error` was refused; show its
   message and go on.
 
 **One card at a time (`batch` 1).** Every message holds the result of the

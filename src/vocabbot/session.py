@@ -280,13 +280,16 @@ def _schedule_after(
 
 
 def evaluate(dp: DayPlan, catalog: Catalog, entry: dict[str, Any], given: str) -> answers.Verdict:
+    """The engine's grade; a slip into the spelling of another language of the plan
+    (paused ones too) names that language, which `status` counts as a mix-up."""
     family = [
         e
         for e in catalog.family(str(entry["concept"]))
         if e["lang"] != entry["lang"] and e["id"] != entry["id"]
     ]
     lenient = dp.plan.get("diacritics") == "lenient"
-    return answers.grade(given, entry, lenient=lenient, siblings=family)
+    near = [code for code in dp.lang_codes() if code != entry["lang"]]
+    return answers.grade(given, entry, lenient=lenient, siblings=family, near=near)
 
 
 def record(

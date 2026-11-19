@@ -6,7 +6,9 @@ earlier part (the first 70% of the reviews in order of time) and is scored on
 the later part, so it never sees the answers it predicts. The scores are those
 of the benchmark of spaced-repetition algorithms: log loss, RMSE(bins) with
 the bins of fsrs-optimizer (interval, number of the answer and lapses on
-logarithmic grids) and AUC.
+logarithmic grids) and AUC. Given the concept of each card, the scores are also
+given apart for the reviews of cards whose concept the learner had already met
+in another language of the log (`sibling`) and for the rest.
 """
 
 from __future__ import annotations
@@ -40,6 +42,7 @@ class Prediction:
     lapses: int  # reviews forgotten before this one
     recalled: bool
     p: float
+    sibling: bool = False  # the concept was met in another language by the day of the review
 
 
 def histories(book: Book) -> Histories:
@@ -65,13 +68,37 @@ def answers_only(hist: Histories, lang: str | None = None) -> list[list[optimize
     return [[a for _, a in answers] for code, answers in hist.values() if lang in (None, code)]
 
 
+Elsewhere = Callable[[str, str, date], bool]
+
+
+def met_elsewhere(hist: Histories, concept_of: Callable[[str], str | None]) -> Elsewhere:
+    """Whether a card's concept had a first answer in another language by a given day."""
+    first: dict[str, dict[str, date]] = defaultdict(dict)
+    for card, (lang, answers) in hist.items():
+        concept = concept_of(card)
+        if concept and answers:
+            known = first[concept].get(lang)
+            first[concept][lang] = min(known, answers[0][0]) if known else answers[0][0]
+
+    def check(card: str, lang: str, day: date) -> bool:
+        concept = concept_of(card)
+        if not concept:
+            return False
+        return any(code != lang and met <= day for code, met in first[concept].items())
+
+    return check
+
+
 def predict(
-    hist: Histories, parameters: Callable[[str], Parameters], since: date | None = None
+    hist: Histories,
+    parameters: Callable[[str], Parameters],
+    since: date | None = None,
+    elsewhere: Elsewhere | None = None,
 ) -> list[Prediction]:
     """Predictions of every review on or after `since` (every review without it)."""
     schedulers: dict[Parameters, Scheduler] = {}
     out: list[Prediction] = []
-    for lang, answers in hist.values():
+    for card, (lang, answers) in hist.items():
         params = parameters(lang)
         scheduler = schedulers.setdefault(params, Scheduler(parameters=params))
         memory = None
@@ -82,7 +109,10 @@ def predict(
                 continue
             p = scheduler.retrievability(memory, answer.days)
             if since is None or day >= since:
-                out.append(Prediction(lang, answer.days, number, lapses, answer.recalled, p))
+                sibling = elsewhere is not None and elsewhere(card, lang, day)
+                out.append(
+                    Prediction(lang, answer.days, number, lapses, answer.recalled, p, sibling)
+                )
             if answer.rating == AGAIN:
                 lapses += 1
             memory = scheduler.review(memory, answer.rating, answer.days)
@@ -203,10 +233,17 @@ def compare(
     *,
     share: float = SHARE,
     current: Callable[[str], Parameters] | None = None,
+    concept_of: Callable[[str], str | None] | None = None,
 ) -> dict[str, Any]:
-    """Scores of every variant on the later part of the log, and their difference from FSRS-6."""
+    """Scores of every variant on the later part of the log, and their difference from FSRS-6.
+
+    With `concept_of` (a card's concept, from the courses) every variant also has
+    `groups`: the scores of reviews whose concept the learner had met in another
+    language (`sibling`) and of the rest (`alone`).
+    """
     book = replay(list(rows))
     hist = histories(book)
+    elsewhere = met_elsewhere(hist, concept_of) if concept_of is not None else None
     days = sorted(row.day for row in book.rows if row.kind == "review")
     if not days:
         return {"reviews": 0, "test_reviews": 0, "variants": []}
@@ -223,7 +260,7 @@ def compare(
         if variant.parameters is None:
             results.append({"name": variant.name, "available": False, **variant.note})
             continue
-        made = predict(hist, variant.parameters, since)
+        made = predict(hist, variant.parameters, since, elsewhere)
         result: dict[str, Any] = {
             "name": variant.name,
             "available": True,
@@ -231,6 +268,11 @@ def compare(
             "scores": scores(made),
             "languages": {lang: scores([x for x in made if x.lang == lang]) for lang in languages},
         }
+        if elsewhere is not None:
+            result["groups"] = {
+                "sibling": scores([x for x in made if x.sibling]),
+                "alone": scores([x for x in made if not x.sibling]),
+            }
         if base.get("reviews"):
             result["delta"] = {
                 key: round(result["scores"][key] - base[key], 4)

@@ -537,3 +537,14 @@ def test_conflict_copies_of_the_notes_are_joined(program: Program, tmp_path: Pat
     program.run("commit", "--confirm", preview["token"], *learner)
     assert not copy.exists()
     assert store.Learner(folder).notes() == {"de-c90001": "na powitanie", "de-c90002": "rano"}
+
+
+def test_an_answer_names_the_language_of_a_mix_up() -> None:
+    word = {"word": "grande", "meaning": "duży", "pos": "adj"}
+    near = {"grade": "almost", "errors": ["typo"], "other_lang": "fr", "word": word}
+    lines = cli.render_answer(near)
+    assert "Tak wygląda to słowo w języku: francuski." in lines
+    hard = {"grade": "dont_know", "errors": ["wrong_language"], "other_lang": "fr", "word": word}
+    assert "To słowo w języku: francuski." in cli.render_answer(hard)
+    plain = {"grade": "almost", "errors": ["typo"], "word": word}
+    assert not any("języku" in line for line in cli.render_answer(plain))

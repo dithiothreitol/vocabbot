@@ -613,7 +613,11 @@
       }
       card.appendChild(given);
     }
-    if (result.other_lang) card.appendChild(note("blue", "info", t("other_lang", { lang: langName(result.other_lang) })));
+    if (result.other_lang) {
+      // "almost": the spelling of another language being learned; otherwise its word
+      var otherKey = result.grade === "almost" ? "other_lang_near" : "other_lang";
+      card.appendChild(note("blue", "info", t(otherKey, { lang: langName(result.other_lang) })));
+    }
     add(card, noteBox(result.word));
     if (result.level_hint) {
       var hint = note("blue", "sparkles", c("level_hint", result.level_hint));
