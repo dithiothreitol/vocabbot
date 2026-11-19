@@ -29,9 +29,12 @@ GitHubie i w PyPI (15.11.2026), a serwer działa pod `https://vocab.archxs.com`.
 Etapy 12 i 13 (konto jako wspólny rekord nauki na wszystkich urządzeniach
 oraz sesja w przeglądarce telefonu) zaakceptowałeś 18.11.2026 i tego samego
 dnia zrealizowałem je razem jako wersję `1.0.0-rc.11`, za Twoją zgodą
-wydaną na GitHubie i w PyPI oraz wdrożoną na serwer. Do wersji 1.0 pozostaje
-pilotaż według
-`docs/pilot.pl.md`. Wersję angielską planu zawiera `development-plan.md`.
+wydaną na GitHubie i w PyPI oraz wdrożoną na serwer. Etap 14 (rodziny słów:
+te same słowa w kilku językach razem oraz pomiar pomyłek między językami)
+zaproponowałem 19.11.2026 na Twoją prośbę i tego samego dnia
+zaakceptowałeś go z rekomendacjami; realizacja zaczyna się od części 14a. Do
+wersji 1.0 pozostaje pilotaż według `docs/pilot.pl.md`. Wersję angielską
+planu zawiera `development-plan.md`.
 
 ---
 
@@ -2130,6 +2133,298 @@ Do sprawdzenia poza sesją pracy:
 | poczta | jedna prawdziwa wiadomość odzyskiwania z Twojego konta: adres na stronie konta, potem „Nie pamiętam hasła” |
 | sesja z modelem | symulacja połączenia folderu przez umiejętność `vocab-start` (koszt modeli, osobna zgoda) |
 
+### Etap 14. Rodziny słów: te same słowa w kilku językach razem
+
+Etap 14 zaproponowałem 19.11.2026 na Twoją prośbę. Stan: zaakceptowany
+19.11.2026 razem z rekomendacjami z tabeli decyzji; realizacja zaczyna się
+od części 14a. Etap ma trzy
+części: 14a poprawia ocenianie i dodaje pomiar, 14b dodaje naukę rodzinami
+jako ustawienie planu, 14c opisuje pomiar na dzienniku. Ustawienia domyślne
+zostają bez zmian, a rozdział 2.4 nadal uzasadnia rozdzielanie.
+
+#### Ustalenia
+
+Stan silnika 19.11.2026 (wersja 1.0.0-rc.13, commit `398b749`):
+
+| Zagadnienie | Stan | Miejsce |
+|---|---|---|
+| to samo pojęcie w dwóch językach | wchodzi najwcześniej po `sibling_gap_days` (3) dniach; karty jednej rodziny stoją co najmniej `sibling_distance` (5) pozycji od siebie | `queue.select_new` (`blocked`), `queue.spread` |
+| odpowiedź w innym języku | rozpoznawana tylko wtedy, gdy własna ocena wypada „nie wiem”: „nome” na hiszpańskie „nombre” daje „nie wiem” z klasą `wrong_language` | `answers.grade`, `session.evaluate` |
+| słowo z innego języka różniące się jedną literą | oceniane jako literówka: „sempre” na „siempre” i „cuando” na włoskie „quando” dają „prawie” z klasą `typo`, bez `other_lang`; tabela pomyłek trenera ich nie widzi | sprawdzone 19.11.2026 na hasłach kursów |
+| podpowiedź odpowiednika | brak; pole `confusable` z rozdziału 2.4 nie ma danych w żadnym haśle | `courses.py`, kursy |
+| podobieństwo w harmonogramie | brak; FSRS-6 traktuje każdą kartę osobno | `fsrs.py` |
+
+Podobieństwo form w kursach, policzone 19.11.2026 na lematach bez znaków
+diakrytycznych. „Prawie ta sama forma” oznacza formę identyczną, różnicę
+najwyżej 2 liter przy co najmniej 4 literach albo wspólny początek co najmniej
+4 liter, który obejmuje 70% dłuższego słowa:
+
+| Para | Wspólne pojęcia | Prawie ta sama forma | W tym identyczne |
+|---|---|---|---|
+| hiszpański i włoski | 5209 | 46,1% | 13,7% |
+| hiszpański i francuski | 5213 | 36,8% | 5,3% |
+| francuski i włoski | 5226 | 31,4% | 3,3% |
+| angielski i francuski | 5517 | 34,5% | 13,3% |
+| angielski i niemiecki | 5580 | 20,7% | 7,8% |
+| niemiecki i hiszpański | 5177 | 13,9% | 2,6% |
+
+Hiszpański, włoski i francuski mają 4991 wspólnych pojęć, z których 23,6%
+jest podobnych we wszystkich trzech językach. 720 pojęć (14,4%) to rzeczowniki
+i przymiotniki z regularną trójką końcówek, na przykład `-ción`, `-zione`,
+`-tion` (160 pojęć), `-ico`, `-ico`, `-ique` (61) i `-dad`, `-tà`, `-té` (59).
+
+Wyniki badań i metod, uzupełnienie rozdziału 2.4:
+
+| Wynik | Wniosek dla etapu |
+|---|---|
+| Interkomprehensja uczy rozumienia kilku pokrewnych języków naraz: EuroComRom („siedem sit”, w tym odpowiedniości głosek, słownictwo wspólne i przyrostki) oraz EuRom5 (te same teksty w kilku językach romańskich). Obie metody uczą czytania i zakładają znajomość jednego języka romańskiego | nauka tych samych słów w kilku językach ma wzorzec, ale dla rozpoznawania, a nie dla wpisywania |
+| Słowa podobne do znanych zapamiętuje się łatwiej i wolniej zapomina (de Groot i Keijzer, 2000) | rodzina podobnych form może kosztować mniej powtórek |
+| Przy wpisywaniu słowa podobne mają krótszy czas rozpoczęcia odpowiedzi, ale więcej błędów pisowni z drugiego języka (Muscalu i Smiley, 2018) | pomyłka o jedną literę jest interferencją, nie literówką; część 14a ją zapisuje |
+| Nauka odpowiednika w nowym języku od razu pogarsza przypominanie słowa z wcześniej poznanego języka obcego; czas na konsolidację tego nie zmienia (Mickan i in., 2024) | rozdzielanie zostaje ustawieniem domyślnym |
+| Języki obce mieszają się ze sobą silniej niż z językiem ojczystym (efekt języka obcego) | pomiar obejmuje każdą parę języków planu |
+| Nowe podobne słowa uczone razem zwykle sobie przeszkadzają (Tinkham, Waring), a nowsze wyniki są mieszane (Nakata i Suzuki, 2018) | korzyść z nauki rodzinami nie jest pewna |
+| Nie znalazłem kontrolowanego badania, które porównuje naukę tych samych słów w kilku pokrewnych językach razem i osobno | tryb powstaje jako opcja z pomiarem na dzienniku; o ustawieniu domyślnym rozstrzygną dane |
+
+#### Zakres
+
+**14a. Ocena i pomiar (bez zmiany terminów i kolejki)**
+
+1. **Forma z innego języka przy ocenie „prawie”.** `answers.grade` dostaje
+   parametr `near` z kodami języków planu. Gdy najlepszy werdykt to „prawie”
+   z klasą `typo` albo `diacritic`, a wpisana odpowiedź jest dokładnie
+   przyjętą formą albo lematem hasła tego samego pojęcia w języku z `near`
+   (ocena „wiem” według reguł tamtego języka, ze ścisłymi znakami
+   diakrytycznymi), werdykt zachowuje ocenę i klasę błędu oraz dostaje
+   `other_lang`. Pozostałe klasy oceny „prawie” (`form`, `article`, `case`,
+   `reflexive`) oznaczają poprawne słowo języka karty, więc zostają bez
+   zmian: „grande” na francuskie „grand” jest formą żeńską, a nie słowem
+   hiszpańskim. Dla języków spoza planu też nic się nie zmienia: uczący się
+   samego hiszpańskiego, który wpisze „sempre”, popełnił literówkę.
+2. **Wiersz i wynik.** `session.evaluate` przekazuje jako `near` języki planu
+   poza językiem karty, także wstrzymane. Wiersz dziennika i wynik niosą
+   `other_lang`, czyli pole, które już istnieje. Ocena, termin powtórki
+   i utrwalanie zostają takie same, więc żaden dotychczasowy dziennik nie
+   zmienia stanu po odtworzeniu.
+3. **Komunikat.** Wynik z `other_lang` przy ocenie „prawie” dostaje własny
+   tekst („Tak zapisuje się to słowo po włosku.”) w terminalu, na karcie
+   w czacie i na stronie sesji. Terminal nadal pokazuje różnicę liter.
+4. **Postęp.** `status` podaje w `confusions` oba rodzaje pomyłek z polem
+   `near`, a dla każdego języka `mixups_30`: liczbę pomyłek twardych,
+   bliskich i wszystkich wpisanych odpowiedzi z 30 dni. Pomiar obejmuje
+   odpowiedzi wpisane, ponieważ samoocena nie zostawia tekstu.
+5. **Porównanie z FSRS-6.** `replay.compare` liczy log loss, RMSE(bins) i AUC
+   każdego wariantu osobno dla powtórek kart, których pojęcie uczący się
+   znał już w innym języku planu, i dla pozostałych (`Prediction.sibling`).
+   To ta sama miara, której używa cel 6 planu Nucifragi.
+6. **Trener.** Przewodnik `coach` i umiejętność `vocab-coach` pokazują
+   w tabeli pomyłek oba rodzaje.
+
+**14b. Nauka rodzinami jako ustawienie planu**
+
+1. **Ustawienie `together`.** Lista kodów języków, których słowa uczący się
+   poznaje i powtarza rodzinami, na przykład `together=es,it,fr`. Wartość
+   `all` oznacza wszystkie języki planu, a `none` pustą listę, czyli
+   zachowanie dzisiejsze. Lista przyjmuje kody z planu, co najmniej dwa albo
+   żaden. Wyłączenie języka (`lang.<kod>=off`) usuwa jego kod z listy.
+   Zestaw rodzin tworzą niewstrzymane języki z listy; przy mniej niż dwóch
+   tryb nie działa. Zmiana przechodzi przez podgląd i potwierdzenie jak każda
+   zmiana planu oraz trafia do `log/plan.jsonl`.
+2. **Nowe słowa (`queue.select_new`).** Między dwoma językami zestawu nie
+   obowiązuje `sibling_gap_days`; wobec języków spoza zestawu zostaje.
+   Język zestawu bierze najpierw pojęcia, które mają już kartę w innym języku
+   zestawu (sprzed dnia albo wybraną dziś), a w nim jeszcze nie, o ile hasło
+   leży w jego poziomach i nie jest odłożone. Kolejność dopełniania wyznacza
+   dzień pierwszego wprowadzenia pojęcia, a potem identyfikator pojęcia.
+   Dopiero potem język bierze słowa z własnej kolejności kursu. Podział
+   limitu według wag, rotacja języków i dopisywanie kolejnych słów po jednym
+   zostają, więc lista dnia nadal tylko rośnie. Przy równych wagach dzień
+   składa się z całych rodzin. Przy różnych wagach, różnych poziomach albo
+   braku hasła w jednym z języków język bierze słowo sam, a rodzina dopełnia
+   się w kolejnych dniach jako pierwsza.
+3. **Kolejność dnia (`queue.compute`).** Karty języków zestawu o tym samym
+   pojęciu i kierunku stoją obok siebie jako blok, w nowych słowach
+   i w powtórkach. Blok zajmuje miejsce swojej pierwszej karty w kolejności
+   wynikającej z `review_order` i `mix`. Kolejność języków w bloku wynika ze
+   skrótu SHA-256 pojęcia i dnia, więc każdy język bywa pierwszy, a oba
+   komputery układają blok tak samo. `sibling_distance` dotyczy kart spoza
+   bloków, a utrwalanie zostaje bez zmian.
+4. **Powtórki rodziną.** Gdy karta zestawu ma dziś termin i jest na liście
+   dnia, wprowadzone wcześniej karty tego samego pojęcia i kierunku
+   w pozostałych językach zestawu dołączają do jej bloku jako powtórki przed
+   terminem (`phase: ahead`, wiersz z `ahead: true`, tak jak powtórki dodane
+   przez uczącego się w Etapie 10). Karta dołącza, jeżeli nie ma dziś
+   terminu, nie była dziś widziana, nie jest odłożona, a od ostatniej
+   odpowiedzi minęła co najmniej połowa jej odstępu i co najmniej jeden
+   dzień. FSRS-6 liczy krótszy odstęp tak jak przy każdej powtórce przed
+   terminem. `review_limit` liczy karty z terminem jak dotąd, a dołączone
+   karty dochodzą ponad limit. Dostosowanie liczby nowych słów do zwykłych
+   minut liczy je razem z powtórkami dnia. Nowe pole `DayPlan.companions`
+   podaje je licznikom i prognozie.
+5. **Pierwsza odpowiedź w rodzinie (`session.logged_grade`).** Nowe słowo
+   zadane od razu jako pytanie i odgadnięte poprawnie daje „znałem” tylko
+   wtedy, gdy uczący się nie widział dziś innej karty tego pojęcia w języku
+   zestawu. W przeciwnym razie dostaje „wiem”. Forma wyprowadzona
+   z odpowiednika pokazanego chwilę wcześniej nie świadczy o znajomości
+   sprzed kursu, a „znałem” dodałoby do dnia kolejne słowo i dało odstęp jak
+   dla słowa znanego.
+6. **Tabela rodziny w wyniku (`session.record`).** Wynik odpowiedzi na kartę
+   języka zestawu dostaje pole `family`: wiersz dla każdej wprowadzonej już
+   karty tej rodziny w zestawie, z językiem, słowem i podziałem na część
+   wspólną i różną. Karta, która czeka jeszcze dziś w kolejce w dowolnym
+   etapie, ma w wierszu znacznik `waiting` zamiast słowa. Pojęcia, którego
+   uczący się nie zaczął w danym języku, tabela nie pokazuje. Pole `rule`
+   podaje odpowiedniość końcówek, gdy pasuje do wszystkich pokazanych słów.
+   Pytania (`next`, `today`) nigdy nie zawierają tabeli, więc zasada pytania
+   bez odpowiedzi obejmuje także odpowiedniki.
+7. **Moduł `families.py`** na bibliotece standardowej: `shape` (forma
+   identyczna, bliska albo odmienna według definicji z ustaleń), `split`
+   (część wspólna i różna do wyróżnienia), `rule`, `table` oraz `team`
+   (zestaw rodzin planu).
+8. **Dane `data/lang/correspondences.json`.** Regularne odpowiedniości
+   końcówek między językami kursów, na początek 19 wzorców z pomiaru. Reguła
+   obowiązuje tylko przy bliskich rdzeniach, więc „hablar” i „parlare” jej
+   nie dostają. Treść pochodzi z danych silnika, a nie z modelu, dlatego nie
+   nosi dopisku „(wygenerowane)”.
+9. **Prognoza i symulacja.** `progress.simulate`, `forecast`
+   i `replay --days` używają tego samego wyboru nowych słów i tych samych
+   dołączanych powtórek. Podgląd zmiany `together` pokazuje prognozę 28 dni
+   przed zmianą i po niej: powtórki i minuty dziennie.
+10. **Pomiar trybu.** `status` podaje w `families` zestaw oraz z 30 dni:
+    liczbę bloków rodzin w powtórkach, trafność pierwszej karty bloku
+    i kolejnych kart (miara podpowiedzi przez sąsiada) oraz pomyłki języków
+    na 100 wpisanych odpowiedzi.
+11. **Interfejsy.** Terminal (`drill.py`) pokazuje tabelę rodziny po wyniku.
+    Narzędzia serwera zwracają `family` w wynikach `vocab_answer`,
+    `vocab_grade` i `vocab_reveal`, a `vocab_plan_change` przyjmuje
+    `together`. Karta w czacie (`card.html`) i strona sesji (`app.js`)
+    rysują tabelę pod wynikiem. Formularz planu na stronie sesji ma wybór
+    języków zestawu, a ekran postępu pokazuje pomiar. Każdy tekst pochodzi
+    z `pl.json`.
+12. **Przewodniki i umiejętności.** `server/guides/session.md`, `start.md`
+    i `coach.md` oraz umiejętności wtyczki z `reference/plan-keys.md`
+    opisują ustawienie, tabelę i pomiar. Asystent pokazuje wyłącznie słowa
+    z pola `family` i nie dopisuje odpowiedników od siebie. Trener proponuje
+    zestaw rodzin przy kilku językach pokrewnych i małej liczbie pomyłek,
+    a powrót do rozdzielania przy rosnącej liczbie pomyłek.
+
+**14c. Pomiar na dzienniku**
+
+`docs/pilot` dostaje protokół: co najmniej 14 dni nauki z rozdzielaniem,
+potem co najmniej 14 dni z zestawem rodzin, z tymi samymi językami i tą samą
+liczbą nowych słów. Porównanie bierze liczby z `status` i `replay`: pomyłki
+języków na 100 wpisanych odpowiedzi, trwałość każdego języka z 30 dni,
+powtórki i minuty dziennie, trafność pierwszej i kolejnych kart bloku oraz
+błąd FSRS-6 dla kart z odpowiednikiem. Część nie wymaga kodu poza 14a i 14b.
+
+#### Pliki
+
+| Warstwa | Pliki |
+|---|---|
+| silnik | `answers.py`, `session.py`, `queue.py`, `progress.py`, `replay.py`, `plans.py`, `store.py`, `cli.py`, `drill.py`, nowy `families.py` |
+| dane | nowy `data/lang/correspondences.json`, `data/i18n/pl.json`; kursy bez zmian, więc `VERSION` w `tools/courses/build.py` zostaje |
+| serwer | `server/service.py`, `server/guides/*.md`, `server/static/card.html`, `app.html`, `app.js` |
+| wtyczka | `plugin/skills/*/SKILL.md`, `reference/plan-keys.md`, pliki generowane przez `scripts/build.py skills` |
+| dokumenty | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/README`, `docs/architecture.md`, `CHANGELOG`, ten plan; każdy dokument użytkownika po angielsku i po polsku |
+| testy | `tests/test_answers.py`, `test_engine.py`, `test_simulation.py`, `test_schedule.py`, `test_drill.py`, `test_cli.py`, `test_server.py`, `test_web.py`, `test_sync.py`, `test_e2e.py`, nowy `test_families.py`, nowy `sessions/session-families.json` |
+
+#### Testy i symulacje
+
+Testy jednostkowe i integracyjne korzystają z kursu startowego
+w `tests/fixtures/courses`, który ma potrzebne pary hiszpańsko-francuskie:
+„grande” i „grand” (jedna litera), „fácil” i „facile”, „la mano”
+i „la main” oraz identyczne „dormir”. Ich dzisiejsze oceny sprawdziłem
+19.11.2026.
+
+| Obszar | Test |
+|---|---|
+| forma z innego języka | „grand” na hiszpańskie „grande” i „facile” na „fácil” z francuskim w planie dają „prawie” z klasą `typo` i `other_lang: fr`, także w trybie `lenient`; bez francuskiego w planie wynik jest taki jak dziś; „grande” na francuskie „grand” zostaje formą słowa (klasa `form`) bez `other_lang`; identyczne „dormir” daje „wiem”; „la main” na „la mano” nadal daje „nie wiem” z `wrong_language` |
+| stan po odtworzeniu | dziennik sprzed etapu daje po odtworzeniu ten sam stan kart i te same terminy |
+| ustawienie | `together` przyjmuje listę, `all` i `none`; odrzuca kod spoza planu i pojedynczy kod; wyłączenie języka skraca listę; zmiana przechodzi przez podgląd i token; zmiany z dwóch urządzeń łączą się przez `log/plan.jsonl` |
+| nowe słowa | przy równych wagach dzień składa się z całych rodzin; dopełnianie ma pierwszeństwo; różne wagi, różne poziomy, hasło odłożone i język wstrzymany nie gubią miejsc limitu; dodanie słów i ocena „znałem” tylko dopisują karty do listy dnia |
+| kolejność | karty rodziny stoją obok siebie; pierwszy język bloku zmienia się między dniami; język spoza zestawu zachowuje odstęp 3 dni i 5 pozycji |
+| powtórki rodziną | karta dołącza od połowy odstępu i nie wcześniej; wiersz ma `ahead: true`; karta nie pojawia się dwa razy jednego dnia; limit powtórek, dzień wolny i przerwana sesja zachowują kolejność |
+| pierwsza odpowiedź | druga karta rodziny odgadnięta w tym samym dniu dostaje „wiem” i nie dodaje słowa; pierwsza nadal może dostać „znałem” |
+| pytanie bez odpowiedzi | w każdym kroku dnia żadne pytanie i żadna tabela `family` nie zawiera przyjętej formy karty, która czeka jeszcze w kolejce; sprawdzenie obejmuje polecenia, narzędzia MCP i `/api` |
+| moduł rodzin | klasy `shape` na parach z kursu startowego; `split` wyróżnia różnicę; każda reguła z `correspondences.json` ma co najmniej 10 pojęć w pakowanych kursach i nie obejmuje par o odmiennych rdzeniach |
+| pomiar | `mixups_30`, `confusions` z polem `near`, trafność pierwszej i kolejnych kart bloku oraz grupy w `replay` zgadzają się z dziennikiem, w którym test sam umieścił znaną liczbę pomyłek |
+| prognoza | prognoza pierwszego dnia równa się liście dnia w obu trybach; podgląd zmiany pokazuje obie prognozy |
+| interfejsy | terminal, narzędzia MCP, `/api`, karta i strona sesji podają tę samą tabelę; pełny dzień przez `/api` daje te same wiersze co te same odpowiedzi przez polecenia, także z zestawem rodzin |
+
+Symulacje od początku do końca:
+
+| Symulacja | Przebieg | Co potwierdza |
+|---|---|---|
+| S1. Ustawienia domyślne | dotychczasowa symulacja 30 dni (angielski z wagą 2, niemiecki, hiszpański, 12 nowych słów, niedziele wolne) | dziennik ma ten sam skrót co przed etapem: 1224 wiersze, SHA-256 `6e49b0db295f80f119828b469e2239cd027b2f2f222bfd8b09a547ba5d1e61d8` |
+| S2. Zestaw rodzin | 30 dni, hiszpański i francuski w zestawie, angielski poza nim, uruchomione dwa razy | oba dzienniki identyczne bajt w bajt; lista dnia nie zmienia się po odpowiedziach; pojęcia zestawu wchodzą w obu językach tego samego dnia, a angielski zachowuje odstęp 3 dni; limit nowych słów nie jest przekroczony; żadna karta nie ma dwóch powtórek jednego dnia |
+| S3. Uczący się z interferencją | jak S2, a przy formach bliskich uczący się wpisuje z ustaloną szansą formę z drugiego języka | liczba pomyłek w `status` równa się liczbie wstawionej przez symulację, osobno dla bliskich i twardych; oceny i terminy są takie same jak w przebiegu z literówkami o tej samej ocenie |
+| S4. Zmiana trybu w trakcie | 15 dni z rozdzielaniem, potem zestaw rodzin na 15 dni | zaległe rodziny dopełniają się przed nowymi pojęciami; liczba kart po 30 dniach wynika z limitu; nic z dziennika nie ginie |
+| S5. Obciążenie | prognoza i przebieg 28 dni w obu trybach na tym samym dzienniku | raport podaje powtórki i minuty dziennie, udział powtórek przed terminem oraz przewidywaną trwałość; próg dopuszczalnego wzrostu ustalimy po pierwszym pomiarze |
+| S6. Dwa komputery i telefon | rozszerzenie `tests/test_e2e.py`: serwer jako proces, telefon ustawia zestaw rodzin i zaczyna blok na stronie sesji, komputer po synchronizacji kończy ten sam blok w terminalu, drugi komputer wpisuje formę z drugiego języka | wszystkie strony kończą z tym samym dziennikiem i tą samą kolejką; pomyłka wpisana na komputerze jest widoczna w postępie na telefonie |
+| S7. Sesja z modelem | `sessions/session-families.json`: plan z zestawem rodzin, początek sesji i jedna rodzina | `session_test.py --check` przygotowuje uczącego się bez modelu; przebieg z modelem sprawdza brak odpowiedzi w pytaniach i tabelę wyłącznie z pola `family` |
+| S8. Przeglądarka | przejście sesji na stronie przy szerokości 360 px i na komputerze, w motywie jasnym i ciemnym | tabela rodziny mieści się bez przewijania w poziomie; konsola bez błędów |
+
+Symulacje sprawdzają mechanikę: zgodność na dwóch komputerach, obciążenie,
+brak odpowiedzi w pytaniach i poprawny zapis pomyłek. Nie rozstrzygają, czy
+nauka rodzinami poprawia pamięć, ponieważ uczący się w symulacji ma pamięć
+taką, jaką zakłada symulator. To pokaże dopiero część 14c.
+
+#### Kryteria ukończenia
+
+| Kryterium | Sprawdzenie |
+|---|---|
+| ustawienia domyślne bez zmian | S1 daje podany skrót; pełny zestaw dotychczasowych testów przechodzi bez zmiany oczekiwań |
+| pomyłka o jedną literę jest widoczna | „sempre” na „siempre” z włoskim w planie ma `other_lang` i trafia do `confusions`; ocena i termin są takie same jak przed etapem |
+| nauka rodzinami działa od początku do końca | S2, S4 i S6 przechodzą |
+| pytanie bez odpowiedzi | test z tabeli obejmuje każdy krok S2 w trzech interfejsach |
+| obciążenie jest znane przed zmianą | podgląd `together` pokazuje prognozę przed zmianą i po niej; S5 podaje liczby do wyniku etapu |
+| pomiar jest wiarygodny | S3 odtwarza liczbę wstawionych pomyłek |
+| kontrole repozytorium | `ruff`, `mypy`, `pytest` na Pythonie 3.15 i 3.10, `build.py skills`, `validate.py`, `session_test.py --check`, `claude plugin validate --strict` |
+
+#### Zgodność wersji
+
+| Sytuacja | Zachowanie |
+|---|---|
+| wiersze dziennika | nowe wiersze używają istniejących pól (`other_lang`, `ahead`), więc starsza wersja je odtwarza |
+| starszy program z planem, który ma `together` | pomija nieznane ustawienie, tak jak od wersji rc.11, i układa dzień z rozdzielaniem; kolejka różni się wtedy między urządzeniami do czasu aktualizacji |
+| serwer | wdrożenie serwera poprzedza wydanie programu, żeby konto znało ustawienie, zanim wyśle je folder |
+| kursy | bez zmian; nowy plik danych trafia do `vocabbot.pyz` przez `build.py skills` |
+
+#### Kolejność
+
+1. 14a w jednej sesji pracy, z wydaniem `1.0.0-rc.14` po Twojej zgodzie.
+   Część nie zmienia kolejki ani terminów, więc może wejść przed 14b.
+2. 14b w jednej lub dwóch sesjach: silnik z testami i symulacjami S1–S5,
+   potem interfejsy, przewodniki, dokumenty i S6–S8.
+3. 14c po co najmniej 28 dniach Twojej nauki.
+
+#### Decyzje do Twojej akceptacji
+
+| Decyzja | Rekomendacja |
+|---|---|
+| kształt ustawienia | lista `together` z kodami języków; pozwala uczyć razem języki romańskie i zostawić angielski osobno |
+| powtórki rodziną | dołączanie od połowy odstępu; samo sąsiedztwo kart, które wypadają tego samego dnia, nie utrzyma rodzin razem, bo terminy rozchodzą się z każdą oceną |
+| pierwsza odpowiedź kolejnej karty rodziny | „wiem” zamiast „znałem” |
+| zakres odpowiedniości | same końcówki; odpowiedniości wewnątrz rdzenia („noche”, „notte”, „nuit”) wymagają danych etymologicznych |
+| wydanie 14a osobno | tak, ponieważ poprawia ocenianie niezależnie od trybu rodzin |
+
+#### Koszty i zgody
+
+| Pozycja | Koszt | Zgoda |
+|---|---|---|
+| implementacja, testy i symulacje S1–S6, S8 | brak kosztów modeli | akceptacja etapu |
+| S7 z modelem | poniżej 1 USD według dotychczasowych przebiegów | osobna |
+| push, tag, wydanie na GitHubie, PyPI, wdrożenie | brak | osobna dla każdej czynności |
+
+#### Poza zakresem
+
+| Temat | Powód |
+|---|---|
+| jedna karta dla form identycznych w dwóch językach | rodzajnik i rodzaj często się różnią („la leche”, „il latte”), a każda karta ma własną pamięć |
+| odpowiedniości wewnątrz rdzenia | brak danych etymologicznych w kursach |
+| czytanie rodziną, czyli karty rozpoznawania kilku języków naraz jak w EuRom5 | decyzja po pomiarze z części 14c |
+| podobieństwo jako cecha harmonogramu | należy do planu Nucifragi (cel 6 oraz cechy pokrewieństwa i fałszywych przyjaciół) |
+| zmiana ustawień domyślnych | dopiero po danych z części 14c |
+
 ---
 
 ## 11. Weryfikacja kompletności
@@ -2270,3 +2565,10 @@ Nazwa `vocabbot` była 14.11.2026 wolna w PyPI oraz na koncie
 - Waisman Center, przeplatanie języków: https://www.waisman.wisc.edu/?p=36980
 - MPI Nijmegen, „New in, old out”: https://forms.mpi.nl/node/55663
 - Bartolotti i Marian, nauka trzeciego języka: https://bilingualism.northwestern.edu/wp-content/uploads/2018/05/BartolottiMarian2018.pdf
+- EuroComRom, „siedem sit” (omówienie książki): https://my6tongues.blogspot.com/2019/06/eurocomrom-seven-sieves-how-to-read-all.html
+- EuRom5, strategie czytania (Bonvino, Fiorenza, Cortés Velásquez, 2018): https://frontiersin.org/journals/communication/articles/10.3389/fcomm.2018.00029/full
+- de Groot i Keijzer (2000), słowa podobne a zapamiętywanie: https://zendy.io/title/10.1111/0023-8333.00110
+- Muscalu i Smiley (2018), słowa podobne przy wpisywaniu: https://resolve.cambridge.org/core/journals/bilingualism-language-and-cognition/article/abs/illusory-benefit-of-cognates-lexical-facilitation-followed-by-sublexical-interference-in-a-word-typing-task/004E5B5A197886449247CD857DDFB8CA
+- Mickan i in. (2024), „New in, old out”, publikacja: https://www.mpi.nl/publications/item3518623/new-old-out-does-learning-new-language-make-you-forget-previously-learned
+- Interferencja między językami obcymi w mówieniu osób trójjęzycznych: https://addi.ehu.eus/handle/10810/63415
+- Nakata i Suzuki (2018), nauka słów powiązanych znaczeniowo: https://www.cambridge.org/core/product/F58BA8D70385603B9C42E408BFCB8A10

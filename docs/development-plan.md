@@ -34,8 +34,12 @@ server runs at `https://vocab.archxs.com`. You accepted Stages 12 and 13 (the
 account as the shared learning record on every device, and the session in a
 phone's browser) on 18.11.2026, and on the same day I carried them out
 together as version `1.0.0-rc.11`, released on GitHub and PyPI and
-deployed on the server with your approval. Version 1.0 still needs the pilot
-described in `docs/pilot.md`.
+deployed on the server with your approval. I proposed Stage 14 (word
+families: the same words in several languages together, and the measurement
+of mix-ups between languages) on 19.11.2026 at your request, and you
+accepted it with the recommendations on the same day; the work starts with
+part 14a. Version 1.0 still needs the pilot described in
+`docs/pilot.md`.
 
 ---
 
@@ -2175,6 +2179,307 @@ To check outside the working session:
 | mail | one real recovery message from your account: the address on the account page, then "Nie pamiętam hasła" |
 | a session with a model | a simulation of linking a folder through the skill `vocab-start` (model costs, a separate approval) |
 
+### Stage 14. Word families: the same words in several languages together
+
+I proposed Stage 14 on 19.11.2026 at your request. State: accepted on
+19.11.2026 together with the recommendations of the table of decisions; the
+work starts with part 14a. The stage has three parts:
+14a corrects the grading and adds measurement, 14b adds learning by families
+as a setting of the plan, and 14c describes the measurement on a log. The
+defaults stay as they are, and section 2.4 still gives the reasons for
+keeping families apart.
+
+#### Findings
+
+The engine on 19.11.2026 (version 1.0.0-rc.13, commit `398b749`):
+
+| Topic | State | Place |
+|---|---|---|
+| one concept in two languages | enters after `sibling_gap_days` (3) days at the earliest; cards of one family stay at least `sibling_distance` (5) positions apart | `queue.select_new` (`blocked`), `queue.spread` |
+| an answer in another language | recognised only when the answer's own grade is "dont_know": "nome" for Spanish "nombre" gives "dont_know" with the class `wrong_language` | `answers.grade`, `session.evaluate` |
+| a word of another language one letter away | graded as a typo: "sempre" for "siempre" and "cuando" for Italian "quando" give "almost" with the class `typo`, without `other_lang`; the coach's table of mix-ups does not see them | checked on 19.11.2026 on course entries |
+| a hint of the equivalent | none; the field `confusable` of section 2.4 has no data in any entry | `courses.py`, the courses |
+| similarity in the schedule | none; FSRS-6 treats every card on its own | `fsrs.py` |
+
+The similarity of forms in the courses, counted on 19.11.2026 on lemmas
+without diacritics. "Nearly the same form" means an identical form, a
+difference of at most 2 letters in a word of at least 4 letters, or a shared
+start of at least 4 letters that covers 70% of the longer word:
+
+| Pair | Shared concepts | Nearly the same form | Of these identical |
+|---|---|---|---|
+| Spanish and Italian | 5209 | 46.1% | 13.7% |
+| Spanish and French | 5213 | 36.8% | 5.3% |
+| French and Italian | 5226 | 31.4% | 3.3% |
+| English and French | 5517 | 34.5% | 13.3% |
+| English and German | 5580 | 20.7% | 7.8% |
+| German and Spanish | 5177 | 13.9% | 2.6% |
+
+Spanish, Italian and French share 4991 concepts, and 23.6% of them are
+similar in all three languages. 720 concepts (14.4%) are nouns and adjectives
+with a regular triple of endings, for example `-ción`, `-zione`, `-tion` (160
+concepts), `-ico`, `-ico`, `-ique` (61) and `-dad`, `-tà`, `-té` (59).
+
+Results of research and methods, in addition to section 2.4:
+
+| Result | What it means for the stage |
+|---|---|
+| Intercomprehension teaches the understanding of several related languages at once: EuroComRom (the "seven sieves", among them sound correspondences, shared vocabulary and suffixes) and EuRom5 (the same texts in several Romance languages). Both methods teach reading and assume that the learner knows one Romance language | learning the same words in several languages has a model, but for recognition, not for typing |
+| Words similar to known ones are learned more easily and forgotten more slowly (de Groot and Keijzer, 2000) | a family of similar forms may cost fewer reviews |
+| In typing, similar words start sooner but carry more spelling errors from the other language (Muscalu and Smiley, 2018) | a slip of one letter is interference, not a typo; part 14a records it |
+| Learning an equivalent in a new language at once lowers the recall of the word of an earlier foreign language; time for consolidation does not change it (Mickan et al., 2024) | keeping families apart stays the default |
+| Foreign languages mix with one another more than with the native language (the foreign language effect) | the measurement covers every pair of the plan's languages |
+| New similar words learned together usually hinder one another (Tinkham, Waring), and newer results are mixed (Nakata and Suzuki, 2018) | the benefit of learning by families is not certain |
+| I found no controlled study that compares learning the same words in several related languages together and apart | the mode comes as an option with measurement on the log; the data will decide about the default |
+
+#### Scope
+
+**14a. Grading and measurement (no change of due dates or of the queue)**
+
+1. **A form of another language with the grade "almost".** `answers.grade`
+   gets the parameter `near` with the codes of the plan's languages. When the
+   best verdict is "almost" with the class `typo` or `diacritic`, and the
+   typed answer is exactly an accepted form or the lemma of the entry of the
+   same concept in a language of `near` (the grade "know" by the rules of
+   that language, with strict diacritics), the verdict keeps its grade and
+   its error class and gets `other_lang`. The other classes of "almost"
+   (`form`, `article`, `case`, `reflexive`) mean a correct word of the card's
+   language, so they stay as they are: "grande" for French "grand" is the
+   feminine form, not the Spanish word. Nothing changes for languages
+   outside the plan either: a learner of Spanish alone who types "sempre"
+   made a typo.
+2. **The row and the result.** `session.evaluate` passes the plan's languages
+   other than the card's language as `near`, paused ones too. The log row and
+   the result carry `other_lang`, a field that exists already. The grade, the
+   due date and the drill stay the same, so no existing log changes its state
+   in a replay.
+3. **The message.** A result with `other_lang` and the grade "almost" gets
+   its own text ("Tak zapisuje się to słowo po włosku.") in the terminal, on
+   the card in the chat and on the session page. The terminal still shows the
+   difference of the letters.
+4. **Progress.** `status` gives both kinds of mix-ups in `confusions` with a
+   field `near`, and for each language `mixups_30`: the numbers of hard
+   mix-ups, near ones and all typed answers of 30 days. The measurement
+   covers typed answers, because a self-assessment leaves no text.
+5. **Comparison with FSRS-6.** `replay.compare` counts the log loss,
+   RMSE(bins) and AUC of every variant separately for reviews of cards whose
+   concept the learner already knew in another language of the plan, and for
+   the rest (`Prediction.sibling`). This is the measure of goal 6 of the
+   Nucifraga plan.
+6. **The coach.** The guide `coach` and the skill `vocab-coach` show both
+   kinds in the table of mix-ups.
+
+**14b. Learning by families as a setting of the plan**
+
+1. **The setting `together`.** A list of the codes of the languages whose
+   words the learner meets and reviews by families, for example
+   `together=es,it,fr`. The value `all` means every language of the plan, and
+   `none` an empty list, which is today's behaviour. The list takes codes of
+   the plan, at least two or none. Turning a language off (`lang.<code>=off`)
+   removes its code from the list. The family set is made of the languages of
+   the list that are not paused; with fewer than two the mode does not work.
+   The change goes through a preview and a confirmation like every change of
+   the plan and reaches `log/plan.jsonl`.
+2. **New words (`queue.select_new`).** `sibling_gap_days` does not hold
+   between two languages of the set; it stays towards languages outside the
+   set. A language of the set first takes the concepts that already have a
+   card in another language of the set (from before the day or chosen today)
+   and none in it yet, as long as the entry lies in its levels and is not put
+   aside. The order of this completion follows the day the concept was first
+   introduced and then the concept's identifier. Only then does the language
+   take words in its own course order. The split of the limit by weights, the
+   rotation of the languages and the adding of further words one at a time
+   stay, so the day's list still only grows. With equal weights a day is made
+   of whole families. With different weights, different levels or an entry
+   missing in one of the languages, the language takes a word alone, and the
+   family is completed first on the following days.
+3. **The order of the day (`queue.compute`).** Cards of the set's languages
+   with the same concept and direction stand side by side as a block, among
+   the new words and among the reviews. A block takes the place of its first
+   card in the order given by `review_order` and `mix`. The order of the
+   languages inside a block comes from the SHA-256 digest of the concept and
+   the day, so every language comes first at times and both computers build
+   the block the same way. `sibling_distance` applies to cards outside
+   blocks, and the drill stays as it is.
+4. **Reviews by families.** When a card of the set is due today and is on the
+   day's list, the cards of the same concept and direction introduced earlier
+   in the other languages of the set join its block as reviews before their
+   day (`phase: ahead`, a row with `ahead: true`, like the reviews a learner
+   adds in Stage 10). A card joins when it is not due today, was not seen
+   today, is not put aside, and at least half of its interval and at least
+   one day have passed since its last answer. FSRS-6 counts the shorter
+   interval as for every review before its day. `review_limit` counts due
+   cards as before, and the joined cards come on top of the limit. The pacing
+   of new words to the usual minutes counts them with the day's reviews. A
+   new field `DayPlan.companions` gives them to the counters and to the
+   forecast.
+5. **The first answer in a family (`session.logged_grade`).** A new word
+   asked at once as a question and answered right gets "known" only when the
+   learner has not seen another card of that concept in a language of the set
+   today. Otherwise it gets "know". A form derived from an equivalent shown a
+   moment earlier does not show knowledge from before the course, and "known"
+   would add another word to the day and give the interval of a known word.
+6. **The family table in a result (`session.record`).** The result of an
+   answer to a card of a language of the set gets the field `family`: a row
+   for every card of that family already introduced in the set, with the
+   language, the word and its split into the shared and the differing part.
+   A card that still waits in today's queue, in any stage, has the mark
+   `waiting` in its row instead of the word. The table leaves out a concept
+   the learner has not started in a language. The field `rule` gives the
+   correspondence of endings when it fits every word shown. Questions
+   (`next`, `today`) never hold the table, so the rule of a question without
+   its answer covers the equivalents too.
+7. **The module `families.py`** on the standard library: `shape` (an
+   identical, a near or a distinct form, as the findings define them),
+   `split` (the shared and the differing part to mark), `rule`, `table` and
+   `team` (the family set of a plan).
+8. **The data `data/lang/correspondences.json`.** Regular correspondences of
+   endings between the languages of the courses, the 19 patterns of the
+   measurement to begin with. A rule holds only for near stems, so "hablar"
+   and "parlare" do not get it. The content comes from the engine's data, not
+   from a model, so it carries no "(wygenerowane)" mark.
+9. **Forecast and simulation.** `progress.simulate`, `forecast` and
+   `replay --days` use the same choice of new words and the same joined
+   reviews. The preview of a change of `together` shows the forecast of 28
+   days before the change and after it: reviews and minutes a day.
+10. **Measuring the mode.** `status` gives in `families` the set and, for 30
+    days: the number of family blocks among the reviews, the recall of the
+    first card of a block and of the following cards (a measure of the hint
+    from the neighbour), and the language mix-ups per 100 typed answers.
+11. **Interfaces.** The terminal (`drill.py`) shows the family table after a
+    result. The server's tools return `family` in the results of
+    `vocab_answer`, `vocab_grade` and `vocab_reveal`, and `vocab_plan_change`
+    takes `together`. The card in the chat (`card.html`) and the session page
+    (`app.js`) draw the table under the result. The plan's form on the
+    session page has the choice of the set's languages, and the progress
+    screen shows the measurement. Every text comes from `pl.json`.
+12. **Guides and skills.** `server/guides/session.md`, `start.md` and
+    `coach.md` and the plugin's skills with `reference/plan-keys.md` describe
+    the setting, the table and the measurement. The assistant shows only the
+    words of the field `family` and adds no equivalents of its own. The coach
+    offers a family set for several related languages with few mix-ups, and a
+    return to keeping families apart when the mix-ups grow.
+
+**14c. Measurement on a log**
+
+`docs/pilot` gets a protocol: at least 14 days of learning with families
+apart, then at least 14 days with a family set, with the same languages and
+the same number of new words. The comparison takes numbers from `status` and
+`replay`: language mix-ups per 100 typed answers, the recall of each language
+over 30 days, reviews and minutes a day, the recall of the first and of the
+following cards of a block, and the error of FSRS-6 for cards with an
+equivalent. The part needs no code beyond 14a and 14b.
+
+#### Files
+
+| Layer | Files |
+|---|---|
+| engine | `answers.py`, `session.py`, `queue.py`, `progress.py`, `replay.py`, `plans.py`, `store.py`, `cli.py`, `drill.py`, a new `families.py` |
+| data | a new `data/lang/correspondences.json`, `data/i18n/pl.json`; the courses do not change, so `VERSION` in `tools/courses/build.py` stays |
+| server | `server/service.py`, `server/guides/*.md`, `server/static/card.html`, `app.html`, `app.js` |
+| plugin | `plugin/skills/*/SKILL.md`, `reference/plan-keys.md`, the files `scripts/build.py skills` generates |
+| documents | `README`, `QUICKSTART`, `docs/server`, `docs/pilot`, `plugin/README`, `docs/architecture.md`, `CHANGELOG`, this plan; every user-facing document in English and in Polish |
+| tests | `tests/test_answers.py`, `test_engine.py`, `test_simulation.py`, `test_schedule.py`, `test_drill.py`, `test_cli.py`, `test_server.py`, `test_web.py`, `test_sync.py`, `test_e2e.py`, a new `test_families.py`, a new `sessions/session-families.json` |
+
+#### Tests and simulations
+
+The unit and integration tests use the starter course in
+`tests/fixtures/courses`, which has the Spanish and French pairs they need:
+"grande" and "grand" (one letter), "fácil" and "facile", "la mano" and
+"la main", and the identical "dormir". I checked their present grades on
+19.11.2026.
+
+| Area | Test |
+|---|---|
+| a form of another language | "grand" for Spanish "grande" and "facile" for "fácil" with French in the plan give "almost" with the class `typo` and `other_lang: fr`, in the `lenient` mode too; without French in the plan the result is today's; "grande" for French "grand" stays a form of the word (the class `form`) without `other_lang`; the identical "dormir" gives "know"; "la main" for "la mano" still gives "dont_know" with `wrong_language` |
+| the state after a replay | a log from before the stage gives the same state of the cards and the same due dates after a replay |
+| the setting | `together` takes a list, `all` and `none`; it refuses a code outside the plan and a single code; turning a language off shortens the list; a change goes through a preview and a token; changes from two devices join through `log/plan.jsonl` |
+| new words | with equal weights a day is made of whole families; completion comes first; different weights, different levels, an entry put aside and a paused language lose no places of the limit; added words and the grade "known" only append cards to the day's list |
+| the order | the cards of a family stand side by side; the first language of a block changes between days; a language outside the set keeps the gap of 3 days and 5 positions |
+| reviews by families | a card joins from half of its interval and not earlier; its row has `ahead: true`; a card never appears twice in one day; the review limit, a day off and an interrupted session keep the order |
+| the first answer | the second card of a family answered right on the same day gets "know" and adds no word; the first one may still get "known" |
+| a question without its answer | at every step of a day no question and no `family` table holds an accepted form of a card that still waits in the queue; the check covers the commands, the MCP tools and `/api` |
+| the families module | the classes of `shape` on pairs of the starter course; `split` marks the difference; every rule of `correspondences.json` has at least 10 concepts in the packaged courses and covers no pair with distinct stems |
+| measurement | `mixups_30`, `confusions` with the field `near`, the recall of the first and of the following cards of a block and the groups in `replay` agree with a log in which the test itself placed a known number of mix-ups |
+| the forecast | the forecast of the first day equals the day's list in both modes; the preview of a change shows both forecasts |
+| interfaces | the terminal, the MCP tools, `/api`, the card and the session page give the same table; a full day through `/api` gives the same rows as the same answers through the commands, with a family set too |
+
+End-to-end simulations:
+
+| Simulation | Run | What it confirms |
+|---|---|---|
+| S1. The defaults | the existing simulation of 30 days (English with weight 2, German, Spanish, 12 new words, Sundays off) | the log has the same digest as before the stage: 1224 rows, SHA-256 `6e49b0db295f80f119828b469e2239cd027b2f2f222bfd8b09a547ba5d1e61d8` |
+| S2. A family set | 30 days, Spanish and French in the set, English outside it, run twice | both logs are identical byte for byte; the day's list does not change after answers; concepts of the set enter in both languages on the same day, and English keeps the gap of 3 days; the limit of new words is not exceeded; no card has two reviews on one day |
+| S3. A learner with interference | as S2, and for near forms the learner types the form of the other language with a fixed chance | the number of mix-ups in `status` equals the number the simulation placed, separately for near and hard ones; the grades and the due dates are those of a run with typos of the same grade |
+| S4. A change of the mode on the way | 15 days with families apart, then a family set for 15 days | families left behind are completed before new concepts; the number of cards after 30 days follows from the limit; nothing of the log is lost |
+| S5. The load | the forecast and a run of 28 days in both modes on the same log | the report gives reviews and minutes a day, the share of reviews before their day and the predicted recall; we set the allowed growth after the first measurement |
+| S6. Two computers and a phone | an extension of `tests/test_e2e.py`: the server as a process, the phone sets a family set and starts a block on the session page, a computer finishes the same block in the terminal after a synchronisation, a second computer types the form of the other language | every side ends with the same log and the same queue; the mix-up typed on the computer shows in the progress on the phone |
+| S7. A session with a model | `sessions/session-families.json`: a plan with a family set, the start of a session and one family | `session_test.py --check` prepares the learner without a model; the run with a model checks that questions hold no answers and that the table comes from the field `family` only |
+| S8. The browser | a walk through the session on the page at a width of 360 px and on a computer, in the light and the dark theme | the family table fits without horizontal scrolling; the console has no errors |
+
+The simulations check the mechanics: agreement on two computers, the load,
+questions without answers and the correct record of mix-ups. They do not
+decide whether learning by families improves memory, because a simulated
+learner has the memory the simulator assumes. Only part 14c will show that.
+
+#### Completion criteria
+
+| Criterion | Check |
+|---|---|
+| the defaults do not change | S1 gives the digest above; the whole existing test suite passes without a change of its expectations |
+| a slip of one letter is visible | "sempre" for "siempre" with Italian in the plan has `other_lang` and reaches `confusions`; the grade and the due date are those from before the stage |
+| learning by families works end to end | S2, S4 and S6 pass |
+| a question without its answer | the test of the table covers every step of S2 in three interfaces |
+| the load is known before the change | the preview of `together` shows the forecast before the change and after it; S5 gives the numbers for the stage's result |
+| the measurement can be trusted | S3 reproduces the number of mix-ups placed |
+| repository checks | `ruff`, `mypy`, `pytest` on Python 3.15 and 3.10, `build.py skills`, `validate.py`, `session_test.py --check`, `claude plugin validate --strict` |
+
+#### Compatibility of versions
+
+| Situation | Behaviour |
+|---|---|
+| log rows | new rows use existing fields (`other_lang`, `ahead`), so an older version replays them |
+| an older program with a plan that has `together` | leaves the unknown setting out, as since rc.11, and builds the day with families apart; the queue then differs between devices until the update |
+| the server | the server's deployment comes before the program's release, so the account knows the setting before a folder sends it |
+| the courses | no change; the new data file reaches `vocabbot.pyz` through `build.py skills` |
+
+#### Order
+
+1. 14a in one working session, with the release `1.0.0-rc.14` after your
+   approval. The part changes neither the queue nor the due dates, so it can
+   come before 14b.
+2. 14b in one or two sessions: the engine with the tests and the simulations
+   S1 to S5, then the interfaces, the guides, the documents and S6 to S8.
+3. 14c after at least 28 days of your learning.
+
+#### Decisions for your approval
+
+| Decision | Recommendation |
+|---|---|
+| the shape of the setting | a list `together` with language codes; it lets the Romance languages go together and English stay apart |
+| reviews by families | joining from half of the interval; placing side by side only the cards that fall on the same day would not keep families together, because the due dates part with every grade |
+| the first answer of a later card of a family | "know" instead of "known" |
+| the range of the correspondences | endings only; correspondences inside the stem ("noche", "notte", "nuit") need etymological data |
+| releasing 14a on its own | yes, because it corrects the grading whatever the family mode |
+
+#### Costs and approvals
+
+| Item | Cost | Approval |
+|---|---|---|
+| implementation, tests and the simulations S1 to S6 and S8 | no model costs | the approval of the stage |
+| S7 with a model | below 1 USD by the runs so far | a separate one |
+| push, tag, release on GitHub, PyPI, deployment | none | a separate one for each |
+
+#### Out of scope
+
+| Topic | Reason |
+|---|---|
+| one card for forms identical in two languages | the article and the gender often differ ("la leche", "il latte"), and every card has its own memory |
+| correspondences inside the stem | the courses have no etymological data |
+| reading by families, that is recognition cards of several languages at once as in EuRom5 | a decision after the measurement of part 14c |
+| similarity as a feature of the schedule | it belongs to the Nucifraga plan (goal 6 and the features of kinship and false friends) |
+| a change of the defaults | only after the data of part 14c |
+
 ---
 
 ## 11. Completeness check
@@ -2316,3 +2621,10 @@ account on 14.11.2026.
 - Bartolotti and Marian, learning a third language: https://bilingualism.northwestern.edu/wp-content/uploads/2018/05/BartolottiMarian2018.pdf
 - Anthropic, code execution tool (Python 3.11.12): https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool
 - Simon Willison, the Cowork environment (Python 3.10.12, Ubuntu 22.04): https://gist.github.com/simonw/35732f187edbe4fbd0bf976d013f22c8
+- EuroComRom, the "seven sieves" (a review of the book): https://my6tongues.blogspot.com/2019/06/eurocomrom-seven-sieves-how-to-read-all.html
+- EuRom5, reading strategies (Bonvino, Fiorenza, Cortés Velásquez, 2018): https://frontiersin.org/journals/communication/articles/10.3389/fcomm.2018.00029/full
+- de Groot and Keijzer (2000), similar words and retention: https://zendy.io/title/10.1111/0023-8333.00110
+- Muscalu and Smiley (2018), similar words in typing: https://resolve.cambridge.org/core/journals/bilingualism-language-and-cognition/article/abs/illusory-benefit-of-cognates-lexical-facilitation-followed-by-sublexical-interference-in-a-word-typing-task/004E5B5A197886449247CD857DDFB8CA
+- Mickan et al. (2024), "New in, old out", the publication: https://www.mpi.nl/publications/item3518623/new-old-out-does-learning-new-language-make-you-forget-previously-learned
+- Interference between non-native languages in trilingual speech: https://addi.ehu.eus/handle/10810/63415
+- Nakata and Suzuki (2018), learning semantically related words: https://www.cambridge.org/core/product/F58BA8D70385603B9C42E408BFCB8A10
