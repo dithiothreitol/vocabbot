@@ -24,7 +24,7 @@ from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from vocabbot import assets, session, store, term
+from vocabbot import assets, families, session, store, term
 from vocabbot.courses import Catalog, presentation, question
 from vocabbot.errors import VocabError
 from vocabbot.queue import STAGES, Item, compute, staged
@@ -601,7 +601,8 @@ class Drill:
 
     def family_lines(self, result: dict[str, Any], word: dict[str, Any]) -> None:
         """The family of the answered word in the other languages of the set (plan
-        `together`); a card still waiting today shows no word."""
+        `together`); a card still waiting today, or one whose word answers a waiting
+        card, shows no word."""
         family = result.get("family")
         if not family:
             return
@@ -609,8 +610,9 @@ class Drill:
         lines = []
         for row in family["rows"]:
             name = assets.language_name(row["lang"])
-            if row.get("waiting"):
-                shown = style(assets.text("family.waiting"), "dim")
+            instead = families.held_back(row)
+            if instead:
+                shown = style(instead, "dim")
             else:
                 shown = "".join(
                     str(part) if same else style(str(part), "bold", "yellow")

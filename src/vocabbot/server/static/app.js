@@ -804,7 +804,8 @@
   function nextCard() { onNext(S.data); }
 
   // the family of the answered word in the other languages learned together (plan
-  // `together`); a card still waiting today shows no word, as the engine leaves it out
+  // `together`); a card still waiting today, or one whose word answers a waiting card,
+  // shows no word, as the engine leaves it out
   function marked(parts) {
     var span = el("span");
     (parts || []).forEach(function (part) {
@@ -819,7 +820,8 @@
     var grid = el("div", "grid");
     family.rows.forEach(function (row) {
       grid.appendChild(el("span", "lang", langName(row.lang)));
-      grid.appendChild(row.waiting ? el("span", "waiting", t("family_waiting")) : marked(row.parts));
+      grid.appendChild(row.waiting ? el("span", "waiting", t("family_waiting"))
+        : row.hidden ? el("span", "waiting", t("family_hidden")) : marked(row.parts));
     });
     box.appendChild(grid);
     if (family.rule) {
@@ -828,7 +830,8 @@
     }
     return box;
   }
-  function percent(value) { return value === null || value === undefined ? "–" : Math.round(value * 100) + "%"; }
+  // a measurement of the families: a dash while there is nothing to measure
+  function measured(value, format) { return value === null || value === undefined ? "–" : format(value); }
   function familiesCard(families) {
     if (!families || !families.together || families.together.length < 2) return null;
     var card = el("section", "card");
@@ -837,9 +840,9 @@
     var kpis = el("div", "kpis");
     add(kpis,
       kpi("repeat", t("families_blocks"), families.blocks_30 || 0),
-      kpi("check", t("families_first"), percent(families.first_recall_30)),
-      kpi("check", t("families_following"), percent(families.following_recall_30)),
-      kpi("alert", t("families_mixups"), families.mixups_per_100 === null || families.mixups_per_100 === undefined ? "–" : families.mixups_per_100));
+      kpi("check", t("families_first"), measured(families.first_recall_30, percent)),
+      kpi("check", t("families_following"), measured(families.following_recall_30, percent)),
+      kpi("alert", t("families_mixups"), measured(families.mixups_per_100, number)));
     card.appendChild(kpis);
     return card;
   }

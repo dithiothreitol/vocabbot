@@ -2507,6 +2507,22 @@ publikowanie, z sumami zgodnymi z GitHubem. CI jest zielone. Serwer
 `vocabbot-server:1.0.0rc14-d5cf94d` działa pod `https://vocabbot.run`; zgodnie
 z rozdziałem o zgodności wersji wdrożyłem go przed publikacją programu.
 
+Poprawki po wydaniu (21.11.2026), za Twoją zgodą, bez zmiany wersji. Obie
+usterki wyszły przy zrzutach strony sesji do materiałów o wersji rc.14:
+
+1. Tabela rodziny odróżnia kartę, która sama czeka dziś (`waiting`, „czeka
+   dziś w kolejce”), od karty odpowiedzianej wcześniej, której słowo jest
+   odpowiedzią innej karty czekającej dziś (`hidden`, „ukryte do
+   dzisiejszego pytania”). Żaden z tych wierszy nie pokazuje słowa. Dotąd
+   oba miały napis „czeka dziś w kolejce”, także przy karcie już
+   odpowiedzianej: po przymiotniku „general” tabela tak opisywała włoskie
+   „generale” i francuskie „général”, choć czekały rzeczowniki „il
+   generale” i „le général”. Terminal, karta w czacie i strona sesji
+   pokazują oba napisy, a przewodnik i umiejętność sesji je opisują.
+2. Strona sesji pokazuje pomyłki języków na 100 odpowiedzi z przecinkiem
+   dziesiętnym („0,7” zamiast „0.7”), a karta „Nauka rodzinami” nie
+   nadpisuje już formatu procentów całej strony.
+
 ---
 
 ## 11. Weryfikacja kompletności

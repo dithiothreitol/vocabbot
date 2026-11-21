@@ -3,6 +3,21 @@
 The versions of VocabBot. The plugin uses semantic versions (`1.0.0-rc.1`);
 the Python package writes the same version as PEP 440 (`1.0.0rc1`).
 
+## Unreleased
+
+### Fixed
+
+- The family table in a result tells a card still waiting today (`waiting`,
+  "czeka dziś w kolejce") from a card answered before whose word is the
+  answer of another card waiting today (`hidden`, "ukryte do dzisiejszego
+  pytania"). Neither row shows the word. Until now both said "czeka dziś
+  w kolejce", also for a card already answered. The terminal, the card in
+  the chat and the session page show the two texts, and the guide and the
+  skill of the session describe them.
+- The session page writes the mix-ups of the families' measurement with a
+  decimal comma ("0,7", not "0.7"), and the measurement no longer redefines
+  the page's format of a percentage.
+
 ## 1.0.0-rc.14 - 2026-11-19
 
 Stage 14 of the plan: the same words in several languages learned together

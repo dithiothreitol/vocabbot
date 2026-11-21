@@ -24,6 +24,7 @@ from vocabbot import (
     assets,
     courses,
     doctor,
+    families,
     gate,
     plans,
     progress,
@@ -388,12 +389,12 @@ def render_next(data: dict[str, Any]) -> list[str]:
 
 def render_family(family: dict[str, Any] | None) -> list[str]:
     """The family of an answered word in the other languages learned together; a card
-    still waiting today shows no word."""
+    still waiting today, or one whose word answers a waiting card, shows no word."""
     if not family:
         return []
     lines = [assets.text("family.title")]
     for row in family["rows"]:
-        word = assets.text("family.waiting") if row.get("waiting") else row["word"]
+        word = families.held_back(row) or row["word"]
         lines.append(f"  {assets.language_name(row['lang'])}: {word}")
     rule = family.get("rule")
     if rule:

@@ -503,6 +503,7 @@
       "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang}).",
       "family_title": "Ta sama rodzina w innych językach nauki",
       "family_waiting": "czeka dziś w kolejce",
+      "family_hidden": "ukryte do dzisiejszego pytania",
       "family_rule": "Regularna odpowiedniość końcówek: {endings}"
     },
     "web": {
@@ -676,6 +677,7 @@
       "other_lang_near": "Tak wygląda to słowo w innym języku nauki ({lang}).",
       "family_title": "Ta sama rodzina w innych językach nauki",
       "family_waiting": "czeka dziś w kolejce",
+      "family_hidden": "ukryte do dzisiejszego pytania",
       "family_rule": "Regularna odpowiedniość końcówek: {endings}",
       "together": "Nauka rodzinami",
       "together_hint": "Wybrane języki poznają i powtarzają te same słowa razem. Wymaga co najmniej dwóch języków; bez wyboru każdy język ma własną kolejność.",
@@ -958,6 +960,7 @@
   "family": {
     "title": "Ta sama rodzina w innych językach nauki:",
     "waiting": "czeka dziś w kolejce",
+    "hidden": "ukryte do dzisiejszego pytania",
     "rule": "Regularna odpowiedniość końcówek: {endings}",
     "status": "Nauka rodzinami ({languages}): bloki rodzin w powtórkach z 30 dni: {blocks}, trafność pierwszej karty bloku: {first}, kolejnych kart: {following}, pomyłki języków na 100 wpisanych odpowiedzi: {mixups}",
     "forecast": "Prognoza na {days} dni: obecnie {reviews} powtórek i {minutes} min dziennie, po zmianie {reviews_after} powtórek i {minutes_after} min dziennie"

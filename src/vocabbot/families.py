@@ -292,10 +292,11 @@ def table(
 
     A row for every card of the family already introduced (`introduced`): its
     language, its word and the parts of the word that differ from the answered
-    one. A card still waiting today (`waiting`), or a word that is the answer of
-    a waiting card (`hidden`), gives a row with `waiting` and no word, so a
-    table never answers a question of the day. `rule` names the correspondence
-    of endings that fits every word shown with the answered one.
+    one. A card still waiting today (`waiting`) gives a row with `waiting` and
+    no word, and a card whose word is the answer of a waiting card (`hidden`) a
+    row with `hidden` and no word, so a table never answers a question of the
+    day. `rule` names the correspondence of endings that fits every word shown
+    with the answered one.
     """
     codes = team(plan)
     lang = str(entry.get("lang"))
@@ -316,8 +317,11 @@ def table(
             if not introduced(other_card):
                 continue
             shown = str(other["display"])
-            if other_card in waiting or normalize(shown).casefold() in hidden:
+            if other_card in waiting:
                 rows.append({"lang": code, "card": other_card, "waiting": True})
+                continue
+            if normalize(shown).casefold() in hidden:
+                rows.append({"lang": code, "card": other_card, "hidden": True})
                 continue
             rows.append(
                 {"lang": code, "card": other_card, "word": shown, "parts": parts(shown, word)}
@@ -333,3 +337,12 @@ def table(
         if found:
             out["rule"] = found
     return out
+
+
+def held_back(row: Mapping[str, Any]) -> str | None:
+    """What a table row without its word says instead, or None for a row with one."""
+    if row.get("waiting"):
+        return assets.text("family.waiting")
+    if row.get("hidden"):
+        return assets.text("family.hidden")
+    return None

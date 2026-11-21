@@ -395,9 +395,9 @@ def family_table(
 ) -> dict[str, Any] | None:
     """The family of an answered card in the other languages of the set (plan `together`).
 
-    A card that still waits today, in any stage, shows no word, and neither does
-    a word that answers a waiting card, so the table never answers a question of
-    the day.
+    A card that still waits today, in any stage, shows no word (`waiting`), and
+    neither does a word that answers a waiting card (`hidden`), so the table
+    never answers a question of the day.
     """
     if not dp.team:
         return None

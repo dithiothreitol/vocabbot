@@ -112,9 +112,10 @@ is shown: `new_words`, `answer_mode` (`type` or `self`), `sentence_translation`
   A result of a card learned by families (`together` in the plan) may hold
   `family`: show its rows under the result as "<language>: <word>", with the
   parts marked false in `parts` emphasised, a row with `waiting` as "czeka
-  dziś w kolejce" and `rule` as the endings that correspond. Show only these
-  words; never add an equivalent of your own, because a card of the family may
-  still wait today.
+  dziś w kolejce", a row with `hidden` (its word answers another card waiting
+  today) as "ukryte do dzisiejszego pytania" and `rule` as the endings that
+  correspond. Show only these words; never add an equivalent of your own,
+  because a card of the family may still wait today.
 
 **One card at a time (`batch` 1).** Every message holds the result of the
 last answer and then the next card from `next.items` of that result: its

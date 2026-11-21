@@ -332,7 +332,8 @@
     return block;
   }
   // the family of the answered word in the other languages learned together (plan `together`);
-  // a card still waiting today shows no word, as the engine leaves it out
+  // a card still waiting today, or one whose word answers a waiting card, shows no word, as
+  // the engine leaves it out
   function marked(parts) {
     var span = el("span");
     (parts || []).forEach(function (part) {
@@ -347,7 +348,8 @@
     var rows = el("div", "rows");
     family.rows.forEach(function (row) {
       rows.appendChild(el("span", "lang", (L.languages && L.languages[row.lang]) || String(row.lang).toUpperCase()));
-      rows.appendChild(row.waiting ? el("span", "waiting", text("family_waiting")) : marked(row.parts));
+      rows.appendChild(row.waiting ? el("span", "waiting", text("family_waiting"))
+        : row.hidden ? el("span", "waiting", text("family_hidden")) : marked(row.parts));
     });
     box.appendChild(rows);
     if (family.rule) {

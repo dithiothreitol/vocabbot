@@ -2564,6 +2564,23 @@ publishing, with sums that match GitHub's. CI is green. The server
 section on compatibility asks, I deployed it before the program was
 published.
 
+Fixes after the release (21.11.2026), with your approval, without a new
+version. The screenshots of the session page for the rc.14 materials
+showed both faults:
+
+1. The family table tells a card that waits today itself (`waiting`,
+   "czeka dziś w kolejce") from a card answered before whose word is the
+   answer of another card waiting today (`hidden`, "ukryte do
+   dzisiejszego pytania"). Neither row shows the word. Until now both said
+   "czeka dziś w kolejce", also for a card already answered: after the
+   adjective "general" the table said so of Italian "generale" and French
+   "général", while the waiting cards were the nouns "il generale" and "le
+   général". The terminal, the card in the chat and the session page show
+   both texts, and the guide and the skill of the session describe them.
+2. The session page shows the mix-ups between languages per 100 answers
+   with a decimal comma ("0,7", not "0.7"), and the card "Nauka rodzinami"
+   no longer redefines the percentage format of the whole page.
+
 ---
 
 ## 11. Completeness check

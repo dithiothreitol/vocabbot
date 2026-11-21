@@ -18,7 +18,8 @@ import pytest
 from conftest import card_of, correct, make_learner, moment
 
 import vocabbot
-from vocabbot import families, gate, plans, progress, session, store
+from vocabbot import assets, families, gate, plans, progress, session, store
+from vocabbot.answers import normalize
 from vocabbot.courses import Catalog, split_card
 from vocabbot.errors import VocabError
 from vocabbot.queue import compute
@@ -388,6 +389,7 @@ def test_no_question_and_no_table_answers_a_waiting_card(tmp_path: Path, catalog
         tmp_path, SET, new_per_day=10, together=["es", "fr"], new_words="ask", batch=3
     )
     tables = 0
+    kinds: Counter[str] = Counter()
     for offset in range(6):
         day = MONDAY + timedelta(days=offset)
         second = 0
@@ -408,11 +410,23 @@ def test_no_question_and_no_table_answers_a_waiting_card(tmp_path: Path, catalog
             for row in (result.get("family") or {}).get("rows", []):
                 tables += 1
                 if "word" in row:
+                    kinds["word"] += 1
                     assert row["card"] not in left
                     assert row["word"].casefold() not in hidden, (row, item)
+                elif row.get("waiting"):
+                    # the row's own card still waits today
+                    kinds["waiting"] += 1
+                    assert row["card"] in left, (row, item)
                 else:
-                    assert row["waiting"] is True
+                    # the row's card does not wait, but its word answers a card that does
+                    kinds["hidden"] += 1
+                    assert row == {"lang": row["lang"], "card": row["card"], "hidden": True}
+                    assert row["card"] not in left, (row, item)
+                    other = catalog.card(row["card"])
+                    assert other is not None
+                    assert normalize(str(other["display"])).casefold() in hidden, (row, item)
     assert tables > 20
+    assert kinds["word"] and kinds["waiting"], kinds
 
 
 def test_the_table_names_the_rule_of_endings(tmp_path: Path, catalog: Catalog) -> None:
@@ -443,6 +457,33 @@ def test_the_table_names_the_rule_of_endings(tmp_path: Path, catalog: Catalog) -
         set(),
     )
     assert waiting == {"rows": [{"lang": "fr", "card": card_of("fr", 31), "waiting": True}]}
+    # a card answered before whose word answers another card waiting today
+    hidden = families.table(
+        learner.plan(),
+        card_of("es", 31),
+        entry,
+        catalog,
+        lambda card: True,
+        set(),
+        {"grand"},
+    )
+    assert hidden == {"rows": [{"lang": "fr", "card": card_of("fr", 31), "hidden": True}]}
+    # a card that waits itself says so, also when its word answers another waiting card
+    both = families.table(
+        learner.plan(),
+        card_of("es", 31),
+        entry,
+        catalog,
+        lambda card: True,
+        {card_of("fr", 31)},
+        {"grand"},
+    )
+    assert both == waiting
+    # the terminal, the card in the chat and the session page tell the two rows apart
+    assert families.held_back(waiting["rows"][0]) == assets.text("family.waiting")
+    assert families.held_back(hidden["rows"][0]) == assets.text("family.hidden")
+    assert families.held_back(table["rows"][0]) is None
+    assert assets.text("family.waiting") != assets.text("family.hidden")
 
 
 # ---------------------------------------------------------------- measurement and forecast
