@@ -2581,6 +2581,13 @@ showed both faults:
    with a decimal comma ("0,7", not "0.7"), and the card "Nauka rodzinami"
    no longer redefines the percentage format of the whole page.
 
+Commit `9a7279d`; the tests pass (354 on Python 3.15 and 326 on 3.10, 1
+skipped without the group `data`), and so do `ruff`, `mypy`, `build.py
+skills`, `validate.py`, `session_test.py --check` and `claude plugin
+validate --strict`. The server `vocabbot-server:1.0.0rc14-9a7279d` runs at
+`https://vocabbot.run` since 21.11.2026. The program on PyPI stays at
+`1.0.0rc14` until the next release.
+
 ---
 
 ## 11. Completeness check

@@ -2523,6 +2523,13 @@ usterki wyszły przy zrzutach strony sesji do materiałów o wersji rc.14:
    dziesiętnym („0,7” zamiast „0.7”), a karta „Nauka rodzinami” nie
    nadpisuje już formatu procentów całej strony.
 
+Commit `9a7279d`; testy przechodzą (354 na Pythonie 3.15 i 326 na 3.10,
+1 pominięty bez grupy `data`), podobnie `ruff`, `mypy`, `build.py skills`,
+`validate.py`, `session_test.py --check` i `claude plugin validate
+--strict`. Serwer `vocabbot-server:1.0.0rc14-9a7279d` działa pod
+`https://vocabbot.run` od 21.11.2026. Program w PyPI zostaje w wersji
+`1.0.0rc14` do następnego wydania.
+
 ---
 
 ## 11. Weryfikacja kompletności
